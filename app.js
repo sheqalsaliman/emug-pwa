@@ -2202,7 +2202,12 @@ function markJobComplete(cid) {
   renderDashboard();
 }
 if('serviceWorker' in navigator) {
-  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Check for a new service worker version on every page load
+      reg.update();
+    }).catch(() => {});
+  });
 }
 
 // ─── BOOKING CALENDAR ────────────────────────────────────────────────────────
