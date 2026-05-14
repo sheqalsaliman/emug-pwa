@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\app.js\" -Raw; $lines = $content -split \"`n\"; \"Total lines: $\\($lines.Count\\)\"; \\($lines | Select-Object -Last 30\\) -join \"`n\")",
+      "PowerShell(node --check \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\app.js\" 2>&1)"
+    ]
+  }
+}

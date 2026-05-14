@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMUG — E Man Utama Group Sdn. Bhd.</title>
+  <meta name="description" content="Pakar Paip & Pembetungan Johor — Sistem Pengurusan EMUG">
+  <meta name="theme-color" content="#1a237e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ======================================================
+     PUBLIC NAVIGATION (visible on landing/complaint/track)
+     ====================================================== -->
+<nav id="pub-nav" class="pub-nav">
+  <div class="pub-nav-stripe"><div class="s-lime"></div><div class="s-navy"></div></div>
+  <div class="pub-nav-inner">
+    <div class="pub-nav-logo" onclick="showPubPage('landing')">
+      <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="34" fill="rgba(255,255,255,.15)"/>
+        <path d="M 20 46 Q 20 20 48 20 Q 48 46 20 46 Z" fill="#76b900" opacity=".9"/>
+        <text x="22" y="50" font-size="30" font-weight="900" fill="white" font-family="Arial,sans-serif">e</text>
+        <circle cx="26" cy="24" r="5" fill="white" opacity=".1"/>
+      </svg>
+      <div class="pub-nav-company">
+        <div class="pub-nav-name" id="pn-name">E MAN UTAMA GROUP SDN. BHD.</div>
+        <div class="pub-nav-tag" id="pn-tag">Pakar Paip &amp; Pembetungan Johor</div>
+      </div>
+    </div>
+    <div class="pub-nav-actions">
+      <button class="lang-toggle" onclick="toggleLang()" id="pub-lang-btn">EN</button>
+      <button class="staff-login-btn" onclick="showLoginPage()">
+        🔐 <span id="pn-login-btn">Log Masuk Kakitangan</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ======================================================
+     PAGE: LANDING
+     ====================================================== -->
+<div id="page-landing" class="pub-page active">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg-dec"></div>
+    <div class="hero-content">
+      <div class="hero-logo">
+        <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="36" cy="36" r="34" fill="#1a237e"/>
+          <circle cx="36" cy="36" r="28" fill="#162066" opacity=".6"/>
+          <path d="M 20 46 Q 20 20 48 20 Q 48 46 20 46 Z" fill="#76b900" opacity=".9"/>
+          <text x="22" y="50" font-size="30" font-weight="900" fill="white" font-family="Arial,sans-serif">e</text>
+          <circle cx="26" cy="24" r="5" fill="white" opacity=".12"/>
+        </svg>
+      </div>
+      <div class="hero-badge" id="h-badge">✅ Berlesen &amp; Berpengalaman</div>
+      <h1 class="hero-title" id="h-title">Pakar Paip &amp; Pembetungan<br>Johor</h1>
+      <p class="hero-subtitle" id="h-sub">E Man Utama Group Sdn. Bhd.</p>
+      <p class="hero-tagline" id="h-tag">Pasir Gudang, Johor &nbsp;•&nbsp; Sejak 2005</p>
+      <div class="hero-btns">
+        <button class="btn btn-lime btn-xl" onclick="showPubPage('complaint')" id="h-cta">
+          📋 Buat Aduan
+        </button>
+        <button class="btn btn-outline-white btn-xl" onclick="showPubPage('track')" id="h-track">
+          🔍 Semak Status
+        </button>
+      </div>
+    </div>
+    <div class="hero-wave">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" preserveAspectRatio="none">
+        <path fill="#f8f9fa" d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section style="background:var(--gray-50);">
+    <div class="services-section">
+      <div class="section-header">
+        <div class="section-tag" id="sv-tag">🔧 Perkhidmatan Kami</div>
+        <h2 class="section-title" id="sv-title">Apa Yang Kami Tawarkan</h2>
+        <p class="section-sub" id="sv-sub">Kami menyediakan pelbagai perkhidmatan paip dan pembetungan profesional di seluruh Johor.</p>
+      </div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon">🔧</div>
+          <div class="service-name" id="svc1-name">Paip Bocor</div>
+          <div class="service-desc" id="svc1-desc">Pembaikan dan penggantian paip bocor segera</div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">🚰</div>
+          <div class="service-name" id="svc2-name">Saliran Tersumbat</div>
+          <div class="service-desc" id="svc2-desc">Bersihkan saliran dan longkang yang tersumbat</div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">🚽</div>
+          <div class="service-name" id="svc3-name">Tandas Tersumbat</div>
+          <div class="service-desc" id="svc3-desc">Naiktaraf dan pembaikan sistem tandas</div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">🛢️</div>
+          <div class="service-name" id="svc4-name">Tangki Najis</div>
+          <div class="service-desc" id="svc4-desc">Pengosongan dan pembersihan tangki septik</div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">⚙️</div>
+          <div class="service-name" id="svc5-name">Pemasangan Baru</div>
+          <div class="service-desc" id="svc5-desc">Pasang sistem paip baru untuk rumah atau kilang</div>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">🔍</div>
+          <div class="service-name" id="svc6-name">Pemeriksaan Am</div>
+          <div class="service-desc" id="svc6-desc">Pemeriksaan menyeluruh sistem paip anda</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-section">
+    <div class="cta-stripe"><div class="s-lime"></div><div class="s-navy"></div></div>
+    <div class="cta-stripe-bot"><div class="s-lime"></div><div class="s-navy"></div></div>
+    <div class="cta-content">
+      <h2 class="cta-title" id="cta-title">Ada Masalah Paip? Kami Sedia Membantu!</h2>
+      <p class="cta-sub" id="cta-sub">Hantar aduan anda sekarang. Pasukan kami akan menghubungi anda dengan segera untuk pengesahan dan penjadualan.</p>
+      <div class="cta-btns">
+        <button class="btn btn-lime btn-lg" onclick="showPubPage('complaint')" id="cta-btn1">📋 Buat Aduan Sekarang</button>
+        <button class="btn btn-outline-white btn-lg" onclick="showPubPage('track')" id="cta-btn2">🔍 Semak Status Aduan</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials-section">
+    <div class="testimonials-inner">
+      <div class="section-header">
+        <div class="section-tag" id="ts-tag">⭐ Ulasan Pelanggan</div>
+        <h2 class="section-title" id="ts-title">Apa Kata Pelanggan Kami</h2>
+        <p class="section-sub" id="ts-sub">Kepuasan pelanggan adalah keutamaan kami.</p>
+      </div>
+      <div class="avg-rating-banner" id="avg-rating-banner">
+        <div>
+          <div class="avg-rating-num" id="avg-rating-num">4.8</div>
+          <div class="avg-stars" id="avg-stars">★★★★★</div>
+          <div class="avg-label" id="avg-label">Penilaian Purata</div>
+        </div>
+        <div class="avg-divider"></div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:900;" id="avg-count">124</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.75);" id="avg-count-label">Ulasan Diterima</div>
+        </div>
+        <div class="avg-divider"></div>
+        <div>
+          <div style="font-size:1.8rem;font-weight:900;">98%</div>
+          <div style="font-size:.82rem;color:rgba(255,255,255,.75);" id="avg-recommend">Mengesyorkan Kami</div>
+        </div>
+      </div>
+      <div class="testimonials-grid" id="testimonials-grid"></div>
+      <div style="text-align:center;margin-top:28px;">
+        <button class="btn btn-outline" onclick="showPubPage('feedback')" id="ts-leave-btn" style="border-color:var(--navy);color:var(--navy);">
+          ✍️ <span id="ts-leave-txt">Tinggalkan Ulasan Anda</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Track (landing page inline) -->
+  <section class="track-section">
+    <div class="track-section-inner">
+      <div class="section-header" style="margin-bottom:20px;">
+        <div class="section-tag" id="qt-tag">📋 Jejak Aduan</div>
+        <h2 class="section-title" id="qt-title">Semak Status Aduan Anda</h2>
+      </div>
+      <div class="track-card">
+        <div class="track-card-icon">🔍</div>
+        <div class="track-card-title" id="qt-card-title">Masukkan No. Rujukan</div>
+        <div class="track-card-sub" id="qt-card-sub">Gunakan no. rujukan yang diberikan semasa anda membuat aduan (contoh: EMUG-2026-0001)</div>
+        <div class="track-input-row">
+          <input type="text" class="form-control lg" id="quick-track-input" placeholder="EMUG-2026-XXXX" style="font-family:monospace;letter-spacing:1px;text-transform:uppercase;">
+          <button class="btn btn-primary" onclick="doQuickTrack()" id="qt-btn">🔍 <span id="qt-btn-txt">Semak</span></button>
+        </div>
+        <div id="quick-track-result" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Bar -->
+  <div class="contact-bar">
+    <div class="contact-bar-inner">
+      <div>
+        <div class="contact-item-icon">📞</div>
+        <div class="contact-item-label" id="cb-phone-lbl">Telefon</div>
+        <div class="contact-item-val">013-728 0397 / 07-252 0397</div>
+      </div>
+      <div>
+        <div class="contact-item-icon">📧</div>
+        <div class="contact-item-label" id="cb-email-lbl">Emel</div>
+        <div class="contact-item-val">admin@emanutama.com</div>
+      </div>
+      <div>
+        <div class="contact-item-icon">📍</div>
+        <div class="contact-item-label" id="cb-addr-lbl">Alamat</div>
+        <div class="contact-item-val" id="cb-addr-val">No. 8 &amp; 8A, Jln 8/21, Taman Air Biru, 81700 Pasir Gudang, Johor</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="pub-footer">
+    <div class="stripe equal" style="margin-bottom:16px;max-width:200px;margin-left:auto;margin-right:auto;border-radius:2px;"></div>
+    <div>© 2026 E Man Utama Group Sdn. Bhd. &nbsp;|&nbsp; Pengarah: Azman Bin Daud &nbsp;|&nbsp; <a href="https://www.emanutama.com">www.emanutama.com</a></div>
+    <div style="margin-top:6px;">No. 8 &amp; 8A, Jln 8/21, Taman Air Biru, 81700 Pasir Gudang, Johor</div>
+  </footer>
+</div><!-- /page-landing -->
+
+<!-- ======================================================
+     PAGE: COMPLAINT FORM
+     ====================================================== -->
+<div id="page-complaint" class="pub-page">
+  <div class="complaint-page">
+    <div class="complaint-inner">
+
+      <!-- Back nav -->
+      <div style="margin-bottom:20px;">
+        <button class="btn btn-ghost btn-sm" onclick="showPubPage('landing')" id="cf-back">
+          ← <span id="cf-back-txt">Kembali ke Laman Utama</span>
+        </button>
+      </div>
+
+      <div class="complaint-header">
+        <div class="complaint-header-icon">📋</div>
+        <h1 class="complaint-title" id="cf-title">Borang Aduan / Tempahan</h1>
+        <p class="complaint-sub" id="cf-sub">Isi borang di bawah dan pasukan kami akan menghubungi anda.</p>
+      </div>
+
+      <div class="complaint-card">
+        <div class="complaint-card-header">
+          <div class="complaint-card-title" id="cf-card-title">🔧 E Man Utama Group — Borang Aduan</div>
+          <div class="complaint-card-sub" id="cf-card-sub">Semua maklumat adalah sulit dan selamat</div>
+        </div>
+        <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+
+        <!-- Form View -->
+        <div id="cf-form-view" class="complaint-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" id="cf-lbl-name">Nama Penuh <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <span class="i-icon">👤</span>
+                <input type="text" class="form-control" id="cf-name" placeholder="Nama penuh anda">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="cf-lbl-phone">No. Telefon <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <span class="i-icon">📞</span>
+                <input type="tel" class="form-control" id="cf-phone" placeholder="011-12345678">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="cf-lbl-addr">Alamat Lengkap <span class="req">*</span></label>
+            <div class="input-icon-wrap">
+              <span class="i-icon" style="top:16px;transform:none;">📍</span>
+              <textarea class="form-control" id="cf-addr" rows="2" placeholder="No. rumah, jalan, taman, poskod, bandar..." style="padding-left:42px;"></textarea>
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button type="button" class="location-btn" id="cf-location-btn" onclick="pinLocation()">
+                📍 <span id="cf-loc-btn-txt">Pin Lokasi Saya</span>
+              </button>
+              <span style="font-size:.74rem;color:var(--gray-500);" id="cf-loc-hint">atau taip alamat di atas</span>
+            </div>
+            <div id="cf-location-result" style="display:none;"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" id="cf-lbl-prob">Jenis Masalah <span class="req">*</span></label>
+              <select class="form-control" id="cf-prob">
+                <option value="">-- Pilih Masalah --</option>
+                <option value="Paip bocor">🔧 Paip bocor / Leaking pipe</option>
+                <option value="Saliran tersumbat">🚰 Saliran tersumbat / Blocked drain</option>
+                <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
+                <option value="Tangki najis">🛢️ Tangki najis / Septic tank</option>
+                <option value="Pemasangan baru">⚙️ Pemasangan baru / New installation</option>
+                <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
+                <option value="Lain-lain">📝 Lain-lain / Others</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="cf-lbl-urgency">Keutamaan</label>
+              <select class="form-control" id="cf-urgency">
+                <option value="Normal">Normal</option>
+                <option value="Segera">🚨 Segera / Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Hidden inputs — updated by booking calendar JS -->
+          <input type="hidden" id="cf-date" value="">
+          <input type="hidden" id="cf-time" value="">
+
+          <!-- BOOKING CALENDAR WIDGET -->
+          <div class="form-group" style="margin-top:4px;">
+            <label class="form-label" id="cf-lbl-booking">📅 Tarikh &amp; Masa Tempahan <span class="req">*</span></label>
+            <div class="bk-widget" id="bk-widget">
+
+              <!-- Calendar panel -->
+              <div id="bk-cal-wrap">
+                <div class="bk-cal-nav">
+                  <button type="button" class="bk-nav-btn" onclick="bookingNavMonth(-1)">&#8249;</button>
+                  <span class="bk-cal-nav-label" id="bk-month-label"></span>
+                  <button type="button" class="bk-nav-btn" onclick="bookingNavMonth(1)">&#8250;</button>
+                </div>
+                <div class="bk-cal-days" id="bk-cal-days"></div>
+                <div class="bk-cal-grid" id="bk-cal-grid"></div>
+                <div class="bk-legend">
+                  <div class="bk-leg-item"><span class="bk-leg-dot green"></span><span id="bk-leg-avail">Tersedia</span></div>
+                  <div class="bk-leg-item"><span class="bk-leg-dot orange"></span><span id="bk-leg-ltd">Terhad</span></div>
+                  <div class="bk-leg-item"><span class="bk-leg-dot grey"></span><span id="bk-leg-full">Penuh / Tutup</span></div>
+                </div>
+              </div>
+
+              <!-- Slots panel (shown after date tapped) -->
+              <div id="bk-slots-wrap" style="display:none;">
+                <div class="bk-slots-header">
+                  <button type="button" class="bk-slots-back-btn" onclick="bookingBackToCalendar()">&#8592; <span id="bk-back-lbl">Tukar Tarikh</span></button>
+                  <span class="bk-slots-date-lbl" id="bk-slots-date-label"></span>
+                </div>
+                <div class="bk-slots-grid" id="bk-slots-grid"></div>
+              </div>
+
+              <!-- Selected booking summary -->
+              <div class="bk-summary" id="bk-summary" style="display:none;"></div>
+
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="cf-lbl-desc">Penerangan Masalah</label>
+            <textarea class="form-control" id="cf-desc" rows="3" placeholder="Terangkan masalah anda dengan lebih lanjut... (tidak wajib)"></textarea>
+          </div>
+
+          <!-- MEDIA UPLOAD -->
+          <div class="form-group">
+            <label class="form-label" id="cf-lbl-media">📷 Muat Naik Gambar/Video Masalah</label>
+            <div class="media-upload-area" id="media-upload-area" onclick="document.getElementById('cf-media-input').click()">
+              <div class="media-upload-placeholder" id="media-upload-placeholder">
+                <div class="up-icon">📷</div>
+                <div class="up-label" id="mup-label">Klik untuk muat naik gambar/video</div>
+                <div class="up-sub" id="mup-sub">JPG, PNG, GIF, MP4, MOV &nbsp;•&nbsp; Maks 5 fail</div>
+              </div>
+              <div class="media-preview-grid" id="media-preview-grid" style="display:none;"></div>
+            </div>
+            <input type="file" id="cf-media-input" multiple accept="image/jpeg,image/png,image/gif,video/mp4,video/quicktime" style="display:none;" onchange="handleMediaUpload(this)">
+            <div class="media-count-bar" id="media-count-bar" style="display:none;">
+              <span id="media-count-txt">0 / 5 fail</span>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="clearMedia(event)" id="mup-clear">🗑️ Buang Semua</button>
+            </div>
+          </div>
+
+          <div style="padding:14px;background:var(--lime-pale);border-radius:var(--r);border:1px solid rgba(118,185,0,.25);margin-bottom:18px;">
+            <div style="font-size:.78rem;color:var(--lime-dark);font-weight:600;">ℹ️ <span id="cf-note-txt">Setelah menghantar borang, anda akan menerima nombor rujukan. Simpan nombor rujukan tersebut untuk menyemak status aduan anda.</span></div>
+          </div>
+
+          <button class="btn btn-lime btn-block btn-lg" onclick="submitComplaint()" id="cf-submit-btn">
+            📤 <span id="cf-submit-txt">Hantar Aduan</span>
+          </button>
+        </div>
+
+        <!-- Confirmation View -->
+        <div id="cf-confirm-view" style="display:none;" class="confirm-state">
+          <div class="confirm-icon">✅</div>
+          <div class="confirm-title" id="cc-title">Aduan Berjaya Dihantar!</div>
+          <div class="confirm-sub" id="cc-sub">Terima kasih. Pasukan kami akan menghubungi anda untuk pengesahan dan penjadualan kerja.</div>
+          <div class="ref-display">
+            <div class="ref-label" id="cc-ref-lbl">No. Rujukan Aduan Anda</div>
+            <div class="ref-number" id="cc-ref-num">EMUG-2026-0001</div>
+          </div>
+          <p style="font-size:.82rem;color:var(--gray-500);margin-top:8px;" id="cc-save-note">Sila simpan nombor rujukan ini untuk menyemak status aduan anda.</p>
+          <div class="confirm-actions">
+            <button class="btn btn-lime" onclick="showTrackWithRef()" id="cc-track-btn">🔍 Semak Status</button>
+            <button class="btn btn-outline" onclick="showPubPage('landing')" id="cc-home-btn">🏠 Kembali ke Laman Utama</button>
+          </div>
+        </div>
+      </div><!-- /complaint-card -->
+    </div>
+  </div>
+</div><!-- /page-complaint -->
+
+<!-- ======================================================
+     PAGE: TRACK STATUS
+     ====================================================== -->
+<div id="page-track" class="pub-page">
+  <div class="track-page">
+    <div class="track-inner">
+
+      <div style="margin-bottom:20px;">
+        <button class="btn btn-ghost btn-sm" onclick="showPubPage('landing')" id="tr-back">
+          ← <span id="tr-back-txt">Kembali ke Laman Utama</span>
+        </button>
+      </div>
+
+      <div class="track-header">
+        <div class="complaint-header-icon">🔍</div>
+        <h1 class="complaint-title" id="tr-title">Semak Status Aduan</h1>
+        <p class="complaint-sub" id="tr-sub">Masukkan nombor rujukan anda untuk menyemak status terkini.</p>
+      </div>
+
+      <div class="track-search-card">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" id="tr-ref-lbl">No. Rujukan Aduan</label>
+          <div class="input-icon-wrap">
+            <span class="i-icon">🔖</span>
+            <input type="text" class="form-control lg" id="track-ref-input"
+              placeholder="EMUG-2026-XXXX"
+              style="font-family:monospace;letter-spacing:1px;text-transform:uppercase;"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')doTrack()">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="doTrack()" id="tr-btn">
+          🔍 <span id="tr-btn-txt">Semak Status</span>
+        </button>
+      </div>
+
+      <div id="track-result-area"></div>
+
+    </div>
+  </div>
+</div><!-- /page-track -->
+
+<!-- ======================================================
+     PAGE: FEEDBACK / RATING (Public)
+     ====================================================== -->
+<div id="page-feedback" class="pub-page">
+  <div class="feedback-page">
+    <div class="feedback-inner">
+      <div style="margin-bottom:20px;">
+        <button class="btn btn-ghost btn-sm" onclick="showPubPage('landing')" id="fb-back">
+          ← <span id="fb-back-txt">Kembali ke Laman Utama</span>
+        </button>
+      </div>
+      <div class="complaint-header">
+        <div class="complaint-header-icon">⭐</div>
+        <h1 class="complaint-title" id="fb-title">Kongsi Pengalaman Anda</h1>
+        <p class="complaint-sub" id="fb-sub">Ulasan anda membantu kami menambah baik perkhidmatan.</p>
+      </div>
+
+      <!-- Form View -->
+      <div id="fb-form-view">
+        <div class="complaint-card">
+          <div class="complaint-card-header">
+            <div class="complaint-card-title" id="fb-card-title">⭐ Borang Penilaian Perkhidmatan</div>
+            <div class="complaint-card-sub" id="fb-card-sub">Berikan penilaian jujur anda</div>
+          </div>
+          <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+          <div style="padding:24px 28px;">
+            <div class="form-group">
+              <label class="form-label" id="fb-lbl-ref">No. Rujukan Aduan <span class="req">*</span></label>
+              <div class="input-icon-wrap">
+                <span class="i-icon">🔖</span>
+                <input type="text" class="form-control" id="fb-ref" placeholder="EMUG-2026-XXXX"
+                  style="font-family:monospace;letter-spacing:1px;text-transform:uppercase;"
+                  oninput="this.value=this.value.toUpperCase();checkFeedbackRef()">
+              </div>
+              <div id="fb-ref-error" style="margin-top:6px;font-size:.8rem;color:var(--danger);display:none;"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="fb-lbl-name">Nama Anda (tidak wajib)</label>
+              <input type="text" class="form-control" id="fb-name" placeholder="Nama atau 'Pelanggan EMUG'">
+            </div>
+            <div class="section-divider" style="margin:16px 0 20px;"></div>
+            <label class="form-label" id="fb-lbl-ratings">Penilaian Perkhidmatan</label>
+            <div class="star-rating-group">
+              <div class="star-row">
+                <span class="star-row-label" id="fb-lbl-quality">🔧 Kualiti Kerja</span>
+                <div class="star-picker" id="stars-quality" data-cat="quality">
+                  <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+                  <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+                </div>
+              </div>
+              <div class="star-row">
+                <span class="star-row-label" id="fb-lbl-time">⏱️ Ketepatan Masa</span>
+                <div class="star-picker" id="stars-time" data-cat="timeliness">
+                  <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+                  <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+                </div>
+              </div>
+              <div class="star-row">
+                <span class="star-row-label" id="fb-lbl-service">😊 Layanan Kakitangan</span>
+                <div class="star-picker" id="stars-service" data-cat="service">
+                  <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+                  <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span><span class="star" data-v="5">★</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:14px;padding:10px 14px;background:var(--gray-50);border-radius:var(--r-lg);text-align:center;">
+              <div style="font-size:.8rem;color:var(--gray-500);margin-bottom:4px;" id="fb-overall-lbl">Penilaian Keseluruhan</div>
+              <div style="font-size:1.4rem;font-weight:700;color:var(--navy);" id="fb-overall-display">—</div>
+            </div>
+            <div class="form-group mt-2">
+              <label class="form-label" id="fb-lbl-comment">Ulasan Anda</label>
+              <textarea class="form-control" id="fb-comment" rows="4" placeholder="Kongsikan pengalaman anda dengan pasukan EMUG..."></textarea>
+            </div>
+            <button class="btn btn-lime btn-block btn-lg" onclick="submitFeedback()" id="fb-submit-btn">
+              ⭐ <span id="fb-submit-txt">Hantar Ulasan</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm View -->
+      <div id="fb-confirm-view" style="display:none;">
+        <div class="complaint-card">
+          <div class="confirm-state" style="padding:40px 28px;">
+            <div class="confirm-icon">🌟</div>
+            <div class="confirm-title" style="color:var(--navy);" id="fb-cc-title">Terima Kasih Atas Ulasan Anda!</div>
+            <div class="confirm-sub" id="fb-cc-sub">Ulasan anda telah kami terima dan akan dipaparkan setelah disemak.</div>
+            <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:14px 20px;margin:16px 0;text-align:left;">
+              <div style="font-size:.82rem;color:var(--gray-500);margin-bottom:4px;">No. Rujukan</div>
+              <div style="font-weight:600;font-family:monospace;" id="fb-confirm-ref">—</div>
+              <div style="font-size:.82rem;color:var(--gray-500);margin-top:8px;margin-bottom:4px;">Nama</div>
+              <div style="font-weight:600;" id="fb-confirm-name">—</div>
+              <div style="font-size:.82rem;color:var(--gray-500);margin-top:8px;margin-bottom:4px;">Penilaian</div>
+              <div style="font-size:1.1rem;" id="fb-confirm-stars">—</div>
+            </div>
+            <div class="confirm-actions">
+              <button class="btn btn-primary" onclick="showPubPage('landing')" id="fb-cc-home">🏠 Kembali ke Laman Utama</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-feedback -->
+
+<!-- ======================================================
+     PAGE: STAFF LOGIN
+     ====================================================== -->
+<div id="page-login" style="display:none;">
+  <div class="login-page">
+    <div class="login-stripe-t"><div class="s-l"></div><div class="s-n"></div></div>
+
+    <div class="login-card">
+      <div class="login-card-header">
+        <div class="login-logo">
+          <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="36" cy="36" r="34" fill="#1a237e"/>
+            <circle cx="36" cy="36" r="28" fill="#162066" opacity=".6"/>
+            <path d="M 20 46 Q 20 20 48 20 Q 48 46 20 46 Z" fill="#76b900" opacity=".9"/>
+            <text x="22" y="50" font-size="30" font-weight="900" fill="white" font-family="Arial,sans-serif">e</text>
+            <circle cx="26" cy="24" r="5" fill="white" opacity=".12"/>
+          </svg>
+        </div>
+        <div class="login-company">E MAN UTAMA GROUP SDN. BHD.</div>
+        <div class="login-tagline" id="li-tagline">Pakar Paip &amp; Pembetungan Johor</div>
+      </div>
+      <div class="login-card-stripe"><div class="s-l"></div><div class="s-n"></div></div>
+      <div class="login-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+          <div class="login-title" id="li-title">🔐 Log Masuk Kakitangan</div>
+          <button class="lang-toggle dark" onclick="toggleLang()" id="login-lang-btn">EN</button>
+        </div>
+
+        <div class="login-error" id="login-error">
+          ❌ <span id="login-error-msg">Nama pengguna atau kata laluan salah.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" id="li-lbl-user">Nama Pengguna</label>
+          <div class="input-icon-wrap">
+            <span class="i-icon">👤</span>
+            <input type="text" class="form-control" id="login-user" placeholder="admin / ali / siti" autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="li-lbl-pass">Kata Laluan</label>
+          <div class="input-icon-wrap">
+            <span class="i-icon">🔒</span>
+            <input type="password" class="form-control" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()" id="li-btn">
+          🔑 <span id="li-btn-txt">Log Masuk</span>
+        </button>
+
+        <div class="demo-section">
+          <div class="demo-label" id="li-demo-lbl">Akaun Demo — klik untuk isi:</div>
+          <div class="demo-grid">
+            <button class="demo-btn" onclick="fillDemo('admin','admin123')">👑 Admin (Azman)</button>
+            <button class="demo-btn" onclick="fillDemo('ali','staff123')">🔧 Staff (Ali)</button>
+            <button class="demo-btn" onclick="fillDemo('siti','staff456')">🔧 Staff (Siti)</button>
+            <button class="demo-btn" onclick="fillDemo('op1','op123')" style="background:linear-gradient(135deg,#76b900,#5a8c00);color:white;">🏗️ Operator (Hafiz)</button>
+            <button class="demo-btn" onclick="fillDemo('op2','op456')" style="background:linear-gradient(135deg,#76b900,#5a8c00);color:white;">🏗️ Operator (Zainal)</button>
+            <button class="demo-btn" onclick="fillDemo('op3','op789')" style="background:linear-gradient(135deg,#76b900,#5a8c00);color:white;">🏗️ Operator (Fadzli)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="back-to-home">
+      <button onclick="showPublicSection()">← <span id="li-back">Kembali ke Laman Utama</span></button>
+    </div>
+
+    <div class="login-footer">
+      📍 No. 8 &amp; 8A, Jln 8/21, Taman Air Biru, 81700 Pasir Gudang, Johor<br>
+      📞 013-728 0397 &nbsp;|&nbsp; 📧 admin@emanutama.com
+    </div>
+
+    <div class="login-stripe-b"><div class="s-l"></div><div class="s-n"></div></div>
+  </div>
+</div><!-- /page-login -->
+
+<!-- ======================================================
+     PRIVATE APP (Admin / Staff Dashboard)
+     ====================================================== -->
+<div id="page-app">
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="app-header-stripe"><div class="s-l"></div><div class="s-n"></div></div>
+    <div class="app-header-inner">
+      <button class="app-menu-btn" onclick="toggleSidebar()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+      </button>
+      <div class="app-logo-wrap" onclick="navigate('dashboard')">
+        <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="36" cy="36" r="34" fill="rgba(255,255,255,.12)"/>
+          <path d="M 20 46 Q 20 20 48 20 Q 48 46 20 46 Z" fill="#76b900" opacity=".9"/>
+          <text x="22" y="50" font-size="30" font-weight="900" fill="white" font-family="Arial,sans-serif">e</text>
+        </svg>
+        <div>
+          <div class="app-logo-name">E MAN UTAMA GROUP</div>
+          <div class="app-logo-tag" id="ah-tag">Pakar Paip &amp; Pembetungan Johor</div>
+        </div>
+      </div>
+      <div class="app-header-actions">
+        <button class="lang-toggle" onclick="toggleLang()" id="app-lang-btn">EN</button>
+        <div class="notif-wrap">
+          <button class="notif-btn" onclick="toggleNotifDD()">🔔
+            <span class="notif-badge" id="notif-badge" style="display:none;">0</span>
+          </button>
+          <div class="notif-dd" id="notif-dd">
+            <div class="notif-dd-head">
+              🔔 <span id="ah-notif">Pemberitahuan</span>
+              <button onclick="markAllRead()" id="ah-mark-all">Baca Semua</button>
+            </div>
+            <div class="notif-dd-list" id="notif-dd-list"></div>
+          </div>
+        </div>
+        <div class="user-wrap">
+          <div class="user-avatar" id="app-user-av" onclick="toggleUserDD()">A</div>
+          <div class="user-dd" id="user-dd">
+            <div class="user-dd-item" onclick="navigate('profile')">👤 <span id="ah-profile">Profil Saya</span></div>
+            <div class="user-dd-item danger" onclick="doLogout()">🚪 <span id="ah-logout">Log Keluar</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-user">
+        <div class="sidebar-av" id="sb-av">A</div>
+        <div class="sidebar-name" id="sb-name">Admin</div>
+        <span class="sidebar-role-badge" id="sb-role">Pentadbir</span>
+      </div>
+      <div class="sidebar-stripe"><div class="s-l"></div><div class="s-n"></div></div>
+      <div class="sidebar-nav" id="sidebar-nav"></div>
+      <div class="sidebar-bottom">
+        <button class="btn btn-outline btn-block btn-sm" onclick="doLogout()">
+          🚪 <span id="sb-logout">Log Keluar</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+
+      <!-- DASHBOARD -->
+      <div class="dash-page active" id="dp-dashboard">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">📊 <span id="dp-d-title">Papan Pemuka</span></div>
+              <div class="page-sub" id="dp-d-sub">Selamat datang! Ini ringkasan sistem hari ini.</div>
+            </div>
+            <div id="dp-d-date" style="font-size:.85rem;color:var(--gray-500);font-weight:600;"></div>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="stats-grid" id="d-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="dash-cols">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📋 <span id="d-recent-lbl">Aduan Terkini</span></div>
+              <button class="btn btn-sm btn-outline" onclick="navigate('complaints')" id="d-view-all">Lihat Semua</button>
+            </div>
+            <div class="card-body" id="d-recent-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔔 <span id="d-notif-lbl">Pemberitahuan</span></div></div>
+            <div class="card-body" id="d-notif-preview"></div>
+          </div>
+        </div>
+        <!-- Staff overview — admin only -->
+        <div class="card" id="d-staff-card">
+          <div class="card-header"><div class="card-title">👷 <span id="d-staff-lbl">Ikhtisar Kakitangan</span></div></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th id="d-th-name">Nama</th>
+                  <th id="d-th-today">Hari Ini</th>
+                  <th id="d-th-pend">Menunggu</th>
+                  <th id="d-th-prog">Sedang Berjalan</th>
+                  <th id="d-th-done">Selesai</th>
+                </tr></thead>
+                <tbody id="d-staff-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLAINTS (admin view all / staff view assigned) -->
+      <div class="dash-page" id="dp-complaints">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">📋 <span id="cp-title">Senarai Aduan</span></div>
+              <div class="page-sub" id="cp-sub">Semua aduan yang diterima</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <div class="search-bar" style="flex:1;min-width:200px;max-width:360px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="cp-search" placeholder="Cari aduan..." oninput="renderComplaintsList()">
+          </div>
+          <div class="filter-chips" id="cp-chips"></div>
+        </div>
+        <div id="cp-list"></div>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div class="dash-page" id="dp-schedule">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">🗓️ <span id="sc-title">Jadual Kerja</span></div>
+              <div class="page-sub" id="sc-sub">Lihat jadual kerja harian/mingguan</div>
+            </div>
+            <div class="schedule-tabs">
+              <button class="schedule-tab active" id="sc-tab-day" onclick="switchSchedView('day')">Hari</button>
+              <button class="schedule-tab" id="sc-tab-week" onclick="switchSchedView('week')">Minggu</button>
+            </div>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="date-nav">
+          <button class="date-nav-btn" onclick="navDate(-1)">◀</button>
+          <div class="date-display" id="sc-date-display"></div>
+          <button class="date-nav-btn" onclick="navDate(1)">▶</button>
+          <button class="btn btn-sm btn-outline" onclick="goToday()" id="sc-today">Hari Ini</button>
+        </div>
+        <div id="sc-day-view"><div id="sc-day-content"></div></div>
+        <div id="sc-week-view" style="display:none;"><div class="week-grid" id="sc-week-grid"></div></div>
+      </div>
+
+      <!-- STAFF MANAGEMENT (admin only) -->
+      <div class="dash-page" id="dp-staff">
+        <div class="page-header">
+          <div class="page-title">👷 <span id="sf-title">Kakitangan</span></div>
+          <div class="page-sub" id="sf-sub">Urus senarai kakitangan</div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div id="sf-content"></div>
+      </div>
+
+      <!-- REPORTS (admin only) -->
+      <div class="dash-page" id="dp-reports">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">📈 <span id="rp-title">Laporan</span></div>
+              <div class="page-sub" id="rp-sub">Statistik dan analisis kerja</div>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="window.print()">🖨️ Print</button>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="stats-grid" id="rp-stats"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="dash-cols">
+          <div class="card">
+            <div class="card-header"><div class="card-title">📊 <span id="rp-status-lbl">Status Kerja</span></div></div>
+            <div class="card-body" id="rp-status-chart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔧 <span id="rp-type-lbl">Jenis Masalah</span></div></div>
+            <div class="card-body" id="rp-type-chart"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📋 <span id="rp-all-lbl">Semua Rekod</span></div></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th id="rp-th-ref">No. Rujukan</th>
+                  <th id="rp-th-cust">Pelanggan</th>
+                  <th id="rp-th-prob">Masalah</th>
+                  <th id="rp-th-staff">Kakitangan</th>
+                  <th id="rp-th-date">Tarikh</th>
+                  <th>Status</th>
+                </tr></thead>
+                <tbody id="rp-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="dash-page" id="dp-notifications">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">🔔 <span id="nt-title">Pemberitahuan</span></div>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="markAllRead()" id="nt-mark-all">Tandakan Semua Dibaca</button>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="card">
+          <div class="card-body" id="all-notif-list"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="dash-page" id="dp-profile">
+        <div class="page-header">
+          <div class="page-title">👤 <span id="pr-title">Profil Saya</span></div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="card"><div class="card-body" id="pr-content"></div></div>
+      </div>
+
+      <!-- FEEDBACK MANAGEMENT (admin only) -->
+      <div class="dash-page" id="dp-feedback">
+        <div class="page-header">
+          <div class="page-header-row">
+            <div>
+              <div class="page-title">⭐ <span id="fba-title">Pengurusan Ulasan</span></div>
+              <div class="page-sub" id="fba-sub">Semak dan urus ulasan pelanggan</div>
+            </div>
+          </div>
+        </div>
+        <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
+        <div class="feedback-summary-grid" id="fba-summary"></div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 <span id="fba-list-title">Semua Ulasan</span></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="font-size:.78rem;color:var(--gray-500);" id="fba-published-count"></span>
+            </div>
+          </div>
+          <div class="card-body" id="fba-list"></div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /app-body -->
+</div><!-- /page-app -->
+
+<!-- ======================================================
+     MODALS
+     ====================================================== -->
+
+<!-- Assign / Edit Job Modal -->
+<div class="modal-overlay" id="modal-job">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="mj-title">📋 Edit Aduan</div>
+        <button class="modal-close" onclick="closeModal('modal-job')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;background:var(--gray-50);border-radius:var(--r);padding:14px;font-size:.85rem;">
+        <div><span class="text-muted">Pelanggan:</span><br><strong id="mj-cust-name"></strong></div>
+        <div><span class="text-muted">Telefon:</span><br><strong id="mj-cust-phone"></strong></div>
+        <div style="grid-column:1/-1;"><span class="text-muted">Masalah:</span><br><strong id="mj-prob"></strong></div>
+        <div style="grid-column:1/-1;"><span class="text-muted">Penerangan:</span><br><span id="mj-desc" style="color:var(--gray-700);"></span></div>
+        <div><span class="text-muted">Tarikh Pilihan:</span><br><strong id="mj-date"></strong></div>
+        <div><span class="text-muted">Masa Pilihan:</span><br><strong id="mj-time"></strong></div>
+      </div>
+      <!-- Section 1: Customer complaint photos (amber) -->
+      <div id="mj-cust-photos" style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1px solid #fed7aa;"></div>
+      <!-- Operator accept/complete info -->
+      <div id="mj-op-info" style="margin-bottom:14px;padding:10px 14px;background:#f0fdf4;border-radius:var(--r);border:1px solid #86efac;display:none;font-size:.82rem;"></div>
+      <!-- Section 2: Operator before/during/after gallery (navy) -->
+      <div id="mj-op-gallery" style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1px solid var(--gray-200);"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" id="mj-lbl-assign">Tugaskan Kepada</label>
+          <select class="form-control" id="mj-assign">
+            <option value="">-- Belum Ditugaskan --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="mj-lbl-status">Status</label>
+          <select class="form-control" id="mj-status">
+            <option value="Menunggu">⏳ Menunggu</option>
+            <option value="Sedang Berjalan">🔄 Sedang Berjalan</option>
+            <option value="Selesai">✅ Selesai</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="mj-lbl-sched-date">Tarikh Kerja (Jadual)</label>
+        <input type="date" class="form-control" id="mj-sched-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="mj-lbl-notes">Nota Admin</label>
+        <textarea class="form-control" id="mj-notes" rows="2" placeholder="Nota untuk kakitangan..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="deleteComplaint()" id="mj-delete">🗑️ Padam</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-job')" id="mj-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="saveJob()" id="mj-save">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Status Update Modal (staff) -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="ms-title">🔄 Kemaskini Status</div>
+        <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--gray-50);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:.88rem;">
+        <div id="ms-job-info"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="ms-lbl-status">Status Baru</label>
+        <select class="form-control" id="ms-status">
+          <option value="Menunggu">⏳ Menunggu</option>
+          <option value="Sedang Berjalan">🔄 Sedang Berjalan</option>
+          <option value="Selesai">✅ Selesai</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="ms-lbl-note">Nota Juruteknik</label>
+        <textarea class="form-control" id="ms-note" rows="3" placeholder="Catatan kerja, bahan digunakan, dll..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-status')" id="ms-cancel">Batal</button>
+      <button class="btn btn-primary" onclick="confirmStatusUpdate()" id="ms-confirm">✓ Kemaskini</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     GALLERY MODAL (Before/During/After Photos)
+     ====================================================== -->
+<div class="modal-overlay gallery-modal" id="modal-gallery">
+  <div class="modal" style="max-width:660px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="gallery-modal-title">📷 Galeri Foto Kerja</div>
+        <button class="modal-close" onclick="closeModal('modal-gallery')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.82rem;color:var(--gray-600);margin-bottom:14px;" id="gm-job-info"></div>
+      <div class="gallery-tabs" id="gallery-tabs">
+        <button class="gallery-tab gallery-tab-btn active" data-tab="before" onclick="switchGalleryTab('before')">📷 Sebelum</button>
+        <button class="gallery-tab gallery-tab-btn" data-tab="during" onclick="switchGalleryTab('during')">🔧 Semasa</button>
+        <button class="gallery-tab gallery-tab-btn" data-tab="after" onclick="switchGalleryTab('after')">✅ Selepas</button>
+      </div>
+      <div class="gallery-grid" id="gallery-grid"></div>
+      <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">
+    </div>
+    <div class="modal-footer" style="justify-content:flex-start;">
+      <span style="font-size:.78rem;color:var(--gray-500);" id="gm-count-txt"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     FULLSCREEN PHOTO VIEWER
+     ====================================================== -->
+<div class="fullscreen-viewer" id="fullscreen-viewer" onclick="closeFullscreen(event)">
+  <button class="fullscreen-close" onclick="closeFullscreenBtn()">✕</button>
+  <div class="fullscreen-nav">
+    <button id="fs-prev" onclick="fullscreenNav(-1);event.stopPropagation()">◀</button>
+    <button id="fs-next" onclick="fullscreenNav(1);event.stopPropagation()">▶</button>
+  </div>
+  <img id="fullscreen-img" src="" alt="">
+  <div class="fullscreen-caption" id="fullscreen-caption"></div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

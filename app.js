@@ -1,0 +1,2353 @@
+﻿/* ===== EMUG SYSTEM — app.js (v2) ===== */
+'use strict';
+
+// ─── LANGUAGE STRINGS ────────────────────────────────────────────────────────
+const T = {
+  bm: {
+    tagline:'Pakar Paip & Pembetungan Johor',
+    staffLoginBtn:'Log Masuk Kakitangan',
+    badge:'✅ Berlesen & Berpengalaman',
+    heroTitle:'Pakar Paip & Pembetungan<br>Johor',
+    heroSub:'E Man Utama Group Sdn. Bhd.',
+    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Sejak 2005',
+    heroCta:'📋 Buat Aduan',
+    heroTrack:'🔍 Semak Status',
+    svTag:'🔧 Perkhidmatan Kami',
+    svTitle:'Apa Yang Kami Tawarkan',
+    svSub:'Kami menyediakan pelbagai perkhidmatan paip dan pembetungan profesional di seluruh Johor.',
+    svc:['Paip Bocor','Saliran Tersumbat','Tandas Tersumbat','Tangki Najis','Pemasangan Baru','Pemeriksaan Am'],
+    svcDesc:['Pembaikan dan penggantian paip bocor segera','Bersihkan saliran dan longkang yang tersumbat','Naiktaraf dan pembaikan sistem tandas','Pengosongan dan pembersihan tangki septik','Pasang sistem paip baru untuk rumah atau kilang','Pemeriksaan menyeluruh sistem paip anda'],
+    ctaTitle:'Ada Masalah Paip? Kami Sedia Membantu!',
+    ctaSub:'Hantar aduan anda sekarang. Pasukan kami akan menghubungi anda dengan segera untuk pengesahan dan penjadualan.',
+    ctaBtn1:'📋 Buat Aduan Sekarang',ctaBtn2:'🔍 Semak Status Aduan',
+    qtTag:'📋 Jejak Aduan',qtTitle:'Semak Status Aduan Anda',
+    qtCardTitle:'Masukkan No. Rujukan',
+    qtCardSub:'Gunakan no. rujukan yang diberikan semasa anda membuat aduan (contoh: EMUG-2026-0001)',
+    qtBtn:'Semak',
+    cbPhone:'Telefon',cbEmail:'Emel',cbAddr:'Alamat',
+    cfBack:'Kembali ke Laman Utama',
+    cfTitle:'Borang Aduan / Tempahan',
+    cfSub:'Isi borang di bawah dan pasukan kami akan menghubungi anda.',
+    cfCardTitle:'🔧 E Man Utama Group — Borang Aduan',
+    cfCardSub:'Semua maklumat adalah sulit dan selamat',
+    cfName:'Nama Penuh',cfPhone:'No. Telefon',cfAddr:'Alamat Lengkap',
+    cfProb:'Jenis Masalah',cfDate:'Tarikh Pilihan',cfTime:'Masa Pilihan',
+    cfUrgency:'Keutamaan',cfDesc:'Penerangan Masalah',
+    cfNote:'Setelah menghantar borang, anda akan menerima nombor rujukan. Simpan nombor rujukan tersebut untuk menyemak status aduan anda.',
+    cfSubmit:'Hantar Aduan',
+    ccTitle:'Aduan Berjaya Dihantar!',
+    ccSub:'Terima kasih. Pasukan kami akan menghubungi anda untuk pengesahan dan penjadualan kerja.',
+    ccRefLbl:'No. Rujukan Aduan Anda',
+    ccSaveNote:'Sila simpan nombor rujukan ini untuk menyemak status aduan anda.',
+    ccTrackBtn:'🔍 Semak Status',ccHomeBtn:'🏠 Kembali ke Laman Utama',
+    trBack:'Kembali ke Laman Utama',
+    trTitle:'Semak Status Aduan',trSub:'Masukkan nombor rujukan anda untuk menyemak status terkini.',
+    trRefLbl:'No. Rujukan Aduan',trBtn:'Semak Status',
+    trNotFound:'❌ No. rujukan tidak dijumpai. Sila semak semula.',
+    trStatus:'Status Semasa',trAssigned:'Juruteknik',trProblem:'Masalah',
+    trDate:'Tarikh Temujanji',trTime:'Masa',trSubmitted:'Tarikh Hantar',
+    trLastUpdate:'Kemas Kini Terakhir',trNotes:'Nota',
+    trUnassigned:'Belum ditugaskan — kami akan segera menghubungi anda.',
+    trGoHome:'🏠 Kembali',trNewComplaint:'📋 Aduan Baru',
+    liTagline:'Pakar Paip & Pembetungan Johor',
+    liTitle:'🔐 Log Masuk Kakitangan',
+    liUser:'Nama Pengguna',liPass:'Kata Laluan',
+    liBtn:'Log Masuk',liDemo:'Akaun Demo — klik untuk isi:',
+    liBack:'Kembali ke Laman Utama',
+    liError:'Nama pengguna atau kata laluan salah.',
+    dashboard:'Papan Pemuka',complaints:'Senarai Aduan',
+    schedule:'Jadual Kerja',staff:'Kakitangan',
+    reports:'Laporan',notifications:'Pemberitahuan',profile:'Profil Saya',
+    mySchedule:'Jadual Saya',myComplaints:'Aduan Saya',
+    logout:'Log Keluar',
+    pending:'Menunggu',inProgress:'Sedang Berjalan',completed:'Selesai',
+    all:'Semua',today:'Hari Ini',week:'Minggu',day:'Hari',
+    markAllRead:'Baca Semua',markRead:'Tandakan Semua Dibaca',
+    viewAll:'Lihat Semua',
+    totalJobs:'Jumlah Aduan',totalStaff:'Jumlah Kakitangan',
+    todayJobs:'Kerja Hari Ini',recentComplaints:'Aduan Terkini',
+    staffOverview:'Ikhtisar Kakitangan',
+    noJobs:'Tiada aduan dijumpai.',noNotifs:'Tiada pemberitahuan.',
+    assignTo:'Tugaskan Kepada',adminNotes:'Nota Admin',
+    unassigned:'Belum Ditugaskan',notAssigned:'Belum ditugaskan',
+    schedDate:'Tarikh Kerja (Jadual)',
+    save:'Simpan',cancel:'Batal',delete:'Padam',update:'Kemaskini',
+    editComplaint:'Edit Aduan',deleteComplaint:'Padam Aduan',
+    confirmDelete:'Adakah anda pasti untuk memadam aduan ini?',
+    deleted:'Aduan telah dipadam.',saved:'Berjaya disimpan.',
+    statusUpdated:'Status telah dikemas kini.',
+    updateStatus:'Kemaskini Status',techNote:'Nota Juruteknik',
+    noScheduleToday:'Tiada jadual untuk hari ini.',
+    monthNames:['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'],
+    dayNames:['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'],
+    dayNamesShort:['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'],
+    role_admin:'Pentadbir',role_staff:'Kakitangan',
+    urgencyNormal:'Normal',urgencyUrgent:'🚨 Segera',
+    notifNewComplaint:'Aduan Baru Diterima',
+    notifAssigned:'Kerja Baru Ditugaskan',
+    notifStatusUpdate:'Status Telah Dikemas Kini',
+    justNow:'Baru sahaja',minutesAgo:'minit lalu',hoursAgo:'jam lalu',yesterday:'Semalam',
+    daysAgo:'hari lalu',
+    refPrefix:'EMUG',
+    searchPlaceholder:'Cari aduan...',
+    // Media upload
+    mediaLabel:'📷 Muat Naik Gambar/Video Masalah',
+    mediaUploadBtn:'Klik untuk muat naik gambar/video',
+    mediaUploadSub:'JPG, PNG, GIF, MP4, MOV • Maks 5 fail',
+    mediaClear:'🗑️ Buang Semua',
+    mediaMax:'Maksimum 5 fail dibenarkan.',
+    // Location
+    locBtn:'Pin Lokasi Saya',
+    locHint:'atau taip alamat di atas',
+    locFound:'Lokasi berjaya dikesan!',
+    locFail:'GPS tidak tersedia. Sila taip alamat anda.',
+    locLoading:'Mengesan lokasi...',
+    locOpenMaps:'🗺️ Buka Google Maps',
+    // Testimonials
+    tsTag:'⭐ Ulasan Pelanggan',tsTitle:'Apa Kata Pelanggan Kami',
+    tsSub:'Kepuasan pelanggan adalah keutamaan kami.',
+    tsAvgLabel:'Penilaian Purata',tsCountLabel:'Ulasan Diterima',
+    tsRecommend:'Mengesyorkan Kami',
+    tsLeave:'Tinggalkan Ulasan Anda',
+    // Feedback form
+    fbBack:'Kembali ke Laman Utama',fbTitle:'Kongsi Pengalaman Anda',
+    fbSub:'Ulasan anda membantu kami menambah baik perkhidmatan.',
+    fbCardTitle:'⭐ Borang Penilaian Perkhidmatan',fbCardSub:'Berikan penilaian jujur anda',
+    fbLblRef:'No. Rujukan Aduan',fbLblName:'Nama Anda (tidak wajib)',
+    fbLblRatings:'Penilaian Perkhidmatan',
+    fbLblQuality:'🔧 Kualiti Kerja',fbLblTime:'⏱️ Ketepatan Masa',fbLblService:'😊 Layanan Kakitangan',
+    fbOverallLbl:'Penilaian Keseluruhan',
+    fbLblComment:'Ulasan Anda',fbSubmit:'Hantar Ulasan',
+    fbRefOk:'✅ Kerja telah selesai — anda boleh memberi penilaian.',
+    fbRefNotDone:'⚠️ Kerja belum selesai. Penilaian boleh diberi setelah kerja selesai.',
+    fbRefNotFound:'❌ No. rujukan tidak dijumpai.',
+    fbCcTitle:'Terima Kasih Atas Ulasan Anda!',
+    fbCcSub:'Ulasan anda telah kami terima dan akan dipaparkan setelah disemak.',
+    fbCcHome:'🏠 Kembali ke Laman Utama',
+    fbFeedbackCta:'Aduan anda telah selesai! Bagaimana pengalaman anda?',
+    fbFeedbackCtaSub:'Luangkan masa 1 minit untuk memberi penilaian.',
+    fbFeedbackBtn:'⭐ Beri Penilaian',
+    fbNoRating:'Sila beri sekurang-kurangnya 1 bintang untuk semua kategori.',
+    fbSubmitted:'Ulasan berjaya dihantar! Terima kasih.',
+    // Gallery
+    galleryTitle:'📷 Galeri Foto Kerja',
+    galleryBefore:'📷 Sebelum',galleryDuring:'🔧 Semasa',galleryAfter:'✅ Selepas',
+    galleryUpload:'Tambah Foto',galleryEmpty:'Tiada foto. Klik + untuk muat naik.',
+    galleryCount:'foto',galleryAdded:'Foto berjaya ditambah.',galleryDeleted:'Foto dipadam.',
+    galleryView:'Lihat Galeri',
+    // Admin feedback
+    fbaTitle:'Pengurusan Ulasan',fbaSub:'Semak dan urus ulasan pelanggan',
+    fbaListTitle:'Semua Ulasan',fbaPublish:'Terbit',fbaUnpublish:'Nyahterbit',
+    fbaPublished:'diterbitkan',
+    fbaQuality:'Kualiti',fbaTimeliness:'Masa',fbaService:'Layanan',fbaOverall:'Keseluruhan',
+    // Booking calendar
+    cfBooking:'📅 Tarikh & Masa Tempahan',
+    bkLegAvail:'Tersedia',bkLegLtd:'Terhad',bkLegFull:'Penuh / Tutup',
+    bkSlotAvail:'slot tersedia',bkSlotFull:'Penuh',bkSlotBack:'Tukar Tarikh',
+    bkSummaryLbl:'Tempahan Dipilih',bkSummaryDate:'Tarikh',bkSummaryTime:'Masa',
+    bkPleaseDate:'Sila pilih tarikh dahulu.',bkPleaseSlot:'Sila pilih tarikh dan masa tempahan.',
+    bkFull:'Slot ini telah penuh. Sila pilih slot lain.',
+  },
+  en: {
+    tagline:"Johor's Plumbing & Sewerage Expert",
+    staffLoginBtn:'Staff Login',
+    badge:'✅ Licensed & Experienced',
+    heroTitle:'Plumbing & Sewerage<br>Expert in Johor',
+    heroSub:'E Man Utama Group Sdn. Bhd.',
+    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Since 2005',
+    heroCta:'📋 Submit Complaint',
+    heroTrack:'🔍 Track Status',
+    svTag:'🔧 Our Services',
+    svTitle:'What We Offer',
+    svSub:'We provide a range of professional plumbing and sewerage services throughout Johor.',
+    svc:['Leaking Pipe','Blocked Drain','Blocked Toilet','Septic Tank','New Installation','General Inspection'],
+    svcDesc:['Immediate repair and replacement of leaking pipes','Clear blocked drains and gutters','Toilet system upgrade and repair','Emptying and cleaning of septic tanks','Install new pipe systems for homes or factories','Comprehensive inspection of your pipe system'],
+    ctaTitle:'Got a Plumbing Problem? We Are Ready to Help!',
+    ctaSub:'Submit your complaint now. Our team will contact you promptly for confirmation and scheduling.',
+    ctaBtn1:'📋 Submit Complaint Now',ctaBtn2:'🔍 Track Complaint Status',
+    qtTag:'📋 Track Complaint',qtTitle:'Check Your Complaint Status',
+    qtCardTitle:'Enter Reference Number',
+    qtCardSub:'Use the reference number given when you submitted your complaint (e.g. EMUG-2026-0001)',
+    qtBtn:'Check',
+    cbPhone:'Phone',cbEmail:'Email',cbAddr:'Address',
+    cfBack:'Back to Home',
+    cfTitle:'Complaint / Booking Form',
+    cfSub:'Fill in the form below and our team will contact you.',
+    cfCardTitle:'🔧 E Man Utama Group — Complaint Form',
+    cfCardSub:'All information is confidential and secure',
+    cfName:'Full Name',cfPhone:'Phone Number',cfAddr:'Full Address',
+    cfProb:'Problem Type',cfDate:'Preferred Date',cfTime:'Preferred Time',
+    cfUrgency:'Priority',cfDesc:'Problem Description',
+    cfNote:'After submitting, you will receive a reference number. Save it to track your complaint status.',
+    cfSubmit:'Submit Complaint',
+    ccTitle:'Complaint Successfully Submitted!',
+    ccSub:'Thank you. Our team will contact you for confirmation and job scheduling.',
+    ccRefLbl:'Your Complaint Reference No.',
+    ccSaveNote:'Please save this reference number to check your complaint status.',
+    ccTrackBtn:'🔍 Track Status',ccHomeBtn:'🏠 Back to Home',
+    trBack:'Back to Home',
+    trTitle:'Track Complaint Status',trSub:'Enter your reference number to check the latest status.',
+    trRefLbl:'Complaint Reference No.',trBtn:'Check Status',
+    trNotFound:'❌ Reference number not found. Please check again.',
+    trStatus:'Current Status',trAssigned:'Technician',trProblem:'Problem',
+    trDate:'Appointment Date',trTime:'Time',trSubmitted:'Submitted On',
+    trLastUpdate:'Last Updated',trNotes:'Notes',
+    trUnassigned:'Not yet assigned — we will contact you shortly.',
+    trGoHome:'🏠 Home',trNewComplaint:'📋 New Complaint',
+    liTagline:"Johor's Plumbing & Sewerage Expert",
+    liTitle:'🔐 Staff Login',
+    liUser:'Username',liPass:'Password',
+    liBtn:'Login',liDemo:'Demo Accounts — click to fill:',
+    liBack:'Back to Home',
+    liError:'Incorrect username or password.',
+    dashboard:'Dashboard',complaints:'Complaint List',
+    schedule:'Work Schedule',staff:'Staff',
+    reports:'Reports',notifications:'Notifications',profile:'My Profile',
+    mySchedule:'My Schedule',myComplaints:'My Complaints',
+    logout:'Logout',
+    pending:'Pending',inProgress:'In Progress',completed:'Completed',
+    all:'All',today:'Today',week:'Week',day:'Day',
+    markAllRead:'Read All',markRead:'Mark All as Read',
+    viewAll:'View All',
+    totalJobs:'Total Complaints',totalStaff:'Total Staff',
+    todayJobs:"Today's Jobs",recentComplaints:'Recent Complaints',
+    staffOverview:'Staff Overview',
+    noJobs:'No complaints found.',noNotifs:'No notifications.',
+    assignTo:'Assign To',adminNotes:'Admin Notes',
+    unassigned:'Unassigned',notAssigned:'Not yet assigned',
+    schedDate:'Work Date (Schedule)',
+    save:'Save',cancel:'Cancel',delete:'Delete',update:'Update',
+    editComplaint:'Edit Complaint',deleteComplaint:'Delete Complaint',
+    confirmDelete:'Are you sure you want to delete this complaint?',
+    deleted:'Complaint deleted.',saved:'Saved successfully.',
+    statusUpdated:'Status updated.',
+    updateStatus:'Update Status',techNote:'Technician Note',
+    noScheduleToday:'No schedule for today.',
+    monthNames:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    dayNames:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+    dayNamesShort:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    role_admin:'Admin',role_staff:'Staff',
+    urgencyNormal:'Normal',urgencyUrgent:'🚨 Urgent',
+    notifNewComplaint:'New Complaint Received',
+    notifAssigned:'New Job Assigned',
+    notifStatusUpdate:'Status Updated',
+    justNow:'Just now',minutesAgo:'minutes ago',hoursAgo:'hours ago',yesterday:'Yesterday',
+    daysAgo:'days ago',
+    refPrefix:'EMUG',
+    searchPlaceholder:'Search complaints...',
+    // Media upload
+    mediaLabel:'📷 Upload Problem Photos/Videos',
+    mediaUploadBtn:'Click to upload photos/videos',
+    mediaUploadSub:'JPG, PNG, GIF, MP4, MOV • Max 5 files',
+    mediaClear:'🗑️ Clear All',
+    mediaMax:'Maximum 5 files allowed.',
+    // Location
+    locBtn:'Pin My Location',
+    locHint:'or type your address above',
+    locFound:'Location detected successfully!',
+    locFail:'GPS not available. Please type your address.',
+    locLoading:'Detecting location...',
+    locOpenMaps:'🗺️ Open Google Maps',
+    // Testimonials
+    tsTag:'⭐ Customer Reviews',tsTitle:'What Our Customers Say',
+    tsSub:'Customer satisfaction is our top priority.',
+    tsAvgLabel:'Average Rating',tsCountLabel:'Reviews Received',
+    tsRecommend:'Recommend Us',
+    tsLeave:'Leave Your Review',
+    // Feedback form
+    fbBack:'Back to Home',fbTitle:'Share Your Experience',
+    fbSub:'Your feedback helps us improve our service.',
+    fbCardTitle:'⭐ Service Rating Form',fbCardSub:'Give us your honest rating',
+    fbLblRef:'Complaint Reference No.',fbLblName:'Your Name (optional)',
+    fbLblRatings:'Service Ratings',
+    fbLblQuality:'🔧 Work Quality',fbLblTime:'⏱️ Punctuality',fbLblService:'😊 Staff Service',
+    fbOverallLbl:'Overall Rating',
+    fbLblComment:'Your Review',fbSubmit:'Submit Review',
+    fbRefOk:'✅ Job is completed — you may submit a rating.',
+    fbRefNotDone:'⚠️ Job is not yet completed. Rating can be given after completion.',
+    fbRefNotFound:'❌ Reference number not found.',
+    fbCcTitle:'Thank You for Your Review!',
+    fbCcSub:'Your review has been received and will be published after moderation.',
+    fbCcHome:'🏠 Back to Home',
+    fbFeedbackCta:'Your complaint is resolved! How was your experience?',
+    fbFeedbackCtaSub:'Take 1 minute to rate our service.',
+    fbFeedbackBtn:'⭐ Rate Our Service',
+    fbNoRating:'Please give at least 1 star for all categories.',
+    fbSubmitted:'Review submitted! Thank you.',
+    // Gallery
+    galleryTitle:'📷 Job Photo Gallery',
+    galleryBefore:'📷 Before',galleryDuring:'🔧 During',galleryAfter:'✅ After',
+    galleryUpload:'Add Photo',galleryEmpty:'No photos. Click + to upload.',
+    galleryCount:'photos',galleryAdded:'Photo added.',galleryDeleted:'Photo deleted.',
+    galleryView:'View Gallery',
+    // Admin feedback
+    fbRate:'Beri Penilaian',
+    // Operator role
+    role_operator:'Operator Lapangan',
+    opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
+    opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
+    opAcceptJob:'Terima Kerja',opCompleteJob:'Kerja Selesai',
+    opNoNewJobs:'Tiada aduan baru pada masa ini.',opNoMyJobs:'Tiada kerja yang diterima lagi.',
+    opAccepted:'Diterima',opAcceptedBy:'Diterima Oleh',opAcceptedAt:'Masa Terima',
+    opCompletedAt:'Masa Selesai',opOperator:'Operator',
+    opCompleteWarn:'Sila muat naik sekurang-kurangnya 1 gambar setiap kategori (Sebelum, Semasa, Selepas) sebelum menandakan kerja selesai.',
+    opPhotosRequired:'Gambar Sebelum / Semasa / Selepas diperlukan',
+    // Customer complaint photos
+    custPhotos:'Gambar Aduan Pelanggan',noCustPhotos:'Tiada gambar dilampirkan.',
+    // Completion photos on track page
+    completionGallery:'Gambar Penyelesaian Kerja',noGalleryPhotos:'Gambar belum dimuat naik.',
+    trOperator:'Operator',trAccepted:'Kerja Diterima',trCompleted:'Kerja Diselesaikan',
+    fbaTitle:'Pengurusan Maklum Balas',fbaSub:'Semak dan urus maklum balas pelanggan',
+    fbaListTitle:'Semua Ulasan',fbaPublish:'Terbit',fbaUnpublish:'Sembunyikan',
+    fbaPublished:'published',
+    fbaQuality:'Quality',fbaTimeliness:'Timeliness',fbaService:'Service',fbaOverall:'Overall',
+    fbRate:'Rate Our Service',
+    // Operator role
+    role_operator:'Field Operator',
+    opDashTitle:'Operator Dashboard',opDashSub:'Field team job management',
+    opNewJobs:'New Jobs',opMyJobs:'My Jobs',
+    opAcceptJob:'Accept Job',opCompleteJob:'Mark Complete',
+    opNoNewJobs:'No new jobs available.',opNoMyJobs:'No jobs accepted yet.',
+    opAccepted:'Accepted',opAcceptedBy:'Accepted By',opAcceptedAt:'Accepted Time',
+    opCompletedAt:'Completed Time',opOperator:'Operator',
+    opCompleteWarn:'Please upload at least 1 photo each for Before, During and After before marking complete.',
+    opPhotosRequired:'Before / During / After photos required',
+    // Customer complaint photos
+    custPhotos:'Customer Complaint Photos',noCustPhotos:'No photos attached.',
+    // Completion photos on track page
+    completionGallery:'Work Completion Photos',noGalleryPhotos:'Photos not yet uploaded.',
+    trOperator:'Operator',trAccepted:'Job Accepted',trCompleted:'Job Completed',
+    // Booking calendar
+    cfBooking:'📅 Booking Date & Time',
+    bkLegAvail:'Available',bkLegLtd:'Limited',bkLegFull:'Full / Closed',
+    bkSlotAvail:'slots available',bkSlotFull:'Full',bkSlotBack:'Change Date',
+    bkSummaryLbl:'Selected Booking',bkSummaryDate:'Date',bkSummaryTime:'Time',
+    bkPleaseDate:'Please select a date first.',bkPleaseSlot:'Please select a booking date and time.',
+    bkFull:'This slot is full. Please choose another slot.',
+  }
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let lang   = localStorage.getItem('emug_lang') || 'bm';
+let user   = null;           // logged-in staff/admin user
+let page   = 'dashboard';    // current dashboard page
+let schedView = 'day';
+let schedDate = new Date();
+let editJobId   = null;
+let statusJobId = null;
+let cpFilter    = 'all';
+let lastConfirmRef = null;
+let notifOpen = false;
+let userDDOpen = false;
+// Media upload state
+let uploadedFiles = [];
+// Location state
+let pinnedLat = null, pinnedLng = null;
+// Gallery state
+let galleryJobId = null;
+let galleryTab = 'before';
+let fullscreenImages = [], fullscreenIdx = 0;
+// Star ratings state
+let starRatings = { quality:0, timeliness:0, service:0 };
+// Gallery data: { jobId: { before:[{src,ts,who}], during:[...], after:[...] } }
+let galleryData = JSON.parse(localStorage.getItem('emug_gallery')||'{}');
+// Booking calendar
+const BK_SLOTS = ['08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','13:00 - 14:00','14:00 - 15:00','15:00 - 16:00','16:00 - 17:00'];
+const BK_MAX_PER_SLOT = 3;
+let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
+// Feedback data
+let feedbackCounter = 6;
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const USERS = [
+  { id:1, username:'admin',  password:'admin123', name:'Azman Bin Daud',     role:'admin',    phone:'013-728 0397', email:'admin@emanutama.com',  staffId:'DIR001' },
+  { id:2, username:'ali',    password:'staff123', name:'Ali Bin Ahmad',       role:'staff',    phone:'012-345 6789', email:'ali@emanutama.com',    staffId:'EMP001' },
+  { id:3, username:'siti',   password:'staff456', name:'Siti Binti Hashim',   role:'staff',    phone:'019-876 5432', email:'siti@emanutama.com',   staffId:'EMP002' },
+  { id:4, username:'hassan', password:'staff789', name:'Hassan Bin Ismail',   role:'staff',    phone:'011-345 6789', email:'hassan@emanutama.com', staffId:'EMP003' },
+  { id:5, username:'zain',   password:'staff000', name:'Zainudin Bin Razak',  role:'staff',    phone:'013-456 7890', email:'zain@emanutama.com',   staffId:'EMP004' },
+  { id:6, username:'op1',    password:'op123',    name:'Hafiz bin Rahman',    role:'operator', phone:'011-123 4567', email:'hafiz@emanutama.com',  staffId:'OPR001' },
+  { id:7, username:'op2',    password:'op456',    name:'Zainal bin Ismail',   role:'operator', phone:'011-234 5678', email:'zainal@emanutama.com', staffId:'OPR002' },
+  { id:8, username:'op3',    password:'op789',    name:'Fadzli bin Omar',     role:'operator', phone:'011-345 6789', email:'fadzli@emanutama.com', staffId:'OPR003' },
+];
+
+function dAgo(n)  { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function dAhead(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function now()    { return new Date().toISOString().slice(0,10); }
+
+let complaints = [
+  { id:'C001', ref:'EMUG-2026-0001', name:'Rajendran a/l Kumar', phone:'017-234 5678', address:'No. 12, Jln Kenanga 3, Taman Sri Plentong, 81750 Masai, Johor', problem:'Paip bocor', desc:'Paip bawah sinki dapur bocor teruk, air mengalir keluar berterusan.', prefDate:dAgo(5), prefTime:'09:00 - 10:00', urgency:'Normal', status:'Selesai', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:dAgo(4), adminNotes:'Tukar paip baharu 3/4 inci', techNotes:'Paip PVC lama sudah retak — diganti sepenuhnya. Selesai dalam masa 1 jam.', acceptedBy:'op1', acceptedByName:'Hafiz bin Rahman', acceptedAt:dAgo(4)+'T08:00:00', completedAt:dAgo(3)+'T15:30:00', submittedAt:dAgo(5)+'T09:00:00', updatedAt:dAgo(3)+'T15:30:00' },
+  { id:'C002', ref:'EMUG-2026-0002', name:'Lim Boon Seng',       phone:'016-567 8901', address:'No. 5, Jln Bahagia 2, Taman Bahagia, 81700 Pasir Gudang, Johor',problem:'Tandas tersumbat', desc:'Tandas tersumbat dan air tidak turun langsung sejak semalam.', prefDate:dAgo(3), prefTime:'10:00 - 11:00', urgency:'Segera', status:'Selesai', assignedTo:'siti', assignedName:'Siti Binti Hashim', schedDate:dAgo(3), adminNotes:'', techNotes:'Tersumbat kerana tisu dan sampah. Dibersihkan dengan snake drain.', acceptedBy:'op2', acceptedByName:'Zainal bin Ismail', acceptedAt:dAgo(3)+'T09:00:00', completedAt:dAgo(2)+'T11:00:00', submittedAt:dAgo(3)+'T08:00:00', updatedAt:dAgo(2)+'T11:00:00' },
+  { id:'C003', ref:'EMUG-2026-0003', name:'Ahmad Fauzi Bin Ramli',phone:'012-789 0123', address:'No. 23, Jln Helang 7, Taman Helang Jaya, 81700 Pasir Gudang, Johor',problem:'Tangki najis', desc:'Tangki najis penuh dan berbau teruk, perlu dikosongkan segera.', prefDate:dAgo(1), prefTime:'08:00 - 09:00', urgency:'Segera', status:'Sedang Berjalan', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:now(), adminNotes:'Bawa tangki pam — tangki 2000L', techNotes:'', submittedAt:dAgo(2)+'T14:00:00', updatedAt:now()+'T09:00:00' },
+  { id:'C004', ref:'EMUG-2026-0004', name:'Salmah Binti Osman',  phone:'013-456 7890', address:'Lot 45, Jln Industri 3, Kawasan Perindustrian Pasir Gudang, 81700 Johor',problem:'Pemasangan baru', desc:'Perlu pasang sistem paip baru untuk kilang kecil, termasuk 5 sinki dan 3 tandas.', prefDate:now(), prefTime:'09:00 - 10:00', urgency:'Normal', status:'Sedang Berjalan', assignedTo:'hassan', assignedName:'Hassan Bin Ismail', schedDate:now(), adminNotes:'Kerja besar — bawa peralatan lengkap. Mungkin 2 hari.', techNotes:'Hari pertama — letak paip utama siap.', submittedAt:dAgo(4)+'T10:00:00', updatedAt:now()+'T10:00:00' },
+  { id:'C005', ref:'EMUG-2026-0005', name:'Rajendran a/l Kumar', phone:'017-234 5678', address:'No. 12, Jln Kenanga 3, Taman Sri Plentong, 81750 Masai, Johor',problem:'Saliran tersumbat', desc:'Longkang di tepi rumah tersumbat, air bertakung waktu hujan.', prefDate:now(), prefTime:'14:00 - 15:00', urgency:'Normal', status:'Menunggu', assignedTo:'siti', assignedName:'Siti Binti Hashim', schedDate:now(), adminNotes:'', techNotes:'', submittedAt:now()+'T08:30:00', updatedAt:now()+'T08:30:00' },
+  { id:'C006', ref:'EMUG-2026-0006', name:'Noraini Binti Kadir', phone:'011-234 5678', address:'No. 7, Jln Maju 4, Taman Maju Jaya, 81700 Pasir Gudang, Johor',problem:'Pemeriksaan am', desc:'Minta pemeriksaan sistem paip tahunan sebelum rumah dijual.', prefDate:now(), prefTime:'11:00 - 12:00', urgency:'Normal', status:'Menunggu', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:now(), adminNotes:'', techNotes:'', submittedAt:now()+'T07:00:00', updatedAt:now()+'T07:00:00' },
+  { id:'C007', ref:'EMUG-2026-0007', name:'Lim Boon Seng',       phone:'016-567 8901', address:'No. 5, Jln Bahagia 2, Taman Bahagia, 81700 Pasir Gudang, Johor',problem:'Paip bocor', desc:'Paip luar rumah mengalami kebocoran kecil.', prefDate:dAhead(1), prefTime:'10:00 - 11:00', urgency:'Normal', status:'Menunggu', assignedTo:'zain', assignedName:'Zainudin Bin Razak', schedDate:dAhead(1), adminNotes:'', techNotes:'', submittedAt:now()+'T10:00:00', updatedAt:now()+'T10:00:00' },
+  { id:'C008', ref:'EMUG-2026-0008', name:'Mohd Rizal Bin Aziz', phone:'019-567 8901', address:'No. 34, Jln Wawasan 2, Taman Wawasan, 81710 Pasir Gudang, Johor',problem:'Tangki najis', desc:'Tangki najis bocor sedikit dan ada bau di kawasan sekitar.', prefDate:dAhead(2), prefTime:'09:00 - 10:00', urgency:'Segera', status:'Menunggu', assignedTo:'', assignedName:'', schedDate:'', adminNotes:'', techNotes:'', submittedAt:now()+'T11:30:00', updatedAt:now()+'T11:30:00' },
+  { id:'C009', ref:'EMUG-2026-0009', name:'Fatimah Binti Yusof', phone:'014-678 9012', address:'No. 19, Jln Cempaka 5, Taman Cempaka, 81700 Pasir Gudang, Johor',problem:'Tandas tersumbat', desc:'Tandas di luar tersumbat, tidak boleh digunakan.', prefDate:dAhead(3), prefTime:'14:00 - 15:00', urgency:'Normal', status:'Menunggu', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:dAhead(3), adminNotes:'', techNotes:'', submittedAt:dAgo(1)+'T16:00:00', updatedAt:dAgo(1)+'T16:00:00' },
+  { id:'C010', ref:'EMUG-2026-0010', name:'Wong Ah Kow',          phone:'012-890 1234', address:'No. 88, Jln Permas 6, Taman Permas Jaya, 81750 Masai, Johor',problem:'Pemasangan baru', desc:'Pasang tangki air baru di bumbung, kapasiti 1000L.', prefDate:dAgo(10), prefTime:'08:00 - 09:00', urgency:'Normal', status:'Selesai', assignedTo:'zain', assignedName:'Zainudin Bin Razak', schedDate:dAgo(9), adminNotes:'', techNotes:'Tangki dipasang dengan jayanya. Ujian tekanan lulus.', submittedAt:dAgo(11)+'T09:00:00', updatedAt:dAgo(8)+'T14:00:00' },
+];
+
+let notifs = [
+  { id:1, type:'complaint', title:'Aduan Baru Diterima', msg:'EMUG-2026-0008 — Mohd Rizal Bin Aziz (Tangki najis, Segera)', time:5,  read:false, forRole:'admin' },
+  { id:2, type:'assign',    title:'Kerja Baru Ditugaskan', msg:'C006 — Pemeriksaan am di Taman Maju Jaya', time:60, read:false, forRole:'staff', forUser:'ali' },
+  { id:3, type:'status',    title:'Status Dikemas Kini',   msg:'C002 — Selesai oleh Siti Binti Hashim', time:180, read:false, forRole:'admin' },
+  { id:4, type:'assign',    title:'Kerja Baru Ditugaskan', msg:'C005 — Saliran tersumbat di Taman Sri Plentong', time:30, read:true, forRole:'staff', forUser:'siti' },
+  { id:5, type:'status',    title:'Status Dikemas Kini',   msg:'C001 — Selesai — Ali Bin Ahmad', time:1440, read:true, forRole:'admin' },
+];
+
+let refCounter = 11;
+let notifCounter = 10;
+
+// ─── FEEDBACK & TESTIMONIALS DATA ─────────────────────────────────────────────
+let feedbacks = [
+  { id:1, ref:'EMUG-2026-0001', name:'Rajendran Kumar', ratings:{quality:5,timeliness:4,service:5}, overall:4.7, comment:'Kerja cepat dan kemas. Ali sangat profesional dan tahu kerja dia. Paip tidak bocor lagi. Syabas!', published:true, date:dAgo(3) },
+  { id:2, ref:'EMUG-2026-0002', name:'Lim Boon Seng', ratings:{quality:5,timeliness:5,service:5}, overall:5.0, comment:'Sangat berpuas hati dengan perkhidmatan. Siti datang tepat pada masa dan selesaikan masalah dalam masa sejam. Harga berpatutan.', published:true, date:dAgo(2) },
+  { id:3, ref:'EMUG-2026-0010', name:'Wong Ah Kow', ratings:{quality:4,timeliness:4,service:5}, overall:4.3, comment:'Good service, the team was friendly and professional. Tank installation done perfectly. Will recommend to friends.', published:true, date:dAgo(9) },
+  { id:4, ref:'EMUG-2026-SAMP1', name:'Pelanggan EMUG', ratings:{quality:5,timeliness:4,service:4}, overall:4.3, comment:'Masalah longkang saya telah diselesaikan dengan baik. Juruteknik sangat berpengalaman. Terima kasih EMUG!', published:true, date:dAgo(15) },
+  { id:5, ref:'EMUG-2026-SAMP2', name:'Puan Rohani', ratings:{quality:5,timeliness:5,service:5}, overall:5.0, comment:'Terbaik! Tangki najis kami telah dikosongkan dengan cepat dan bersih. Tidak ada bau langsung selepas kerja. Sangat profesional.', published:true, date:dAgo(20) },
+];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+const t = k => (T[lang]?.[k] ?? T.bm[k] ?? k);
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s.slice(0,10) + 'T00:00:00');
+  return `${T[lang].dayNames[d.getDay()]}, ${d.getDate()} ${T[lang].monthNames[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtDateShort(s) {
+  if (!s) return '—';
+  const d = new Date(s.slice(0,10) + 'T00:00:00');
+  return `${d.getDate()} ${T[lang].monthNames[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+}
+function fmtTimeAgo(minutesOrISO) {
+  if (typeof minutesOrISO === 'string') return fmtDateShort(minutesOrISO);
+  const m = minutesOrISO;
+  if (m < 2)    return t('justNow');
+  if (m < 60)   return `${m} ${t('minutesAgo')}`;
+  if (m < 1440) return `${Math.round(m/60)} ${t('hoursAgo')}`;
+  if (m < 2880) return t('yesterday');
+  return `${Math.round(m/1440)} ${t('daysAgo')}`;
+}
+
+function statusClass(s) { return s==='Selesai'?'selesai':s==='Sedang Berjalan'?'berjalan':'menunggu'; }
+function statusLabel(s) { return s==='Selesai'?t('completed'):s==='Sedang Berjalan'?t('inProgress'):t('pending'); }
+function statusBadge(s) {
+  const icon = s==='Selesai'?'✅':s==='Sedang Berjalan'?'🔄':'⏳';
+  return `<span class="badge badge-${statusClass(s)}">${icon} ${statusLabel(s)}</span>`;
+}
+
+function iniOf(name) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+
+function toast(msg, type='success', dur=3200) {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `${type==='success'?'✅':type==='error'?'❌':'ℹ️'} ${msg}`;
+  c.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(110%)'; el.style.transition='all .3s'; setTimeout(()=>el.remove(),320); }, dur);
+}
+
+function setTxt(id, v) { const e=document.getElementById(id); if(e) e.textContent=v; }
+function setHTML(id, v) { const e=document.getElementById(id); if(e) e.innerHTML=v; }
+function el(id) { return document.getElementById(id); }
+
+// ─── LANGUAGE ─────────────────────────────────────────────────────────────────
+function toggleLang() { setLang(lang==='bm'?'en':'bm'); }
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('emug_lang', l);
+  const lbl = l==='bm'?'EN':'BM';
+  document.querySelectorAll('#pub-lang-btn,#login-lang-btn,#app-lang-btn').forEach(b=>b.textContent=lbl);
+  applyAllText();
+}
+
+function applyAllText() {
+  // Public nav
+  setTxt('pn-tag', t('tagline'));
+  setTxt('pn-login-btn', t('staffLoginBtn'));
+  // Hero
+  setHTML('h-badge', t('badge'));
+  setHTML('h-title', t('heroTitle'));
+  setTxt('h-sub', t('heroSub'));
+  setHTML('h-tag', t('heroTag'));
+  setTxt('h-cta', t('heroCta'));
+  setTxt('h-track', t('heroTrack'));
+  // Services
+  setTxt('sv-tag', t('svTag')); setTxt('sv-title', t('svTitle')); setTxt('sv-sub', t('svSub'));
+  const svcs = t('svc'); const svcD = t('svcDesc');
+  for(let i=1;i<=6;i++) { setTxt(`svc${i}-name`, svcs[i-1]); setTxt(`svc${i}-desc`, svcD[i-1]); }
+  // CTA
+  setTxt('cta-title',t('ctaTitle')); setTxt('cta-sub',t('ctaSub'));
+  setTxt('cta-btn1',t('ctaBtn1')); setTxt('cta-btn2',t('ctaBtn2'));
+  // Quick track
+  setTxt('qt-tag',t('qtTag')); setTxt('qt-title',t('qtTitle'));
+  setTxt('qt-card-title',t('qtCardTitle')); setTxt('qt-card-sub',t('qtCardSub'));
+  setTxt('qt-btn-txt',t('qtBtn'));
+  // Contact bar
+  setTxt('cb-phone-lbl',t('cbPhone')); setTxt('cb-email-lbl',t('cbEmail')); setTxt('cb-addr-lbl',t('cbAddr'));
+  // Complaint form
+  setTxt('cf-back-txt',t('cfBack')); setTxt('cf-title',t('cfTitle')); setTxt('cf-sub',t('cfSub'));
+  setTxt('cf-card-title',t('cfCardTitle')); setTxt('cf-card-sub',t('cfCardSub'));
+  setTxt('cf-lbl-name',t('cfName')); setTxt('cf-lbl-phone',t('cfPhone'));
+  setTxt('cf-lbl-addr',t('cfAddr')); setTxt('cf-lbl-prob',t('cfProb'));
+  setTxt('cf-lbl-date',t('cfDate')); setTxt('cf-lbl-time',t('cfTime'));
+  setTxt('cf-lbl-booking',t('cfBooking'));
+  setTxt('cf-lbl-urgency',t('cfUrgency')); setTxt('cf-lbl-desc',t('cfDesc'));
+  setTxt('cf-note-txt',t('cfNote')); setTxt('cf-submit-txt',t('cfSubmit'));
+  // Confirm
+  setTxt('cc-title',t('ccTitle')); setTxt('cc-sub',t('ccSub'));
+  setTxt('cc-ref-lbl',t('ccRefLbl')); setTxt('cc-save-note',t('ccSaveNote'));
+  setTxt('cc-track-btn',t('ccTrackBtn')); setTxt('cc-home-btn',t('ccHomeBtn'));
+  // Track page
+  setTxt('tr-back-txt',t('trBack')); setTxt('tr-title',t('trTitle')); setTxt('tr-sub',t('trSub'));
+  setTxt('tr-ref-lbl',t('trRefLbl')); setTxt('tr-btn-txt',t('trBtn'));
+  // Login
+  setTxt('li-tagline',t('liTagline')); setTxt('li-title',t('liTitle'));
+  setTxt('li-lbl-user',t('liUser')); setTxt('li-lbl-pass',t('liPass'));
+  setTxt('li-btn-txt',t('liBtn')); setTxt('li-demo-lbl',t('liDemo')); setTxt('li-back',t('liBack'));
+  // App header
+  setTxt('ah-tag',t('tagline')); setTxt('ah-notif',t('notifications'));
+  setTxt('ah-mark-all',t('markAllRead')); setTxt('ah-profile',t('profile')); setTxt('ah-logout',t('logout'));
+  setTxt('sb-logout',t('logout'));
+  // Dashboard page labels
+  setTxt('dp-d-title',t('dashboard')); setTxt('dp-d-sub','Selamat datang! Ini ringkasan sistem hari ini.');
+  setTxt('d-recent-lbl',t('recentComplaints')); setTxt('d-view-all',t('viewAll'));
+  setTxt('d-notif-lbl',t('notifications')); setTxt('d-staff-lbl',t('staffOverview'));
+  setTxt('d-th-name',t('staff')||'Nama'); setTxt('d-th-today',t('todayJobs'));
+  setTxt('d-th-pend',t('pending')); setTxt('d-th-prog',t('inProgress')); setTxt('d-th-done',t('completed'));
+  setTxt('cp-title',t('complaints')); setTxt('cp-sub',t('noJobs').replace('Tiada','Semua').replace('No complaints found.','All complaints received'));
+  setTxt('sc-title',t('schedule')); setTxt('sc-sub','Lihat jadual kerja harian/mingguan');
+  setTxt('sc-tab-day',t('day')); setTxt('sc-tab-week',t('week')); setTxt('sc-today',t('today'));
+  setTxt('sf-title',t('staff')); setTxt('rp-title',t('reports'));
+  setTxt('rp-status-lbl','Status Kerja'); setTxt('rp-type-lbl','Jenis Masalah');
+  setTxt('rp-all-lbl','Semua Rekod');
+  setTxt('rp-th-ref','No. Rujukan'); setTxt('rp-th-cust',t('recentComplaints').split(' ')[1]||'Pelanggan');
+  setTxt('rp-th-prob','Masalah'); setTxt('rp-th-staff',t('staff'));
+  setTxt('rp-th-date','Tarikh'); setTxt('nt-title',t('notifications'));
+  setTxt('nt-mark-all',t('markRead')); setTxt('pr-title',t('profile'));
+  // Modal
+  setTxt('mj-lbl-assign',t('assignTo')); setTxt('mj-lbl-status','Status');
+  setTxt('mj-lbl-sched-date',t('schedDate')); setTxt('mj-lbl-notes',t('adminNotes'));
+  setTxt('mj-delete',`🗑️ ${t('delete')}`); setTxt('mj-cancel',t('cancel')); setTxt('mj-save',`💾 ${t('save')}`);
+  setTxt('ms-title',t('updateStatus')); setTxt('ms-lbl-status','Status');
+  setTxt('ms-lbl-note',t('techNote')); setTxt('ms-cancel',t('cancel'));
+  setTxt('ms-confirm',`✓ ${t('update')}`);
+  // New feature strings
+  setTxt('cf-lbl-media', t('mediaLabel'));
+  setTxt('mup-label', t('mediaUploadBtn'));
+  setTxt('mup-sub', t('mediaUploadSub'));
+  setTxt('mup-clear', t('mediaClear'));
+  setTxt('cf-loc-btn-txt', t('locBtn'));
+  setTxt('cf-loc-hint', t('locHint'));
+  setTxt('ts-tag', t('tsTag')); setTxt('ts-title', t('tsTitle')); setTxt('ts-sub', t('tsSub'));
+  setTxt('avg-label', t('tsAvgLabel')); setTxt('avg-count-label', t('tsCountLabel'));
+  setTxt('avg-recommend', t('tsRecommend')); setTxt('ts-leave-txt', t('tsLeave'));
+  setTxt('fb-back-txt', t('fbBack')); setTxt('fb-title', t('fbTitle')); setTxt('fb-sub', t('fbSub'));
+  setTxt('fb-card-title', t('fbCardTitle')); setTxt('fb-card-sub', t('fbCardSub'));
+  setTxt('fb-lbl-ref', t('fbLblRef')); setTxt('fb-lbl-name', t('fbLblName'));
+  setTxt('fb-lbl-ratings', t('fbLblRatings'));
+  setTxt('fb-lbl-quality', t('fbLblQuality')); setTxt('fb-lbl-time', t('fbLblTime')); setTxt('fb-lbl-service', t('fbLblService'));
+  setTxt('fb-overall-lbl', t('fbOverallLbl'));
+  setTxt('fb-lbl-comment', t('fbLblComment')); setTxt('fb-submit-txt', t('fbSubmit'));
+  setTxt('fb-cc-title', t('fbCcTitle')); setTxt('fb-cc-sub', t('fbCcSub'));
+  setTxt('fb-cc-home', t('fbCcHome'));
+  setTxt('fba-title', t('fbaTitle')); setTxt('fba-sub', t('fbaSub'));
+  setTxt('fba-list-title', t('fbaListTitle'));
+  setTxt('gtab-before', t('galleryBefore')); setTxt('gtab-during', t('galleryDuring')); setTxt('gtab-after', t('galleryAfter'));
+  setTxt('gm-title', t('galleryTitle'));
+  // Re-render booking legend labels if visible
+  setTxt('bk-leg-avail', t('bkLegAvail'));
+  setTxt('bk-leg-ltd', t('bkLegLtd'));
+  setTxt('bk-leg-full', t('bkLegFull'));
+  setTxt('bk-back-lbl', t('bkSlotBack'));
+  if(el('bk-widget') && el('bk-widget').offsetParent !== null) renderBkCalendar();
+  renderTestimonials();
+  if(user) buildSidebar();
+}
+
+// ─── PUBLIC NAVIGATION ────────────────────────────────────────────────────────
+function showPubPage(name) {
+  document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
+  const pg = el(`page-${name}`);
+  if(pg) { pg.classList.add('active'); window.scrollTo(0,0); }
+  el('pub-nav').style.display = 'block';
+  el('page-login').style.display = 'none';
+  el('page-app').classList.remove('active');
+}
+
+function showLoginPage() {
+  document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
+  el('pub-nav').style.display = 'none';
+  el('page-login').style.display = 'block';
+  el('page-app').classList.remove('active');
+  window.scrollTo(0,0);
+}
+
+function showPublicSection() {
+  el('page-login').style.display = 'none';
+  showPubPage('landing');
+}
+
+function showAppSection() {
+  document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
+  el('pub-nav').style.display = 'none';
+  el('page-login').style.display = 'none';
+  el('page-app').classList.add('active');
+}
+
+// ─── COMPLAINT FORM (PUBLIC) ──────────────────────────────────────────────────
+function initComplaintForm() {
+  el('cf-date').value = '';
+  el('cf-time').value = '';
+  el('cf-form-view').style.display = 'block';
+  el('cf-confirm-view').style.display = 'none';
+  clearMedia();
+  pinnedLat = null; pinnedLng = null;
+  const locResult = el('cf-location-result');
+  if(locResult) { locResult.style.display='none'; locResult.innerHTML=''; }
+  const locBtn = el('cf-loc-btn-txt');
+  if(locBtn) locBtn.textContent = lang==='bm'?'Pin Lokasi Saya':'Pin My Location';
+  bookingDate = null; bookingSlot = null;
+  initBookingCalendar();
+}
+
+function submitComplaint() {
+  const name    = el('cf-name').value.trim();
+  const phone   = el('cf-phone').value.trim();
+  const address = el('cf-addr').value.trim();
+  const problem = el('cf-prob').value;
+  const date    = el('cf-date').value;
+  const time    = el('cf-time').value;
+  const desc    = el('cf-desc').value.trim();
+  const urgency = el('cf-urgency').value;
+
+  if(!name||!phone||!address||!problem||!date||!time) {
+    if(!date||!time) toast(t('bkPleaseSlot'),'error');
+    else toast(lang==='bm'?'Sila isi semua maklumat wajib (*)':'Please fill all required fields (*).','error');
+    return;
+  }
+  if(complaints.filter(x=>x.prefDate===date&&x.prefTime===time).length >= BK_MAX_PER_SLOT) {
+    toast(t('bkFull'),'error',5000); return;
+  }
+
+  const year = new Date().getFullYear();
+  const ref  = `EMUG-${year}-${String(refCounter).padStart(4,'0')}`;
+  refCounter++;
+
+  const c = {
+    id: `C${String(complaints.length+1).padStart(3,'0')}`,
+    ref, name, phone, address, problem, desc, urgency,
+    prefDate:date, prefTime:time||'—',
+    status:'Menunggu', assignedTo:'', assignedName:'',
+    schedDate:'', adminNotes:'', techNotes:'',
+    coords: (pinnedLat&&pinnedLng)?{lat:pinnedLat,lng:pinnedLng}:null,
+    media: uploadedFiles.slice(),
+    submittedAt: new Date().toISOString(),
+    updatedAt:   new Date().toISOString(),
+  };
+  complaints.push(c);
+
+  addNotif('complaint', t('notifNewComplaint'),
+    `${ref} — ${name} (${problem}${urgency==='Segera'?' 🚨':''})`, 'admin');
+
+  lastConfirmRef = ref;
+  el('cc-ref-num').textContent = ref;
+  el('cf-form-view').style.display = 'none';
+  el('cf-confirm-view').style.display = 'block';
+  toast(t('ccTitle'), 'success');
+}
+
+function showTrackWithRef() {
+  el('track-ref-input').value = lastConfirmRef||'';
+  showPubPage('track');
+  if(lastConfirmRef) doTrack();
+}
+
+// ─── TRACK STATUS (PUBLIC) ────────────────────────────────────────────────────
+function doQuickTrack() {
+  const ref = el('quick-track-input').value.trim().toUpperCase();
+  if(!ref) return;
+  const c = complaints.find(x=>x.ref===ref);
+  const area = el('quick-track-result');
+  if(!c) {
+    area.innerHTML = `<div class="track-error">${t('trNotFound')}</div>`;
+    return;
+  }
+  const sc = statusClass(c.status);
+  const sIcon = c.status==='Selesai'?'✅':c.status==='Sedang Berjalan'?'🔄':'⏳';
+  area.innerHTML = `
+    <div style="background:var(--white);border-radius:var(--r-lg);border:1px solid var(--gray-200);overflow:hidden;animation:fadeIn .3s ease;">
+      <div class="track-status-big ${sc}" style="margin:0;border-radius:0;">
+        ${sIcon} ${statusLabel(c.status)}
+      </div>
+      <div style="padding:14px 16px;font-size:.85rem;">
+        <div style="margin-bottom:6px;"><span class="text-muted">${t('trProblem')}:</span> <strong>${c.problem}</strong></div>
+        <div style="margin-bottom:6px;"><span class="text-muted">${t('trAssigned')}:</span> <strong>${c.assignedName||t('trUnassigned').split('—')[0].trim()}</strong></div>
+        <button class="btn btn-sm btn-outline mt-1" onclick="el('track-ref-input').value='${ref}';showPubPage('track');doTrack();">🔍 ${lang==='bm'?'Lihat Penuh':'Full Details'}</button>
+      </div>
+    </div>`;
+}
+
+function doTrack() {
+  const ref = el('track-ref-input').value.trim().toUpperCase();
+  if(!ref) return;
+  el('track-ref-input').value = ref;
+  const c = complaints.find(x=>x.ref===ref);
+  const area = el('track-result-area');
+
+  if(!c) {
+    area.innerHTML = `<div class="track-error">${t('trNotFound')}</div>`;
+    return;
+  }
+
+  const sc = statusClass(c.status);
+  const sIcon = c.status==='Selesai'?'✅':c.status==='Sedang Berjalan'?'🔄':'⏳';
+  const namePrivate = c.name.split(' ')[0] + ' ' + (c.name.split(' ').slice(1).map(w=>w[0]+'.')).join(' ');
+
+  area.innerHTML = `
+    <div class="track-result-card">
+      <div class="track-result-header">
+        <div class="track-result-ref">📋 ${c.ref}</div>
+        <div class="track-result-name">${namePrivate}</div>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+      <div class="track-result-body">
+        <div class="track-status-big ${sc}">
+          ${sIcon} ${statusLabel(c.status)}
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">🔧 ${t('trProblem')}</span>
+          <span class="track-detail-val">${c.problem}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">📅 ${t('trDate')}</span>
+          <span class="track-detail-val">${fmtDate(c.prefDate)}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">🕐 ${t('trTime')}</span>
+          <span class="track-detail-val">${c.prefTime}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">👷 ${t('trAssigned')}</span>
+          <span class="track-detail-val">${c.assignedName || `<em style="color:var(--gray-400)">${t('trUnassigned')}</em>`}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">🗓️ ${t('trSubmitted')}</span>
+          <span class="track-detail-val">${fmtDate(c.submittedAt)}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">🔄 ${t('trLastUpdate')}</span>
+          <span class="track-detail-val">${fmtDate(c.updatedAt)}</span>
+        </div>
+        ${c.techNotes?`<div class="track-detail-row">
+          <span class="track-detail-label">📝 ${t('trNotes')}</span>
+          <span class="track-detail-val">${c.techNotes}</span>
+        </div>`:''}
+        ${c.acceptedByName?`<div class="track-detail-row">
+          <span class="track-detail-label">🧰 ${t('trOperator')}</span>
+          <span class="track-detail-val">${c.acceptedByName}</span>
+        </div>`:''}
+        ${c.completedAt?`<div class="track-detail-row">
+          <span class="track-detail-label">✅ ${t('trCompleted')}</span>
+          <span class="track-detail-val">${fmtDate(c.completedAt)} ${c.completedAt.slice(11,16)}</span>
+        </div>`:''}
+        ${c.status==='Selesai'?`<div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:var(--r-lg);padding:14px 16px;margin-top:8px;">
+          <div style="font-weight:600;color:#166534;margin-bottom:6px;">⭐ ${lang==='bm'?'Kerja telah selesai! Kongsi pengalaman anda.':'Work completed! Share your experience.'}</div>
+          <div style="font-size:.85rem;color:#15803d;margin-bottom:10px;">${lang==='bm'?'Penilaian anda membantu kami meningkatkan perkhidmatan.':'Your feedback helps us improve our service.'}</div>
+          <button class="btn btn-lime btn-sm" onclick="showFeedbackPage('${c.ref}')">⭐ ${t('fbRate')}</button>
+        </div>`:''}
+        ${c.status==='Selesai'?renderTrackGallery(c):''}
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--gray-200);display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="showPubPage('landing')">${t('trGoHome')}</button>
+        <button class="btn btn-lime btn-sm" onclick="showPubPage('complaint');initComplaintForm()">${t('trNewComplaint')}</button>
+      </div>
+    </div>`;
+}
+
+// ─── STAFF LOGIN ──────────────────────────────────────────────────────────────
+function fillDemo(u,p) {
+  el('login-user').value = u;
+  el('login-pass').value = p;
+  el('login-error').classList.remove('show');
+}
+
+function doLogin() {
+  const u = el('login-user').value.trim();
+  const p = el('login-pass').value;
+  const found = USERS.find(x=>x.username===u && x.password===p);
+  if(!found) {
+    el('login-error').classList.add('show');
+    setTxt('login-error-msg', t('liError'));
+    el('login-pass').value='';
+    return;
+  }
+  user = found;
+  el('login-error').classList.remove('show');
+  initApp();
+}
+
+function doLogout() {
+  user = null;
+  closeAllDDs();
+  closeSidebar();
+  showPubPage('landing');
+  el('login-user').value='';
+  el('login-pass').value='';
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && el('page-login').style.display==='block') doLogin();
+});
+
+// ─── APP INIT ─────────────────────────────────────────────────────────────────
+function initApp() {
+  showAppSection();
+  buildSidebar();
+  navigate('dashboard');
+  applyAllText();
+  renderNotifBadge();
+  renderNotifDD();
+  el('dp-d-date').textContent = fmtDate(now());
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  if(!user) return;
+  const ini = iniOf(user.name);
+  el('sb-av').textContent = ini;
+  el('sb-name').textContent = user.name;
+  el('sb-role').textContent = user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):t('role_staff');
+  el('app-user-av').textContent = ini;
+
+  const unread = myNotifs().filter(n=>!n.read).length;
+  const pending = myComplaints().filter(c=>c.status==='Menunggu').length;
+  const items = user.role==='admin' ? [
+    { pg:'dashboard',  icon:'📊', lbl:t('dashboard') },
+    { pg:'complaints', icon:'📋', lbl:t('complaints'), badge:pending||null },
+    { pg:'schedule',   icon:'🗓️', lbl:t('schedule') },
+    { pg:'staff',      icon:'👷', lbl:t('staff') },
+    { pg:'reports',    icon:'📈', lbl:t('reports') },
+    { pg:'notifications',icon:'🔔',lbl:t('notifications'), badge:unread||null },
+    { pg:'feedback',   icon:'⭐', lbl:t('fbaTitle') },
+    { pg:'profile',    icon:'👤', lbl:t('profile') },
+  ] : user.role==='operator' ? [
+    { pg:'dashboard',    icon:'🏗️', lbl:t('opDashTitle') },
+    { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
+    { pg:'profile',      icon:'👤', lbl:t('profile') },
+  ] : [
+    { pg:'dashboard',   icon:'📊', lbl:t('dashboard') },
+    { pg:'schedule',    icon:'🗓️', lbl:t('mySchedule') },
+    { pg:'complaints',  icon:'📋', lbl:t('myComplaints') },
+    { pg:'notifications',icon:'🔔',lbl:t('notifications'), badge:unread||null },
+    { pg:'profile',     icon:'👤', lbl:t('profile') },
+  ];
+  el('sidebar-nav').innerHTML = items.map(i=>`
+    <div class="nav-item${page===i.pg?' active':''}" id="nav-${i.pg}" onclick="navigate('${i.pg}');closeSidebar()">
+      <span class="nav-icon">${i.icon}</span>
+      <span>${i.lbl}</span>
+      ${i.badge?`<span class="nav-badge">${i.badge}</span>`:''}
+    </div>`).join('');
+}
+
+function toggleSidebar() {
+  el('sidebar').classList.toggle('open');
+  el('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  el('sidebar').classList.remove('open');
+  el('sidebar-overlay').classList.remove('open');
+}
+
+// ─── NAVIGATE (Dashboard pages) ───────────────────────────────────────────────
+function navigate(pg) {
+  page = pg;
+  document.querySelectorAll('.dash-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const dp = el(`dp-${pg}`); if(dp) dp.classList.add('active');
+  const ni = el(`nav-${pg}`); if(ni) ni.classList.add('active');
+  closeAllDDs();
+  renderPage(pg);
+  el('main-content').scrollTop = 0;
+}
+
+function renderPage(pg) {
+  switch(pg) {
+    case 'dashboard':     renderDashboard(); break;
+    case 'complaints':    renderComplaints(); break;
+    case 'schedule':      renderSchedule(); break;
+    case 'staff':         renderStaff(); break;
+    case 'reports':       renderReports(); break;
+    case 'notifications': renderNotifications(); break;
+    case 'profile':       renderProfile(); break;
+    case 'feedback':      renderAdminFeedback(); break;
+  }
+}
+
+// ─── DATA HELPERS ─────────────────────────────────────────────────────────────
+function myComplaints() {
+  if(!user) return [];
+  if(user.role==='admin') return complaints;
+  if(user.role==='operator') return complaints.filter(c=>c.acceptedBy===user.username);
+  return complaints.filter(c=>c.assignedTo===user.username);
+}
+function availableJobs() {
+  return complaints.filter(c=>!c.acceptedBy && c.status==='Menunggu');
+}
+function myNotifs() {
+  if(!user) return [];
+  return notifs.filter(n=>{
+    const roleMatch = n.forRole===user.role || n.forRole==='all' || (user.role==='admin');
+    if(!roleMatch) return false;
+    if(n.forUser && n.forUser!==user.username && user.role!=='admin') return false;
+    return true;
+  });
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  if(user.role==='operator') { renderOperatorDashboard(); return; }
+  // Restore 2-col layout for admin/staff (operator may have collapsed it)
+  var dashCols = document.querySelector('.dash-cols');
+  if(dashCols) {
+    dashCols.style.gridTemplateColumns = '';
+    var notifCol = el('d-notif-preview') ? el('d-notif-preview').parentElement : null;
+    if(notifCol) notifCol.style.display = '';
+  }
+  el('dp-d-date').textContent = fmtDate(now());
+  const mc = myComplaints();
+  const todayC = mc.filter(c=>c.schedDate===now()||c.prefDate===now());
+  const pend  = mc.filter(c=>c.status==='Menunggu');
+  const prog  = mc.filter(c=>c.status==='Sedang Berjalan');
+  const done  = mc.filter(c=>c.status==='Selesai');
+
+  const statsAdmin = `
+    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
+    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div></div>
+    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>
+    <div class="stat-card c-lime"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
+    <div class="stat-card c-danger"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`;
+  const statsStaff = `
+    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div></div>
+    <div class="stat-card c-lime"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
+    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>`;
+  setHTML('d-stats', user.role==='admin' ? statsAdmin : statsStaff);
+
+  // Recent
+  const recent = [...mc].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt)).slice(0,5);
+  setHTML('d-recent-list', recent.length ? recent.map(c=>`
+    <div class="timeline-item">
+      <div class="tl-dot ${statusClass(c.status)}"></div>
+      <div class="tl-time">${(c.prefTime||'').slice(0,5)||'—'}</div>
+      <div class="tl-info">
+        <div class="tl-title">${c.name} <span style="font-size:.7rem;color:var(--gray-400);">${c.ref}</span></div>
+        <div class="tl-sub">${c.problem} · ${fmtDateShort(c.prefDate)}</div>
+      </div>
+      ${statusBadge(c.status)}
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">📋</div><p>${t('noJobs')}</p></div>`);
+
+  // Notif preview
+  const ns = myNotifs().slice(0,4);
+  setHTML('d-notif-preview', ns.length ? ns.map(n=>{
+    const icon = n.type==='complaint'?'📋':n.type==='assign'?'🔧':'🔄';
+    return `<div class="timeline-item">
+      <div class="tl-dot ${n.read?'selesai':'menunggu'}"></div>
+      <div class="tl-info">
+        <div class="tl-title" style="font-weight:${n.read?500:700};">${icon} ${n.title}</div>
+        <div class="tl-sub">${n.msg} · ${fmtTimeAgo(n.time)}</div>
+      </div>
+    </div>`;}).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">🔔</div><p>${t('noNotifs')}</p></div>`);
+
+  // Staff overview (admin)
+  const sc = el('d-staff-card');
+  if(sc) sc.style.display = user.role==='admin'?'block':'none';
+  if(user.role==='admin') {
+    const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+    setHTML('d-staff-tbody', staffList.map(su=>{
+      const sj = su.role==='operator'
+        ? complaints.filter(c=>c.acceptedBy===su.username)
+        : complaints.filter(c=>c.assignedTo===su.username);
+      const st = sj.filter(c=>(c.schedDate||c.prefDate)===now());
+      return `<tr>
+        <td><strong>${su.name}</strong></td>
+        <td>${st.length}</td>
+        <td>${sj.filter(c=>c.status==='Menunggu').length}</td>
+        <td>${sj.filter(c=>c.status==='Sedang Berjalan').length}</td>
+        <td>${sj.filter(c=>c.status==='Selesai').length}</td>
+      </tr>`;}).join(''));
+  }
+}
+
+// ─── COMPLAINTS ───────────────────────────────────────────────────────────────
+function renderComplaints() {
+  // chips
+  const chips = [
+    {k:'all',l:t('all')},{k:'Menunggu',l:t('pending')},
+    {k:'Sedang Berjalan',l:t('inProgress')},{k:'Selesai',l:t('completed')}
+  ];
+  setHTML('cp-chips', chips.map(c=>`<span class="chip${cpFilter===c.k?' active':''}" onclick="setCpFilter('${c.k}')">${c.l}</span>`).join(''));
+  renderComplaintsList();
+}
+
+function setCpFilter(f) { cpFilter=f; renderComplaints(); }
+
+function renderComplaintsList() {
+  const q = (el('cp-search')?.value||'').toLowerCase();
+  let list = myComplaints().filter(c=>{
+    const mf = cpFilter==='all'||c.status===cpFilter;
+    const ms = !q||c.name.toLowerCase().includes(q)||c.ref.toLowerCase().includes(q)||c.problem.toLowerCase().includes(q)||(c.assignedName||'').toLowerCase().includes(q);
+    return mf&&ms;
+  }).sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
+
+  if(!list.length) {
+    setHTML('cp-list','<div class="empty-state"><div class="empty-state-icon">📋</div><p>'+t('noJobs')+'</p></div>');
+    return;
+  }
+
+  const isAdmin = user.role==='admin';
+  setHTML('cp-list', list.map(c=>{
+    const urgIcon = c.urgency==='Segera'?' 🚨':'';
+    return `<div class="job-card ${statusClass(c.status)}">
+      <div class="job-card-top">
+        <div>
+          <div class="job-ref">${c.ref}${urgIcon}</div>
+          <div class="job-name">${c.name}</div>
+        </div>
+        ${statusBadge(c.status)}
+      </div>
+      <div class="job-prob">🔧 ${c.problem}${c.media&&c.media.length?` <span style="font-size:.72rem;background:rgba(118,185,0,.15);color:#3a6000;border-radius:10px;padding:1px 7px;font-weight:600;">📷 ${c.media.length}</span>`:''}</div>
+      ${c.desc?`<div style="font-size:.82rem;color:var(--gray-500);margin-bottom:8px;">💬 ${c.desc}</div>`:''}
+      <div class="job-meta">
+        <div class="job-meta-item">📞 ${c.phone}</div>
+        <div class="job-meta-item">📅 ${fmtDateShort(c.prefDate)}</div>
+        <div class="job-meta-item">🕐 ${c.prefTime}</div>
+        <div class="job-meta-item">👷 ${c.assignedName||`<em>${t('notAssigned')}</em>`}</div>
+        ${c.acceptedByName?`<div class="job-meta-item">🧰 ${c.acceptedByName}</div>`:''}
+      </div>
+      <div class="job-actions">
+        ${isAdmin?`<button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')">✏️ ${t('editComplaint')}</button>`:''}
+        <button class="btn btn-sm btn-primary" onclick="openStatusModal('${c.id}')">🔄 ${t('update')}</button>
+        <button class="btn btn-sm btn-outline" onclick="openGalleryModal('${c.id}')" title="${t('galleryView')}">📷 ${t('galleryView')}</button>
+        ${c.coords?`<a class="maps-btn" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener">${t('locOpenMaps')}</a>`:''}
+      </div>
+    </div>`;}).join(''));
+}
+
+// ─── JOB MODAL ────────────────────────────────────────────────────────────────
+function openJobModal(cid) {
+  editJobId = cid;
+  const c = complaints.find(x=>x.id===cid);
+  if(!c) return;
+  setTxt('mj-title', `📋 ${t('editComplaint')} — ${c.ref}`);
+  setTxt('mj-cust-name', c.name);
+  setTxt('mj-cust-phone', c.phone);
+  setTxt('mj-prob', c.problem + (c.urgency==='Segera'?' 🚨':''));
+  setTxt('mj-desc', c.desc||'—');
+  setTxt('mj-date', fmtDate(c.prefDate));
+  setTxt('mj-time', c.prefTime);
+  // Build assign dropdown dynamically
+  const assignEl = el('mj-assign');
+  if(assignEl) {
+    const allStaff = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+    assignEl.innerHTML = `<option value="">-- ${t('unassigned')} --</option>`
+      + allStaff.map(u=>`<option value="${u.username}">${u.name} (${u.role==='operator'?t('role_operator'):t('role_staff')})</option>`).join('');
+    assignEl.value = c.assignedTo||'';
+  }
+  el('mj-status').value    = c.status;
+  el('mj-sched-date').value = c.schedDate||c.prefDate;
+  el('mj-notes').value     = c.adminNotes||'';
+  // ── SECTION 1: Customer complaint photos (amber header) ────────────────────
+  const cpEl = el('mj-cust-photos');
+  if(cpEl) {
+    const hdr = `<div style="background:linear-gradient(135deg,#d97706,#b45309);color:white;padding:9px 14px;font-size:.78rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">
+      📷 ${lang==='bm'?'Gambar Aduan Pelanggan':'Customer Complaint Photos'}
+    </div>`;
+    if(c.media && c.media.length) {
+      cpEl.innerHTML = hdr
+        + `<div style="padding:12px;display:flex;flex-wrap:wrap;gap:8px;">
+            ${c.media.map((f,i)=>{
+              const isImg = f.type && f.type.startsWith('image/');
+              return `<div style="cursor:pointer;" onclick="openFullscreen(complaints.find(x=>x.id==='${c.id}').media,${i})">
+                ${isImg
+                  ? `<img src="${f.src}" style="width:76px;height:62px;object-fit:cover;border-radius:6px;border:1px solid #fed7aa;">`
+                  : `<div style="width:76px;height:62px;background:#fff7ed;border-radius:6px;border:1px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎬</div>`}
+              </div>`;
+            }).join('')}
+          </div>`;
+    } else {
+      cpEl.innerHTML = hdr
+        + `<div style="padding:12px;font-size:.82rem;color:var(--gray-400);">${lang==='bm'?'Tiada gambar daripada pelanggan.':'No photos from customer.'}</div>`;
+    }
+  }
+
+  // ── OPERATOR ACCEPT / COMPLETE INFO ─────────────────────────────────────────
+  const opEl = el('mj-op-info');
+  if(opEl) {
+    let opHtml = '';
+    if(c.acceptedBy) {
+      opHtml += `<div style="display:flex;gap:8px;margin-bottom:4px;">
+        <span class="text-muted" style="min-width:120px;">🧰 ${t('opAcceptedBy')}:</span>
+        <strong>${c.acceptedByName}</strong>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <span class="text-muted" style="min-width:120px;">⏰ ${t('opAcceptedAt')}:</span>
+        <strong>${fmtDate(c.acceptedAt)}${c.acceptedAt?' '+c.acceptedAt.slice(11,16):''}</strong>
+      </div>`;
+    }
+    if(c.completedAt) {
+      opHtml += `<div style="display:flex;gap:8px;">
+        <span class="text-muted" style="min-width:120px;">✅ ${t('opCompletedAt')}:</span>
+        <strong>${fmtDate(c.completedAt)}${c.completedAt?' '+c.completedAt.slice(11,16):''}</strong>
+      </div>`;
+    }
+    opEl.style.display = opHtml ? 'block' : 'none';
+    opEl.innerHTML = opHtml;
+  }
+
+  // ── SECTION 2: Operator before/during/after gallery (navy header) ────────────
+  const ogEl = el('mj-op-gallery');
+  if(ogEl) {
+    const gd = galleryData[c.id] || { before:[], during:[], after:[] };
+    const cats = [
+      { key:'before', icon:'📷', label:lang==='bm'?'Sebelum':'Before' },
+      { key:'during', icon:'🔧', label:lang==='bm'?'Semasa':'During' },
+      { key:'after',  icon:'✅', label:lang==='bm'?'Selepas':'After'  },
+    ];
+    const totalPhotos = cats.reduce((n,cat)=> n + (gd[cat.key]?gd[cat.key].length:0), 0);
+    const hdrNavy = `<div style="background:linear-gradient(135deg,var(--navy),#2a3a9e);color:white;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:.78rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">🗂️ ${lang==='bm'?'Galeri Kerja Operator':'Operator Work Gallery'}</span>
+      ${totalPhotos?`<span style="font-size:.72rem;background:rgba(255,255,255,.2);border-radius:10px;padding:1px 8px;">${totalPhotos} ${lang==='bm'?'gambar':'photos'}</span>`:''}
+    </div>`;
+    if(totalPhotos === 0) {
+      ogEl.innerHTML = hdrNavy
+        + `<div style="padding:12px;font-size:.82rem;color:var(--gray-400);">${lang==='bm'?'Tiada gambar dimuat naik oleh operator.':'No photos uploaded by operator.'}</div>`;
+    } else {
+      const catRows = cats.map(cat=>{
+        const arr = gd[cat.key] || [];
+        return `<div style="padding:10px 12px;${cat.key!=='after'?'border-bottom:1px solid var(--gray-100);':''}">
+          <div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">
+            ${cat.icon} ${cat.label} <span style="font-weight:400;color:var(--gray-400);">(${arr.length})</span>
+          </div>
+          ${arr.length
+            ? `<div style="display:flex;flex-wrap:wrap;gap:7px;">
+                ${arr.map((p,i)=>{
+                  const isImg = p.type && p.type.startsWith('image/');
+                  return `<div style="cursor:pointer;" onclick="openFullscreen(galleryData['${c.id}']['${cat.key}'],${i})">
+                    ${isImg
+                      ? `<img src="${p.src}" style="width:76px;height:62px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);">`
+                      : `<div style="width:76px;height:62px;background:#1a237e11;border-radius:6px;border:1px solid var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎬</div>`}
+                  </div>`;
+                }).join('')}
+              </div>`
+            : `<div style="font-size:.79rem;color:var(--gray-400);">${lang==='bm'?'Tiada gambar.':'No photos.'}</div>`}
+        </div>`;
+      }).join('');
+      ogEl.innerHTML = hdrNavy + catRows;
+    }
+  }
+
+  openModal('modal-job');
+}
+
+function saveJob() {
+  const c = complaints.find(x=>x.id===editJobId);
+  if(!c) return;
+  const prevAssign = c.assignedTo;
+  c.assignedTo   = el('mj-assign').value;
+  c.status       = el('mj-status').value;
+  c.schedDate    = el('mj-sched-date').value;
+  c.adminNotes   = el('mj-notes').value;
+  c.updatedAt    = new Date().toISOString();
+  const au = USERS.find(u=>u.username===c.assignedTo);
+  c.assignedName = au ? au.name : '';
+
+  if(c.assignedTo && c.assignedTo!==prevAssign) {
+    addNotif('assign', t('notifAssigned'), `${c.ref} — ${c.problem} di ${c.address.split(',')[0]}`, 'staff', c.assignedTo);
+  }
+  closeModal('modal-job');
+  toast(t('saved'), 'success');
+  renderComplaints();
+  buildSidebar();
+}
+
+function deleteComplaint() {
+  if(!confirm(t('confirmDelete'))) return;
+  complaints = complaints.filter(x=>x.id!==editJobId);
+  closeModal('modal-job');
+  toast(t('deleted'), 'info');
+  renderComplaints();
+  renderDashboard();
+  buildSidebar();
+}
+
+// ─── STATUS MODAL ─────────────────────────────────────────────────────────────
+function openStatusModal(cid) {
+  statusJobId = cid;
+  const c = complaints.find(x=>x.id===cid);
+  if(!c) return;
+  setHTML('ms-job-info', `<strong>${c.ref}</strong> — ${c.name}<br><span class="text-muted">${c.problem}</span>`);
+  el('ms-status').value = c.status;
+  el('ms-note').value   = '';
+  openModal('modal-status');
+}
+
+function confirmStatusUpdate() {
+  const c = complaints.find(x=>x.id===statusJobId);
+  if(!c) return;
+  c.status    = el('ms-status').value;
+  c.updatedAt = new Date().toISOString();
+  const note  = el('ms-note').value.trim();
+  if(note) c.techNotes = note;
+  addNotif('status', t('notifStatusUpdate'),
+    `${c.ref} — ${statusLabel(c.status)} · ${user.name}`, 'admin');
+  closeModal('modal-status');
+  toast(t('statusUpdated'), 'success');
+  renderComplaintsList();
+  renderDashboard();
+  buildSidebar();
+}
+
+// ─── SCHEDULE ─────────────────────────────────────────────────────────────────
+function switchSchedView(v) {
+  schedView = v;
+  el('sc-tab-day').classList.toggle('active', v==='day');
+  el('sc-tab-week').classList.toggle('active', v==='week');
+  el('sc-day-view').style.display  = v==='day'?'':'none';
+  el('sc-week-view').style.display = v==='week'?'':'none';
+  renderSchedContent();
+}
+
+function navDate(dir) {
+  schedDate = new Date(schedDate);
+  schedDate.setDate(schedDate.getDate() + (schedView==='week'?dir*7:dir));
+  renderSchedule();
+}
+function goToday() { schedDate=new Date(); renderSchedule(); }
+
+function renderSchedule() {
+  if(schedView==='day') {
+    const dn = T[lang].dayNames[schedDate.getDay()];
+    const mn = T[lang].monthNames[schedDate.getMonth()];
+    el('sc-date-display').textContent = `${dn}, ${schedDate.getDate()} ${mn} ${schedDate.getFullYear()}`;
+  } else {
+    const mo = new Date(schedDate);
+    mo.setDate(mo.getDate()-((mo.getDay()+6)%7));
+    const su = new Date(mo); su.setDate(su.getDate()+6);
+    el('sc-date-display').textContent = `${mo.getDate()} ${T[lang].monthNames[mo.getMonth()].slice(0,3)} — ${su.getDate()} ${T[lang].monthNames[su.getMonth()].slice(0,3)} ${su.getFullYear()}`;
+  }
+  renderSchedContent();
+}
+
+function renderSchedContent() { schedView==='day'?renderDayView():renderWeekView(); }
+
+function renderDayView() {
+  const ds = schedDate.toISOString().slice(0,10);
+  const dayJobs = myComplaints().filter(c=>(c.schedDate||c.prefDate)===ds).sort((a,b)=>(a.prefTime||'').localeCompare(b.prefTime||''));
+  if(!dayJobs.length) {
+    setHTML('sc-day-content',`<div class="empty-state"><div class="empty-state-icon">🗓️</div><p>${t('noScheduleToday')}</p></div>`);
+    return;
+  }
+  setHTML('sc-day-content',`<div class="card"><div class="card-body">
+    ${dayJobs.map(c=>`
+    <div class="timeline-item">
+      <div class="tl-dot ${statusClass(c.status)}"></div>
+      <div class="tl-time">${(c.prefTime||'').slice(0,5)||'—'}</div>
+      <div class="tl-info" style="flex:1;">
+        <div class="tl-title">${c.name} <span style="font-size:.7rem;color:var(--gray-400);">${c.ref}</span></div>
+        <div class="tl-sub">🔧 ${c.problem}</div>
+        <div class="tl-sub">📍 ${c.address.split(',').slice(-3).join(',').trim()}</div>
+        ${c.adminNotes?`<div class="tl-sub">📝 ${c.adminNotes}</div>`:''}
+        ${c.assignedName?`<div class="tl-sub">👷 ${c.assignedName}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        ${statusBadge(c.status)}
+        <button class="btn btn-sm btn-primary" onclick="openStatusModal('${c.id}')">🔄</button>
+        ${user.role==='admin'?`<button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')">✏️</button>`:''}
+      </div>
+    </div>`).join('')}
+  </div></div>`);
+}
+
+function renderWeekView() {
+  const start = new Date(schedDate);
+  start.setDate(start.getDate()-((start.getDay()+6)%7));
+  const todayS = now();
+  let html = '';
+  for(let i=0;i<7;i++) {
+    const d = new Date(start); d.setDate(d.getDate()+i);
+    const ds = d.toISOString().slice(0,10);
+    const dj = myComplaints().filter(c=>(c.schedDate||c.prefDate)===ds);
+    const isTd = ds===todayS;
+    html += `<div class="week-cell">
+      <div class="week-cell-head${isTd?' today':''}">
+        <div class="wc-num">${d.getDate()}</div>
+        <div class="wc-day">${T[lang].dayNamesShort[d.getDay()]}</div>
+      </div>
+      ${dj.map(c=>`<div class="week-job-dot ${statusClass(c.status)}" onclick="openStatusModal('${c.id}')" title="${c.name}: ${c.problem}">${c.name.split(' ')[0]}</div>`).join('')}
+    </div>`;
+  }
+  setHTML('sc-week-grid', html);
+}
+
+// ─── STAFF ────────────────────────────────────────────────────────────────────
+function renderStaff() {
+  const slist = USERS.filter(u=>u.role==='staff');
+  setHTML('sf-content', `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+    ${slist.map(su=>{
+      const sj = complaints.filter(c=>c.assignedTo===su.username);
+      const act = sj.filter(c=>c.status!=='Selesai').length;
+      const done= sj.filter(c=>c.status==='Selesai').length;
+      return `<div class="card" style="margin:0;">
+        <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:20px;color:white;display:flex;align-items:center;gap:14px;">
+          <div style="width:54px;height:54px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
+            ${iniOf(su.name)}
+          </div>
+          <div>
+            <div style="font-size:.98rem;font-weight:700;">${su.name}</div>
+            <div style="font-size:.72rem;opacity:.75;">ID: ${su.staffId}</div>
+            <div style="font-size:.72rem;opacity:.7;">📞 ${su.phone}</div>
+          </div>
+        </div>
+        <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;margin-bottom:14px;">
+            <div style="padding:10px;background:var(--info-lt);border-radius:var(--r);">
+              <div style="font-size:1.4rem;font-weight:900;color:var(--info);">${act}</div>
+              <div style="font-size:.7rem;color:var(--gray-600);">${lang==='bm'?'Aktif':'Active'}</div>
+            </div>
+            <div style="padding:10px;background:var(--success-lt);border-radius:var(--r);">
+              <div style="font-size:1.4rem;font-weight:900;color:var(--success);">${done}</div>
+              <div style="font-size:.7rem;color:var(--gray-600);">${t('completed')}</div>
+            </div>
+          </div>
+          ${sj.slice(0,3).reverse().map(c=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:.8rem;">
+              <span class="text-muted">${c.problem.split('/')[0].trim()}</span>
+              ${statusBadge(c.status)}
+            </div>`).join('')||`<div class="text-muted text-sm">${t('noJobs')}</div>`}
+        </div>
+      </div>`;}).join('')}
+  </div>`);
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────────────────────
+function renderReports() {
+  const all   = complaints;
+  const pend  = all.filter(c=>c.status==='Menunggu').length;
+  const prog  = all.filter(c=>c.status==='Sedang Berjalan').length;
+  const done  = all.filter(c=>c.status==='Selesai').length;
+  const urgent= all.filter(c=>c.urgency==='Segera').length;
+  setHTML('rp-stats',`
+    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${all.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
+    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">${prog}</div><div class="stat-label">${t('inProgress')}</div></div>
+    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done}</div><div class="stat-label">${t('completed')}</div></div>
+    <div class="stat-card c-danger"><div class="stat-icon">🚨</div><div class="stat-value">${urgent}</div><div class="stat-label">${lang==='bm'?'Segera':'Urgent'}</div></div>
+    <div class="stat-card c-lime"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`);
+
+  const mx1 = Math.max(pend,prog,done,1);
+  setHTML('rp-status-chart',`
+    <div class="bar-chart-item"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
+
+  const pc = {}; all.forEach(c=>{ pc[c.problem]=(pc[c.problem]||0)+1; });
+  const mx2 = Math.max(...Object.values(pc),1);
+  const cols = ['navy','lime','warning','success','info'];
+  setHTML('rp-type-chart', Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`
+    <div class="bar-chart-item"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
+
+  setHTML('rp-tbody', all.map(c=>`<tr>
+    <td style="font-weight:700;font-size:.8rem;color:var(--navy);">${c.ref}</td>
+    <td>${c.name}</td>
+    <td style="font-size:.82rem;">${c.problem}</td>
+    <td>${c.assignedName||'<span class="text-muted">—</span>'}</td>
+    <td style="font-size:.82rem;white-space:nowrap;">${fmtDateShort(c.prefDate)}</td>
+    <td>${statusBadge(c.status)}</td>
+  </tr>`).join(''));
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+function renderNotifications() {
+  const ns = myNotifs();
+  const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
+  setHTML('all-notif-list', ns.length ? ns.map(n=>`
+    <div class="notif-item ${n.read?'read':'unread'}" onclick="markRead(${n.id})">
+      <div class="notif-dot"></div>
+      <div>
+        <div style="font-weight:${n.read?500:700};font-size:.9rem;">${icon[n.type]||'🔔'} ${n.title}</div>
+        <div class="notif-text">${n.msg}</div>
+        <div class="notif-time">🕐 ${fmtTimeAgo(n.time)}</div>
+      </div>
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">🔔</div><p>${t('noNotifs')}</p></div>`);
+  renderNotifBadge();
+}
+
+function renderNotifDD() {
+  const ns = myNotifs().slice(0,8);
+  const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
+  setHTML('notif-dd-list', ns.length ? ns.map(n=>`
+    <div class="notif-item ${n.read?'read':'unread'}" onclick="markRead(${n.id});navigate('notifications')">
+      <div class="notif-dot"></div>
+      <div>
+        <div class="notif-text" style="font-weight:${n.read?400:600};">${icon[n.type]||'🔔'} ${n.title}</div>
+        <div class="notif-text">${n.msg}</div>
+        <div class="notif-time">${fmtTimeAgo(n.time)}</div>
+      </div>
+    </div>`).join('')
+    : `<div style="padding:20px;text-align:center;color:var(--gray-400);font-size:.85rem;">${t('noNotifs')}</div>`);
+}
+
+function renderNotifBadge() {
+  const count = myNotifs().filter(n=>!n.read).length;
+  const badge = el('notif-badge');
+  if(badge) { badge.textContent=count; badge.style.display=count?'flex':'none'; }
+}
+
+function markRead(id) {
+  const n = notifs.find(x=>x.id===id); if(n) n.read=true;
+  renderNotifBadge(); renderNotifDD();
+}
+
+function markAllRead() {
+  myNotifs().forEach(n=>n.read=true);
+  renderNotifBadge(); renderNotifDD();
+  if(page==='notifications') renderNotifications();
+  buildSidebar();
+  toast(t('markAllRead'),'info');
+}
+
+function toggleNotifDD() {
+  closeUserDD();
+  notifOpen=!notifOpen;
+  el('notif-dd').classList.toggle('open', notifOpen);
+  if(notifOpen) renderNotifDD();
+}
+
+function toggleUserDD() {
+  closeNotifDD();
+  userDDOpen=!userDDOpen;
+  el('user-dd').classList.toggle('open', userDDOpen);
+}
+
+function closeNotifDD() { notifOpen=false; el('notif-dd')?.classList.remove('open'); }
+function closeUserDD()  { userDDOpen=false; el('user-dd')?.classList.remove('open'); }
+function closeAllDDs()  { closeNotifDD(); closeUserDD(); }
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.notif-wrap')) closeNotifDD();
+  if(!e.target.closest('.user-wrap'))  closeUserDD();
+});
+
+function addNotif(type, title, msg, forRole, forUser) {
+  notifs.unshift({ id:notifCounter++, type, title, msg, time:0, read:false, forRole, forUser:forUser||null });
+  renderNotifBadge();
+  buildSidebar();
+}
+
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
+function renderProfile() {
+  if(!user) return;
+  setHTML('pr-content',`
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;flex-wrap:wrap;">
+      <div style="width:80px;height:80px;background:var(--navy);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:white;border:4px solid var(--lime);">
+        ${iniOf(user.name)}
+      </div>
+      <div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy);">${user.name}</div>
+        <span class="badge ${user.role==='admin'?'badge-admin':user.role==='operator'?'badge-operator':'badge-staff'}" style="margin-top:6px;display:inline-flex;">
+          ${user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):t('role_staff')}
+        </span>
+        ${user.staffId?`<div class="text-muted text-sm mt-1">ID: ${user.staffId}</div>`:''}
+      </div>
+    </div>
+    <div style="display:grid;gap:12px;font-size:.92rem;">
+      <div style="display:flex;gap:10px;"><span class="text-muted" style="min-width:100px;">📞 ${lang==='bm'?'Telefon':'Phone'}:</span><strong>${user.phone||'—'}</strong></div>
+      <div style="display:flex;gap:10px;"><span class="text-muted" style="min-width:100px;">📧 Email:</span><strong>${user.email||'—'}</strong></div>
+      <div style="display:flex;gap:10px;"><span class="text-muted" style="min-width:100px;">👤 Username:</span><strong>${user.username}</strong></div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);">
+      <button class="btn btn-danger btn-sm" onclick="doLogout()">🚪 ${t('logout')}</button>
+    </div>`);
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+function openModal(id)  { el(id)?.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id) { el(id)?.classList.remove('open'); document.body.style.overflow=''; }
+
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(ov.id); });
+});
+
+// ─── PWA ──────────────────────────────────────────────────────────────────────
+
+// --- MEDIA UPLOAD ---
+function handleMediaUpload(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  const remaining = 5 - uploadedFiles.length;
+  if(remaining <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
+  const toRead = files.slice(0, remaining);
+  let loaded = 0;
+  toRead.forEach(file => {
+    if(file.size > 10*1024*1024) { toast((lang==='bm'?'Fail terlalu besar: ':'File too large: ')+file.name,'error'); loaded++; if(loaded===toRead.length) renderMediaPreviews(); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedFiles.push({ name:file.name, type:file.type, src:e.target.result });
+      loaded++;
+      if(loaded===toRead.length) renderMediaPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function clearMedia(e) {
+  if(e) e.stopPropagation();
+  uploadedFiles = [];
+  renderMediaPreviews();
+}
+
+function removeMediaFile(idx) {
+  uploadedFiles.splice(idx, 1);
+  renderMediaPreviews();
+}
+
+function renderMediaPreviews() {
+  const grid = el('media-preview-grid');
+  const bar  = el('media-count-bar');
+  if(!grid) return;
+  if(!uploadedFiles.length) {
+    grid.innerHTML = '';
+    if(bar) bar.style.display = 'none';
+    return;
+  }
+  if(bar) { bar.style.display='flex'; bar.querySelector('span').textContent = uploadedFiles.length+'/5'; }
+  grid.innerHTML = uploadedFiles.map((f,i)=>{
+    const isImg = f.type.startsWith('image/');
+    const isVid = f.type.startsWith('video/');
+    const thumb = isImg
+      ? '<img src="'+f.src+'" style="width:100%;height:64px;object-fit:cover;border-radius:6px;">'
+      : isVid
+        ? '<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:#1a237e11;border-radius:6px;font-size:1.5rem;">🎬</div>'
+        : '<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📄</div>';
+    return '<div style="position:relative;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">'
+      +thumb
+      +'<button onclick="removeMediaFile('+i+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1;">✕</button>'
+      +'<div style="font-size:.6rem;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--gray-500);">'+f.name+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// --- GPS LOCATION PIN ---
+function pinLocation() {
+  if(!navigator.geolocation) {
+    toast(lang==='bm'?'GPS tidak disokong pada peranti ini.':'GPS not supported on this device.','error');
+    return;
+  }
+  const btn = el('cf-location-btn');
+  const btnTxt = el('cf-loc-btn-txt');
+  const result = el('cf-location-result');
+  if(btn) btn.disabled = true;
+  if(btnTxt) btnTxt.textContent = lang==='bm'?'Mengesan lokasi…':'Detecting location…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      pinnedLat = pos.coords.latitude;
+      pinnedLng = pos.coords.longitude;
+      if(btn) btn.disabled = false;
+      if(btnTxt) btnTxt.textContent = lang==='bm'?'Lokasi Dipin ✓':'Location Pinned ✓';
+      if(result) {
+        result.style.display = 'block';
+        result.innerHTML = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+          +'<span style="font-size:.85rem;color:#166534;">📍 '+pinnedLat.toFixed(6)+', '+pinnedLng.toFixed(6)+'</span>'
+          +'<a href="https://www.google.com/maps?q='+pinnedLat+','+pinnedLng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
+          +'</div>';
+      }
+    },
+    err => {
+      if(btn) btn.disabled = false;
+      if(btnTxt) btnTxt.textContent = lang==='bm'?'Pin Lokasi Saya':'Pin My Location';
+      toast(lang==='bm'?'Gagal mendapatkan lokasi. Sila benarkan akses GPS.':'Could not get location. Please allow GPS access.','error');
+    },
+    { enableHighAccuracy:true, timeout:10000 }
+  );
+}
+
+// --- GALLERY ---
+function openGalleryModal(jobId) {
+  galleryJobId = jobId;
+  galleryTab   = 'before';
+  if(!galleryData[jobId]) galleryData[jobId] = { before:[], during:[], after:[] };
+  const ttl = el('gallery-modal-title');
+  if(ttl) ttl.textContent = (lang==='bm'?'Galeri Kerja — ':'Job Gallery — ') + jobId;
+  switchGalleryTab('before');
+  openModal('modal-gallery');
+}
+
+function switchGalleryTab(tab) {
+  galleryTab = tab;
+  document.querySelectorAll('.gallery-tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===tab);
+  });
+  renderGalleryGrid();
+}
+
+function handleGalleryUpload(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  const arr = galleryData[galleryJobId][galleryTab];
+  const remaining = 20 - arr.length;
+  if(remaining <= 0) { toast(lang==='bm'?'Had 20 gambar dicapai.':'20 photo limit reached.','error'); return; }
+  let loaded = 0;
+  const toRead = files.slice(0, remaining);
+  toRead.forEach(file => {
+    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); } return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      arr.push({ src:e.target.result, name:file.name, type:file.type, ts:new Date().toISOString(), who:user?user.name:'Staff' });
+      loaded++;
+      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function saveGallery() {
+  try { localStorage.setItem('emug_gallery', JSON.stringify(galleryData)); } catch(e){}
+}
+
+function renderGalleryGrid() {
+  const grid = el('gallery-grid');
+  if(!grid) return;
+  const arr = (galleryData[galleryJobId] && galleryData[galleryJobId][galleryTab]) ? galleryData[galleryJobId][galleryTab] : [];
+  const tabLabel = galleryTab==='before'?(lang==='bm'?'Sebelum':'Before'):galleryTab==='during'?(lang==='bm'?'Semasa':'During'):(lang==='bm'?'Selepas':'After');
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:4px;">';
+  arr.forEach(function(p,i){
+    const isImg = p.type && p.type.startsWith('image/');
+    html += '<div style="position:relative;cursor:pointer;" onclick="openFullscreen(galleryData[\''+galleryJobId+'\'][\''+galleryTab+'\'],'+i+')">'
+      +(isImg
+        ? '<img src="'+p.src+'" style="width:100%;height:100px;object-fit:cover;border-radius:8px;">'
+        : '<div style="width:100%;height:100px;background:#1a237e22;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎬</div>')
+      +'<button onclick="event.stopPropagation();deleteGalleryPhoto('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.75rem;cursor:pointer;line-height:1;">✕</button>'
+      +'<div style="font-size:.65rem;color:var(--gray-500);text-align:center;margin-top:3px;">'+(p.who||'')+' · '+fmtDate(p.ts)+'</div>'
+      +'</div>';
+  });
+  html += '<label style="width:100%;height:100px;border:2px dashed var(--gray-300);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;color:var(--gray-400);">'
+    +'<span style="font-size:1.8rem;">+</span>'+(lang==='bm'?'Tambah Gambar':'Add Photo')
+    +'<input type="file" accept="image/*,video/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
+    +'</label>';
+  html += '</div>';
+  if(!arr.length) {
+    html = '<div style="text-align:center;padding:32px;color:var(--gray-400);">'+(lang==='bm'?'Tiada gambar '+tabLabel+' lagi.':'No '+tabLabel+' photos yet.')+'</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:4px;">'
+      + '<label style="width:100%;height:100px;border:2px dashed var(--gray-300);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;color:var(--gray-400);">'
+      + '<span style="font-size:1.8rem;">+</span>'+(lang==='bm'?'Tambah Gambar':'Add Photo')
+      + '<input type="file" accept="image/*,video/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
+      + '</label></div>';
+  }
+  grid.innerHTML = html;
+}
+
+function deleteGalleryPhoto(idx) {
+  if(!confirm(lang==='bm'?'Padam gambar ini?':'Delete this photo?')) return;
+  galleryData[galleryJobId][galleryTab].splice(idx, 1);
+  saveGallery();
+  renderGalleryGrid();
+}
+
+// --- FULLSCREEN VIEWER ---
+function openFullscreen(images, idx) {
+  fullscreenImages = images;
+  fullscreenIdx    = idx;
+  renderFullscreen();
+  el('fullscreen-viewer').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function renderFullscreen() {
+  const item = fullscreenImages[fullscreenIdx];
+  if(!item) return;
+  const img    = el('fullscreen-img');
+  const cap    = el('fullscreen-caption');
+  const vidEl  = el('fullscreen-video');
+  const isImg  = item.type && item.type.startsWith('image/');
+  if(img)   { img.src = isImg ? item.src : ''; img.style.display = isImg ? 'block' : 'none'; }
+  if(vidEl) { vidEl.src = !isImg ? item.src : ''; vidEl.style.display = !isImg ? 'block' : 'none'; }
+  if(cap)   cap.textContent = (item.name||'') + ' · ' + (item.who||'') + ' · ' + fmtDate(item.ts) + ' (' + (fullscreenIdx+1) + '/' + fullscreenImages.length + ')';
+  const prevBtn = el('fs-prev');
+  const nextBtn = el('fs-next');
+  if(prevBtn) prevBtn.style.display = fullscreenIdx > 0 ? 'flex' : 'none';
+  if(nextBtn) nextBtn.style.display = fullscreenIdx < fullscreenImages.length-1 ? 'flex' : 'none';
+}
+
+function fullscreenNav(dir) {
+  fullscreenIdx = Math.max(0, Math.min(fullscreenImages.length-1, fullscreenIdx+dir));
+  renderFullscreen();
+}
+
+function closeFullscreen(e) {
+  if(e && e.target !== el('fullscreen-viewer')) return;
+  closeFullscreenBtn();
+}
+
+function closeFullscreenBtn() {
+  el('fullscreen-viewer').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// --- STAR RATINGS ---
+function initStarRatings() {
+  document.querySelectorAll('.star-picker').forEach(function(picker) {
+    const cat   = picker.dataset.cat;
+    const stars = picker.querySelectorAll('.star');
+    stars.forEach(function(star, i) {
+      star.addEventListener('click', function() {
+        starRatings[cat] = i + 1;
+        stars.forEach(function(s, j) { s.classList.toggle('active', j <= i); });
+        updateOverallRating();
+      });
+      star.addEventListener('mouseenter', function() {
+        stars.forEach(function(s, j) { s.classList.toggle('hover', j <= i); });
+      });
+      star.addEventListener('mouseleave', function() {
+        stars.forEach(function(s) { s.classList.remove('hover'); });
+      });
+    });
+  });
+}
+
+function updateOverallRating() {
+  const vals = Object.values(starRatings).filter(function(v){ return v > 0; });
+  const avg  = vals.length ? (vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(1) : '—';
+  const disp = el('fb-overall-display');
+  if(disp) disp.textContent = avg === '—' ? '—' : avg + ' ⭐';
+}
+
+// --- FEEDBACK FORM (PUBLIC) ---
+function showFeedbackPage(ref) {
+  showPubPage('feedback');
+  initFeedbackForm(ref);
+}
+
+function initFeedbackForm(ref) {
+  starRatings = {};
+  document.querySelectorAll('.star-picker .star').forEach(function(s){ s.classList.remove('active','hover'); });
+  const disp = el('fb-overall-display'); if(disp) disp.textContent = '—';
+  const nameEl    = el('fb-name');    if(nameEl)    nameEl.value    = '';
+  const commentEl = el('fb-comment'); if(commentEl) commentEl.value = '';
+  const refEl     = el('fb-ref');     if(refEl)     refEl.value     = ref || '';
+  const fv  = el('fb-form-view');    if(fv)  fv.style.display  = 'block';
+  const cv  = el('fb-confirm-view'); if(cv)  cv.style.display  = 'none';
+  const err = el('fb-ref-error');    if(err) err.style.display = 'none';
+  initStarRatings();
+}
+
+function checkFeedbackRef() {
+  const ref    = (el('fb-ref') ? el('fb-ref').value : '').trim().toUpperCase();
+  const errEl  = el('fb-ref-error');
+  if(!ref) {
+    if(errEl){ errEl.textContent = lang==='bm'?'Sila masukkan nombor rujukan.':'Please enter reference number.'; errEl.style.display='block'; }
+    return false;
+  }
+  const c = complaints.find(function(x){ return x.ref===ref; });
+  if(!c) {
+    if(errEl){ errEl.textContent = lang==='bm'?'Nombor rujukan tidak dijumpai.':'Reference number not found.'; errEl.style.display='block'; }
+    return false;
+  }
+  if(c.status !== 'Selesai') {
+    if(errEl){ errEl.textContent = lang==='bm'?'Kerja belum selesai. Penilaian hanya boleh dibuat selepas kerja siap.':'Work not yet completed.'; errEl.style.display='block'; }
+    return false;
+  }
+  const existing = feedbacks.find(function(f){ return f.ref===ref; });
+  if(existing) {
+    if(errEl){ errEl.textContent = lang==='bm'?'Penilaian untuk aduan ini telah dihantar.':'Feedback for this complaint already submitted.'; errEl.style.display='block'; }
+    return false;
+  }
+  if(errEl) errEl.style.display = 'none';
+  return true;
+}
+
+function submitFeedback() {
+  if(!checkFeedbackRef()) return;
+  const name    = (el('fb-name')    ? el('fb-name').value    : '').trim();
+  const ref     = (el('fb-ref')     ? el('fb-ref').value     : '').trim().toUpperCase();
+  const comment = (el('fb-comment') ? el('fb-comment').value : '').trim();
+  if(!name) { toast(lang==='bm'?'Sila masukkan nama anda.':'Please enter your name.','error'); return; }
+  const cats = ['quality','timeliness','service'];
+  for(let i=0;i<cats.length;i++) {
+    if(!starRatings[cats[i]]) { toast(lang==='bm'?'Sila berikan penilaian untuk semua kategori.':'Please rate all categories.','error'); return; }
+  }
+  const vals    = cats.map(function(c){ return starRatings[c]; });
+  const overall = +(vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(1);
+  feedbackCounter++;
+  feedbacks.push({
+    id: feedbackCounter,
+    ref: ref,
+    name: name,
+    ratings: { quality: starRatings.quality, timeliness: starRatings.timeliness, service: starRatings.service },
+    overall: overall,
+    comment: comment,
+    published: false,
+    date: new Date().toISOString()
+  });
+  const confRef  = el('fb-confirm-ref');   if(confRef)   confRef.textContent  = ref;
+  const confName = el('fb-confirm-name');  if(confName)  confName.textContent = name;
+  const confStar = el('fb-confirm-stars'); if(confStar)  confStar.textContent = '⭐'.repeat(Math.round(overall)) + ' (' + overall + ')';
+  const fv = el('fb-form-view');    if(fv) fv.style.display  = 'none';
+  const cv = el('fb-confirm-view'); if(cv) cv.style.display  = 'block';
+  toast(lang==='bm'?'Terima kasih atas penilaian anda!':'Thank you for your feedback!','success');
+  renderTestimonials();
+}
+
+// --- TESTIMONIALS (PUBLIC LANDING) ---
+function renderTestimonials() {
+  const grid    = el('testimonials-grid');
+  const banner  = el('avg-rating-banner');
+  const avgNum  = el('avg-rating-num');
+  const published = feedbacks.filter(function(f){ return f.published; });
+
+  if(avgNum) {
+    if(published.length) {
+      const avg = (published.reduce(function(s,f){ return s+f.overall; }, 0) / published.length).toFixed(1);
+      avgNum.textContent = avg;
+      if(banner) banner.style.display = 'flex';
+    } else {
+      if(banner) banner.style.display = 'none';
+    }
+  }
+
+  if(!grid) return;
+  if(!published.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--gray-400);">'+(lang==='bm'?'Tiada ulasan lagi.':'No reviews yet.')+'</div>';
+    return;
+  }
+  grid.innerHTML = published.slice().reverse().slice(0,6).map(function(f){
+    return '<div class="testi-card">'
+      +'<div class="testi-stars">'+'⭐'.repeat(Math.round(f.overall))+' <span style="font-size:.8rem;color:var(--gray-500);">'+f.overall+'</span></div>'
+      +'<div class="testi-comment">“'+(f.comment||'—')+'”</div>'
+      +'<div class="testi-author">— '+f.name+' · <span style="font-size:.75rem;color:var(--gray-400);">'+fmtDate(f.date)+'</span></div>'
+      +'<div style="font-size:.72rem;color:var(--gray-400);">'+f.ref+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// --- ADMIN FEEDBACK MANAGEMENT ---
+function renderAdminFeedback() {
+  const summaryEl = el('fba-summary');
+  const listEl    = el('fba-list');
+
+  if(summaryEl) {
+    const cats   = ['quality','timeliness','service'];
+    const labels = {
+      quality:    lang==='bm'?'Kualiti Kerja':'Work Quality',
+      timeliness: lang==='bm'?'Ketepatan Masa':'Timeliness',
+      service:    lang==='bm'?'Perkhidmatan':'Service'
+    };
+    summaryEl.innerHTML = cats.map(function(cat){
+      const vals = feedbacks.map(function(f){ return f.ratings[cat]; }).filter(Boolean);
+      const avg  = vals.length ? (vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(1) : '—';
+      return '<div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:14px 18px;text-align:center;">'
+        +'<div style="font-size:1.6rem;font-weight:700;color:var(--navy);">'+avg+'</div>'
+        +'<div style="font-size:.8rem;color:var(--gray-500);">'+labels[cat]+'</div>'
+        +'<div style="font-size:.7rem;color:var(--gray-400);">'+vals.length+' '+(lang==='bm'?'ulasan':'reviews')+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  if(!listEl) return;
+  if(!feedbacks.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);">'+(lang==='bm'?'Tiada penilaian lagi.':'No feedback yet.')+'</div>';
+    return;
+  }
+  listEl.innerHTML = feedbacks.slice().reverse().map(function(f){
+    return '<div style="border:1px solid var(--gray-200);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:10px;background:var(--white);">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'
+      +'<div>'
+      +'<div style="font-weight:600;">'+f.name+' <span style="font-size:.8rem;color:var(--gray-400);">· '+f.ref+'</span></div>'
+      +'<div style="font-size:.8rem;color:var(--gray-500);margin:2px 0;">'+fmtDate(f.date)+'</div>'
+      +'<div style="margin:4px 0;">'+'⭐'.repeat(Math.round(f.overall))+' <span style="font-size:.82rem;color:var(--gray-600);">'+f.overall+' / 5</span></div>'
+      +'<div style="font-size:.82rem;color:var(--gray-500);">'
+      +(lang==='bm'?'Kualiti':'Quality')+': '+f.ratings.quality+'★ &nbsp;|&nbsp;'
+      +(lang==='bm'?'Masa':'Time')+': '+f.ratings.timeliness+'★ &nbsp;|&nbsp;'
+      +(lang==='bm'?'Servis':'Service')+': '+f.ratings.service+'★'
+      +'</div>'
+      +(f.comment?'<div style="font-style:italic;color:var(--gray-600);margin-top:6px;font-size:.85rem;">“'+f.comment+'”</div>':'')
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:.78rem;color:'+(f.published?'var(--success)':'var(--gray-400)')+';">'+(f.published?(lang==='bm'?'✅ Diterbit':'✅ Published'):(lang==='bm'?'⚪ Tersembunyi':'⚪ Hidden'))+'</span>'
+      +'<div class="toggle-track '+(f.published?'on':'')+'" onclick="toggleFeedbackPublish('+f.id+')" style="cursor:pointer;"></div>'
+      +'</div>'
+      +'</div>'
+      +'</div></div>';
+  }).join('');
+}
+
+function toggleFeedbackPublish(id) {
+  const fb = feedbacks.find(function(f){ return f.id===id; });
+  if(!fb) return;
+  fb.published = !fb.published;
+  renderAdminFeedback();
+  renderTestimonials();
+  toast(fb.published?(lang==='bm'?'Ulasan diterbitkan.':'Review published.'):(lang==='bm'?'Ulasan disembunyikan.':'Review hidden.'), 'success');
+}
+
+// --- TRACK PAGE: COMPLETION GALLERY ---
+function renderTrackGallery(c) {
+  const gd = galleryData[c.id];
+  const tabs = ['before','during','after'];
+  const tabLabels = {
+    before: lang==='bm'?'Sebelum':'Before',
+    during: lang==='bm'?'Semasa':'During',
+    after:  lang==='bm'?'Selepas':'After'
+  };
+  const hasAny = gd && tabs.some(function(tab){ return gd[tab] && gd[tab].length > 0; });
+
+  return '<div style="margin-top:12px;border:1.5px solid var(--gray-200);border-radius:var(--r-lg);overflow:hidden;">'
+    +'<div style="background:var(--navy);color:white;padding:10px 16px;font-weight:600;font-size:.88rem;">📷 '+t('completionGallery')+'</div>'
+    +(hasAny ? (function(){
+      var html = '<div style="display:flex;border-bottom:1px solid var(--gray-200);">';
+      tabs.forEach(function(tab){
+        var count = (gd && gd[tab]) ? gd[tab].length : 0;
+        html += '<button class="track-gallery-tab" data-gtab="'+tab+'" onclick="switchTrackGalleryTab(\''+c.id+'\',\''+tab+'\')" style="flex:1;padding:8px 4px;background:none;border:none;border-bottom:2px solid transparent;font-size:.8rem;cursor:pointer;color:var(--gray-500);">'
+          +tabLabels[tab]+(count?' ('+count+')':'')+'</button>';
+      });
+      html += '</div><div id="track-gallery-content-'+c.id+'" style="padding:12px;">';
+      var firstTab = tabs.find(function(t){ return gd[t] && gd[t].length>0; }) || 'before';
+      var arr = (gd && gd[firstTab]) ? gd[firstTab] : [];
+      html += renderTrackGalleryGrid(arr, c.id, firstTab);
+      html += '</div>';
+      return html;
+    })()
+    : '<div style="padding:20px;text-align:center;color:var(--gray-400);font-size:.85rem;">'+t('noGalleryPhotos')+'</div>')
+    +'</div>';
+}
+
+function switchTrackGalleryTab(jobId, tab) {
+  const gd = galleryData[jobId];
+  const arr = (gd && gd[tab]) ? gd[tab] : [];
+  const contentEl = el('track-gallery-content-'+jobId);
+  if(contentEl) contentEl.innerHTML = renderTrackGalleryGrid(arr, jobId, tab);
+  document.querySelectorAll('.track-gallery-tab').forEach(function(b){
+    b.style.color = b.dataset.gtab === tab ? 'var(--navy)' : 'var(--gray-500)';
+    b.style.borderBottomColor = b.dataset.gtab === tab ? 'var(--navy)' : 'transparent';
+    b.style.fontWeight = b.dataset.gtab === tab ? '700' : '400';
+  });
+}
+
+function renderTrackGalleryGrid(arr, jobId, tab) {
+  if(!arr || !arr.length) {
+    return '<div style="text-align:center;padding:16px;color:var(--gray-400);font-size:.82rem;">'
+      +(lang==='bm'?'Tiada gambar dalam kategori ini.':'No photos in this category.')+'</div>';
+  }
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;">'
+    + arr.map(function(p,i){
+      var isImg = p.type && p.type.startsWith('image/');
+      return '<div style="cursor:pointer;" onclick="openFullscreen(galleryData[\''+jobId+'\'][\''+tab+'\'],'+i+')">'
+        +(isImg?'<img src="'+p.src+'" style="width:100%;height:75px;object-fit:cover;border-radius:6px;">'
+               :'<div style="width:100%;height:75px;background:#1a237e22;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎬</div>')
+        +'<div style="font-size:.6rem;color:var(--gray-400);text-align:center;margin-top:2px;">'+(p.who||'')+'</div>'
+        +'</div>';
+    }).join('')+'</div>';
+}
+
+// --- OPERATOR DASHBOARD ---
+function renderOperatorDashboard() {
+  el('dp-d-date').textContent = fmtDate(now());
+  var newJobs = availableJobs();
+  var myJobs  = complaints.filter(function(c){ return c.acceptedBy === user.username; });
+  var active  = myJobs.filter(function(c){ return c.status === 'Sedang Berjalan'; });
+  var done    = myJobs.filter(function(c){ return c.status === 'Selesai'; });
+
+  setHTML('d-stats',
+    '<div class="stat-card c-warn"><div class="stat-icon">📋</div><div class="stat-value">'+newJobs.length+'</div><div class="stat-label">'+t('opNewJobs')+'</div></div>'
+    +'<div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">'+active.length+'</div><div class="stat-label">'+t('inProgress')+'</div></div>'
+    +'<div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">'+done.length+'</div><div class="stat-label">'+t('completed')+'</div></div>'
+  );
+
+  // ── "ADUAN BARU" section ──────────────────────────────────────────────────
+  var newJobsHTML = '<div style="margin-bottom:28px;">'
+    +'<div class="card-header" style="padding:0 0 12px 0;">'
+    +'<div class="card-title">📋 '+t('opNewJobs')
+    +(newJobs.length?'<span style="margin-left:8px;background:var(--lime);color:var(--navy);border-radius:12px;padding:1px 9px;font-size:.72rem;font-weight:800;">'+newJobs.length+'</span>':'')
+    +'</div></div>'
+    +(newJobs.length ? newJobs.map(function(c){
+      // Location row
+      var locRow = c.coords
+        ? '<div style="margin-bottom:8px;"><a class="maps-btn" href="https://www.google.com/maps?q='+c.coords.lat+','+c.coords.lng+'" target="_blank" rel="noopener">📍 '+(lang==='bm'?'Buka Google Maps':'Open Google Maps')+'</a></div>'
+        : '<div style="font-size:.82rem;color:var(--gray-600);margin-bottom:8px;">📍 '+c.address+'</div>';
+      return '<div class="job-card op-new">'
+        +'<div class="job-card-top"><div>'
+        +'<div class="job-ref">'+c.ref+(c.urgency==='Segera'?' 🚨':'')+'</div>'
+        +'<div class="job-name">'+c.name+'</div>'
+        +'</div>'+statusBadge(c.status)+'</div>'
+        +'<div class="job-prob">🔧 '+c.problem+'</div>'
+        +(c.desc?'<div style="font-size:.8rem;color:var(--gray-500);margin:4px 0 8px;">💬 '+c.desc+'</div>':'')
+        +locRow
+        +'<div class="job-meta" style="margin-bottom:10px;">'
+        +'<div class="job-meta-item">📅 '+fmtDateShort(c.prefDate)+'</div>'
+        +'<div class="job-meta-item">🕐 '+c.prefTime+'</div>'
+        +(c.urgency==='Segera'?'<div class="job-meta-item" style="color:#dc2626;font-weight:700;">🚨 '+(lang==='bm'?'Segera':'Urgent')+'</div>':'')
+        +'</div>'
+        +'<div class="job-actions">'
+        +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\''+c.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
+        +'</div></div>';
+    }).join('') : '<div class="empty-state"><div class="empty-state-icon">🎉</div><p>'+t('opNoNewJobs')+'</p></div>')
+    +'</div>';
+
+  // ── "KERJA SAYA" section ──────────────────────────────────────────────────
+  var myJobsHTML = '<div>'
+    +'<div class="card-header" style="padding:0 0 12px 0;">'
+    +'<div class="card-title">🧰 '+t('opMyJobs')
+    +(active.length?'<span style="margin-left:8px;background:var(--info);color:white;border-radius:12px;padding:1px 9px;font-size:.72rem;font-weight:800;">'+active.length+'</span>':'')
+    +'</div></div>'
+    +(myJobs.length ? myJobs.slice().reverse().map(function(c){
+      var gd = galleryData[c.id] || { before:[], during:[], after:[] };
+      var cntB = gd.before ? gd.before.length : 0;
+      var cntD = gd.during ? gd.during.length : 0;
+      var cntA = gd.after  ? gd.after.length  : 0;
+      var hasBefore = cntB > 0;
+      var hasDuring = cntD > 0;
+      var hasAfter  = cntA > 0;
+      var isActive  = c.status !== 'Selesai';
+      var canComplete = hasBefore && hasDuring && hasAfter && isActive;
+
+      // Location row
+      var locRow = c.coords
+        ? '<div style="margin-bottom:8px;"><a class="maps-btn" href="https://www.google.com/maps?q='+c.coords.lat+','+c.coords.lng+'" target="_blank" rel="noopener">📍 '+(lang==='bm'?'Buka Google Maps':'Open Google Maps')+'</a></div>'
+        : '<div style="font-size:.82rem;color:var(--gray-600);margin-bottom:8px;">📍 '+c.address+'</div>';
+
+      // Customer complaint photos
+      var custPhotosHTML = '';
+      if(c.media && c.media.length) {
+        custPhotosHTML = '<div class="op-cust-photos">'
+          +'<div class="op-section-hd">📷 '+(lang==='bm'?'Gambar Aduan Pelanggan':'Customer Complaint Photos')+'</div>'
+          +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">'
+          +c.media.map(function(f, i){
+            var isImg = f.type && f.type.startsWith('image/');
+            return '<div style="cursor:pointer;" onclick="openFullscreen(complaints.find(function(x){return x.id===\''+c.id+'\';}).media,'+i+')">'
+              +(isImg
+                ?'<img src="'+f.src+'" style="width:64px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200);">'
+                :'<div style="width:64px;height:52px;background:#1a237e11;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🎬</div>')
+              +'</div>';
+          }).join('')
+          +'</div></div>';
+      } else {
+        custPhotosHTML = '<div class="op-cust-photos">'
+          +'<div class="op-section-hd">📷 '+(lang==='bm'?'Gambar Aduan Pelanggan':'Customer Complaint Photos')+'</div>'
+          +'<div style="font-size:.8rem;color:var(--gray-400);padding:4px 0;">'+(lang==='bm'?'Tiada gambar daripada pelanggan.':'No photos from customer.')+'</div>'
+          +'</div>';
+      }
+
+      // Photo progress + missing-category warning
+      var photoSummary = '<div class="op-photo-summary">'
+        +'<div class="op-photo-cat '+(hasBefore?'done':'empty')+'">📷 '+(lang==='bm'?'Sebelum':'Before')+' ('+cntB+')</div>'
+        +'<div class="op-photo-cat '+(hasDuring?'done':'empty')+'">🔧 '+(lang==='bm'?'Semasa':'During')+' ('+cntD+')</div>'
+        +'<div class="op-photo-cat '+(hasAfter?'done':'empty')+'">✅ '+(lang==='bm'?'Selepas':'After')+' ('+cntA+')</div>'
+        +'</div>';
+
+      var missingWarn = '';
+      if(isActive && !canComplete) {
+        var missing = [];
+        if(!hasBefore) missing.push(lang==='bm'?'Sebelum':'Before');
+        if(!hasDuring) missing.push(lang==='bm'?'Semasa':'During');
+        if(!hasAfter)  missing.push(lang==='bm'?'Selepas':'After');
+        missingWarn = '<div class="op-missing-warn">'
+          +'⚠️ '+(lang==='bm'?'Gambar diperlukan: ':'Photos needed: ')
+          +'<strong>'+missing.join(', ')+'</strong>'
+          +'</div>';
+      }
+
+      // Actions
+      var actionsHTML = '<div class="job-actions" style="margin-top:10px;">'
+        +'<button class="btn btn-sm btn-outline" onclick="openGalleryModal(\''+c.id+'\')">'
+        +'📷 '+(lang==='bm'?'Muat Naik Gambar':'Upload Photos')+'</button>';
+      if(isActive) {
+        if(canComplete) {
+          actionsHTML += '<button class="op-complete-btn" onclick="markJobComplete(\''+c.id+'\')">'
+            +'✅ '+(lang==='bm'?'Tandakan Selesai':'Mark as Complete')+'</button>';
+        }
+      } else {
+        actionsHTML += '<span style="font-size:.78rem;color:var(--success);font-weight:700;">✅ '+(lang==='bm'?'Selesai':'Completed')+'</span>';
+      }
+      actionsHTML += '</div>';
+
+      return '<div class="job-card op-mine '+statusClass(c.status)+'">'
+        +'<div class="job-card-top"><div>'
+        +'<div class="job-ref">'+c.ref+'</div>'
+        +'<div class="job-name">'+c.name+'</div>'
+        +'</div>'+statusBadge(c.status)+'</div>'
+        +'<div class="job-prob">🔧 '+c.problem+'</div>'
+        +(c.desc?'<div style="font-size:.8rem;color:var(--gray-500);margin:3px 0 6px;">💬 '+c.desc+'</div>':'')
+        +locRow
+        +'<div class="job-meta" style="margin-bottom:10px;">'
+        +'<div class="job-meta-item">📅 '+fmtDateShort(c.prefDate)+'</div>'
+        +'<div class="job-meta-item">🕐 '+c.prefTime+'</div>'
+        +(c.acceptedAt?'<div class="job-meta-item">🤝 '+(lang==='bm'?'Diterima':'Accepted')+': '+c.acceptedAt.slice(11,16)+'</div>':'')
+        +(c.completedAt?'<div class="job-meta-item" style="color:var(--success);">✅ '+(lang==='bm'?'Selesai':'Done')+': '+c.completedAt.slice(11,16)+'</div>':'')
+        +'</div>'
+        +custPhotosHTML
+        +'<div class="section-divider" style="margin:10px 0 8px;opacity:.5;"></div>'
+        +'<div class="op-section-hd">🏗️ '+(lang==='bm'?'Gambar Kerja Anda':'Your Work Photos')+'</div>'
+        +photoSummary
+        +missingWarn
+        +actionsHTML
+        +'</div>';
+    }).join('') : '<div class="empty-state"><div class="empty-state-icon">🧰</div><p>'+t('opNoMyJobs')+'</p></div>')
+    +'</div>';
+
+  setHTML('d-recent-list', newJobsHTML + myJobsHTML);
+
+  // Collapse to single-column and hide the notif card (operator doesn't need it here)
+  var staffCard = el('d-staff-card');
+  if(staffCard) staffCard.style.display = 'none';
+  var dashCols = document.querySelector('.dash-cols');
+  if(dashCols) {
+    dashCols.style.gridTemplateColumns = '1fr';
+    var notifCol = el('d-notif-preview') ? el('d-notif-preview').parentElement : null;
+    if(notifCol) notifCol.style.display = 'none';
+  }
+  setHTML('d-notif-preview','');
+}
+
+// --- ACCEPT JOB (Operator) ---
+function acceptJob(cid) {
+  var c = complaints.find(function(x){ return x.id===cid; });
+  if(!c) return;
+  if(c.acceptedBy) {
+    toast(lang==='bm'?'Aduan ini telah diterima oleh operator lain.':'This job was already accepted by another operator.','error');
+    renderDashboard(); return;
+  }
+  c.acceptedBy     = user.username;
+  c.acceptedByName = user.name;
+  c.acceptedAt     = new Date().toISOString();
+  c.status         = 'Sedang Berjalan';
+  c.updatedAt      = new Date().toISOString();
+  if(!galleryData[cid]) galleryData[cid] = { before:[], during:[], after:[] };
+  addNotif('assign', lang==='bm'?'Aduan Diterima Operator':'Job Accepted by Operator',
+    c.ref+' — '+(lang==='bm'?'Diterima oleh ':'Accepted by ')+user.name, 'admin');
+  toast(lang==='bm'?'Kerja berjaya diterima! Sila muat naik gambar Sebelum, Semasa dan Selepas.':'Job accepted! Please upload Before, During and After photos.', 'success');
+  renderDashboard();
+}
+
+// --- MARK JOB COMPLETE (Operator) ---
+function markJobComplete(cid) {
+  var c = complaints.find(function(x){ return x.id===cid; });
+  if(!c) return;
+  var gd = galleryData[cid] || {};
+  // Guard: all 3 photo categories required
+  if(!gd.before||!gd.before.length||!gd.during||!gd.during.length||!gd.after||!gd.after.length) {
+    toast(lang==='bm'
+      ?'Sila muat naik gambar Sebelum, Semasa dan Selepas sebelum menandakan selesai.'
+      :'Please upload Before, During and After photos before marking complete.',
+      'error', 5000);
+    return;
+  }
+  // Confirm dialog
+  var confirmMsg = lang==='bm'
+    ? 'Sahkan kerja ini telah selesai?\n\n'+c.ref+' — '+c.name
+    : 'Confirm this job is completed?\n\n'+c.ref+' — '+c.name;
+  if(!confirm(confirmMsg)) return;
+  c.status      = 'Selesai';
+  c.completedAt = new Date().toISOString();
+  c.updatedAt   = new Date().toISOString();
+  var notifMsg = lang==='bm'
+    ? 'Operator '+user.name+' telah menyelesaikan kerja '+c.ref
+    : 'Operator '+user.name+' has completed job '+c.ref;
+  addNotif('status', lang==='bm'?'Kerja Selesai':'Job Completed', notifMsg, 'admin');
+  toast(lang==='bm'
+    ?'✅ Kerja '+c.ref+' telah ditandakan selesai. Terima kasih!'
+    :'✅ Job '+c.ref+' marked as complete. Thank you!',
+    'success', 4000);
+  buildSidebar();
+  renderDashboard();
+}
+if('serviceWorker' in navigator) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+// ─── BOOKING CALENDAR ────────────────────────────────────────────────────────
+function getBkCounts(dateStr) {
+  var counts = {};
+  BK_SLOTS.forEach(function(s){ counts[s] = 0; });
+  complaints.forEach(function(c){
+    if(c.prefDate === dateStr && counts[c.prefTime] !== undefined) counts[c.prefTime]++;
+  });
+  return counts;
+}
+
+function getBkDayAvailability(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  if(d.getDay() === 0) return 'closed'; // Sunday
+  var counts = getBkCounts(dateStr);
+  var totalSlots = BK_SLOTS.length * BK_MAX_PER_SLOT;
+  var booked = BK_SLOTS.reduce(function(acc, s){ return acc + counts[s]; }, 0);
+  var full = BK_SLOTS.every(function(s){ return counts[s] >= BK_MAX_PER_SLOT; });
+  if(full) return 'full';
+  if(booked >= totalSlots * 0.6) return 'limited';
+  return 'available';
+}
+
+function initBookingCalendar() {
+  var today = new Date();
+  bkYear = today.getFullYear();
+  bkMonth = today.getMonth();
+  bookingDate = null;
+  bookingSlot = null;
+  el('cf-date').value = '';
+  el('cf-time').value = '';
+  var slotsWrap = el('bk-slots-wrap');
+  var calWrap   = el('bk-cal-wrap');
+  var summary   = el('bk-summary');
+  if(slotsWrap) slotsWrap.style.display = 'none';
+  if(calWrap)   calWrap.style.display   = '';
+  if(summary)   summary.style.display   = 'none';
+  renderBkCalendar();
+}
+
+function bookingNavMonth(dir) {
+  bkMonth += dir;
+  if(bkMonth > 11) { bkMonth = 0; bkYear++; }
+  if(bkMonth < 0)  { bkMonth = 11; bkYear--; }
+  renderBkCalendar();
+}
+
+function renderBkCalendar() {
+  var monthNames = t('monthNames');
+  var dayNamesShort = lang === 'bm'
+    ? ['Isn','Sel','Rab','Kha','Jum','Sab','Ahd']
+    : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var lbl = el('bk-month-label');
+  if(lbl) lbl.textContent = monthNames[bkMonth] + ' ' + bkYear;
+
+  // Day headers (Mon–Sun)
+  var daysEl = el('bk-cal-days');
+  if(daysEl) {
+    daysEl.innerHTML = dayNamesShort.map(function(d){
+      return '<div class="bk-day-hdr">' + d + '</div>';
+    }).join('');
+  }
+
+  // Grid
+  var gridEl = el('bk-cal-grid');
+  if(!gridEl) return;
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var firstDay = new Date(bkYear, bkMonth, 1);
+  var offset = (firstDay.getDay() + 6) % 7; // Monday first
+  var daysInMonth = new Date(bkYear, bkMonth + 1, 0).getDate();
+  var html = '';
+  // Empty cells before first day
+  for(var i = 0; i < offset; i++) html += '<div class="bk-day bk-day-empty"></div>';
+  for(var d = 1; d <= daysInMonth; d++) {
+    var dateStr = bkYear + '-' + String(bkMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var dayObj  = new Date(bkYear, bkMonth, d);
+    var isPast  = dayObj < today;
+    var isSun   = dayObj.getDay() === 0;
+    var isSel   = dateStr === bookingDate;
+    var avail   = (!isPast && !isSun) ? getBkDayAvailability(dateStr) : (isSun ? 'closed' : 'past');
+    var cls = 'bk-day';
+    if(isPast || isSun) cls += ' bk-day-disabled';
+    else cls += ' bk-day-active';
+    if(isSel) cls += ' bk-day-selected';
+    var dotCls = avail === 'available' ? 'bk-dot green' : avail === 'limited' ? 'bk-dot orange' : 'bk-dot grey';
+    var onclick = (!isPast && !isSun) ? 'onclick="selectBkDate(\'' + dateStr + '\')"' : '';
+    html += '<div class="' + cls + '" ' + onclick + '>'
+      + '<span class="bk-day-num">' + d + '</span>'
+      + ((!isPast && !isSun) ? '<span class="' + dotCls + '"></span>' : '')
+      + '</div>';
+  }
+  gridEl.innerHTML = html;
+}
+
+function selectBkDate(dateStr) {
+  bookingDate = dateStr;
+  bookingSlot = null;
+  el('cf-date').value = dateStr;
+  el('cf-time').value = '';
+  renderBkCalendar();
+  renderBkSlots(dateStr);
+  el('bk-cal-wrap').style.display = 'none';
+  el('bk-slots-wrap').style.display = '';
+  el('bk-summary').style.display = 'none';
+}
+
+function renderBkSlots(dateStr) {
+  var counts  = getBkCounts(dateStr);
+  var d       = new Date(dateStr + 'T00:00:00');
+  var months  = t('monthNames');
+  var dayNamesL = t('dayNames');
+  var dayLabel = dayNamesL[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  var dateLbl = el('bk-slots-date-label');
+  if(dateLbl) dateLbl.textContent = dayLabel;
+  var grid = el('bk-slots-grid');
+  if(!grid) return;
+  var html = '';
+  BK_SLOTS.forEach(function(slot) {
+    var cnt  = counts[slot];
+    var rem  = BK_MAX_PER_SLOT - cnt;
+    var full = rem <= 0;
+    var isSel = slot === bookingSlot;
+    var cls = 'bk-slot' + (full ? ' bk-slot-full' : '') + (isSel ? ' bk-slot-selected' : '');
+    var sublbl = full ? t('bkSlotFull') : rem + ' ' + t('bkSlotAvail');
+    var onclick = !full ? 'onclick="selectBkSlot(\'' + slot.replace(/'/g,"\\'") + '\')"' : '';
+    html += '<div class="' + cls + '" ' + onclick + '>'
+      + '<span class="bk-slot-time">' + slot + '</span>'
+      + '<span class="bk-slot-avail">' + sublbl + '</span>'
+      + '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function selectBkSlot(slot) {
+  if(complaints.filter(function(x){ return x.prefDate===bookingDate && x.prefTime===slot; }).length >= BK_MAX_PER_SLOT) {
+    toast(t('bkFull'), 'error', 4000); return;
+  }
+  bookingSlot = slot;
+  el('cf-time').value = slot;
+  renderBkSlots(bookingDate);
+  renderBkSummary();
+}
+
+function renderBkSummary() {
+  var s = el('bk-summary');
+  if(!s) return;
+  if(!bookingDate || !bookingSlot) { s.style.display='none'; return; }
+  var d = new Date(bookingDate + 'T00:00:00');
+  var months = t('monthNames');
+  var dayNamesL = t('dayNames');
+  var dateDisp = dayNamesL[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  s.style.display = '';
+  s.innerHTML = '<div class="bk-summary-inner">'
+    + '<div class="bk-summary-title">✅ ' + t('bkSummaryLbl') + '</div>'
+    + '<div class="bk-summary-row"><span>' + t('bkSummaryDate') + ':</span><strong>' + dateDisp + '</strong></div>'
+    + '<div class="bk-summary-row"><span>' + t('bkSummaryTime') + ':</span><strong>' + bookingSlot + '</strong></div>'
+    + '</div>';
+}
+
+function bookingBackToCalendar() {
+  el('bk-slots-wrap').style.display = 'none';
+  el('bk-cal-wrap').style.display   = '';
+  renderBkCalendar();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(function init() {
+  setLang(lang);                    // apply all text on first load
+  initComplaintForm();              // set tomorrow as default date
+  // Show public landing by default
+  showPubPage('landing');
+  // Restore session if still valid (tab refresh)
+  try {
+    const saved = localStorage.getItem('emug_session');
+    if(saved) { const u=JSON.parse(saved); const found=USERS.find(x=>x.username===u.username&&x.role===u.role); if(found){user=found;initApp();} }
+  } catch(e){}
+})();
