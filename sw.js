@@ -1,5 +1,5 @@
-const CACHE_NAME = 'emug-v1';
-const ASSETS = ['/', '/index.html', '/styles.css', '/app.js'];
+const CACHE_NAME = 'emug-v2';
+const ASSETS = ['/', '/index.html', '/styles.css', '/app.js', '/staff', '/admin'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));

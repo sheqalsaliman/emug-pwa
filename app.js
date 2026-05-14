@@ -575,6 +575,7 @@ function showPubPage(name) {
   el('pub-nav').style.display = 'block';
   el('page-login').style.display = 'none';
   el('page-app').classList.remove('active');
+  if(window.location.pathname !== '/') history.replaceState({}, '', '/');
 }
 
 function showLoginPage() {
@@ -583,6 +584,7 @@ function showLoginPage() {
   el('page-login').style.display = 'block';
   el('page-app').classList.remove('active');
   window.scrollTo(0,0);
+  if(window.location.pathname !== '/staff') history.pushState({}, '', '/staff');
 }
 
 function showPublicSection() {
@@ -791,9 +793,10 @@ function doLogin() {
 
 function doLogout() {
   user = null;
+  localStorage.removeItem('emug_session');
   closeAllDDs();
   closeSidebar();
-  showPubPage('landing');
+  showPubPage('landing'); // showPubPage already replaceStates to '/'
   el('login-user').value='';
   el('login-pass').value='';
 }
@@ -811,6 +814,7 @@ function initApp() {
   renderNotifBadge();
   renderNotifDD();
   el('dp-d-date').textContent = fmtDate(now());
+  if(window.location.pathname !== '/staff') history.replaceState({}, '', '/staff');
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
@@ -1584,10 +1588,15 @@ function pinLocation() {
 function openGalleryModal(jobId) {
   galleryJobId = jobId;
   galleryTab   = 'before';
+  // Ensure all 3 category arrays exist (guards against legacy localStorage data)
   if(!galleryData[jobId]) galleryData[jobId] = { before:[], during:[], after:[] };
+  if(!galleryData[jobId].before) galleryData[jobId].before = [];
+  if(!galleryData[jobId].during) galleryData[jobId].during = [];
+  if(!galleryData[jobId].after)  galleryData[jobId].after  = [];
   const ttl = el('gallery-modal-title');
   if(ttl) ttl.textContent = (lang==='bm'?'Galeri Kerja — ':'Job Gallery — ') + jobId;
   switchGalleryTab('before');
+  updateGalleryTabBadges();
   openModal('modal-gallery');
 }
 
@@ -1602,22 +1611,42 @@ function switchGalleryTab(tab) {
 function handleGalleryUpload(input) {
   const files = Array.from(input.files);
   if(!files.length) return;
+  // Ensure all 3 category arrays exist before accessing them
+  if(!galleryData[galleryJobId]) galleryData[galleryJobId] = { before:[], during:[], after:[] };
+  if(!galleryData[galleryJobId].before) galleryData[galleryJobId].before = [];
+  if(!galleryData[galleryJobId].during) galleryData[galleryJobId].during = [];
+  if(!galleryData[galleryJobId].after)  galleryData[galleryJobId].after  = [];
   const arr = galleryData[galleryJobId][galleryTab];
   const remaining = 20 - arr.length;
   if(remaining <= 0) { toast(lang==='bm'?'Had 20 gambar dicapai.':'20 photo limit reached.','error'); return; }
   let loaded = 0;
   const toRead = files.slice(0, remaining);
   toRead.forEach(file => {
-    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); } return; }
+    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&user.role==='operator') renderOperatorDashboard(); } return; }
     const reader = new FileReader();
     reader.onload = e => {
       arr.push({ src:e.target.result, name:file.name, type:file.type, ts:new Date().toISOString(), who:user?user.name:'Staff' });
       loaded++;
-      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); }
+      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&user.role==='operator') renderOperatorDashboard(); }
     };
     reader.readAsDataURL(file);
   });
   input.value = '';
+}
+
+function updateGalleryTabBadges() {
+  if(!galleryJobId) return;
+  const gd = galleryData[galleryJobId] || {};
+  const cats = [
+    { tab:'before', label: lang==='bm'?'📷 Sebelum':'📷 Before',  count:(gd.before||[]).length },
+    { tab:'during', label: lang==='bm'?'🔧 Semasa':'🔧 During',  count:(gd.during||[]).length },
+    { tab:'after',  label: lang==='bm'?'✅ Selepas':'✅ After',  count:(gd.after||[]).length  },
+  ];
+  document.querySelectorAll('.gallery-tab-btn').forEach(function(b) {
+    const cat = cats.find(function(c){ return c.tab === b.dataset.tab; });
+    if(!cat) return;
+    b.textContent = cat.count > 0 ? cat.label + ' (' + cat.count + ')' : cat.label;
+  });
 }
 
 function saveGallery() {
@@ -1661,6 +1690,8 @@ function deleteGalleryPhoto(idx) {
   galleryData[galleryJobId][galleryTab].splice(idx, 1);
   saveGallery();
   renderGalleryGrid();
+  updateGalleryTabBadges();
+  if(user && user.role === 'operator') renderOperatorDashboard();
 }
 
 // --- FULLSCREEN VIEWER ---
@@ -2339,15 +2370,44 @@ function bookingBackToCalendar() {
   renderBkCalendar();
 }
 
+// ─── BACK/FORWARD BUTTON ─────────────────────────────────────────────────────
+window.addEventListener('popstate', function() {
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  const isStaff = path === '/staff' || path === '/admin';
+  if(isStaff) {
+    if(user) { showAppSection(); }
+    else { showLoginPage(); }
+  } else {
+    showPubPage('landing');
+  }
+});
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (function init() {
-  setLang(lang);                    // apply all text on first load
-  initComplaintForm();              // set tomorrow as default date
-  // Show public landing by default
-  showPubPage('landing');
-  // Restore session if still valid (tab refresh)
+  setLang(lang);
+  initComplaintForm();
+
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+  const isStaff = path === '/staff' || path === '/admin';
+
+  // Try to restore a saved session (relevant when staff refresh the page)
   try {
     const saved = localStorage.getItem('emug_session');
-    if(saved) { const u=JSON.parse(saved); const found=USERS.find(x=>x.username===u.username&&x.role===u.role); if(found){user=found;initApp();} }
+    if(saved) {
+      const u = JSON.parse(saved);
+      const found = USERS.find(x=>x.username===u.username && x.role===u.role);
+      if(found) { user=found; initApp(); return; }
+    }
   } catch(e){}
+
+  // No valid session — route by URL
+  if(isStaff) {
+    // Direct navigation to /staff or /admin: show login immediately
+    el('pub-nav').style.display = 'none';
+    el('page-login').style.display = 'block';
+    el('page-app').classList.remove('active');
+    document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
+  } else {
+    showPubPage('landing');
+  }
 })();
