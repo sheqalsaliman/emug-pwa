@@ -4,7 +4,14 @@
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://mrurkcrgncpqmhrszapi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydXJrY3JnbmNwcW1ocnN6YXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTM5MDYsImV4cCI6MjA5NDM2OTkwNn0.K2Ltr05cyAcZleBufxreICNPwtQXzryTRscYZsnTE6w';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log('[EMUG] Supabase URL:', SUPABASE_URL);
+console.log('[EMUG] Supabase KEY (first 20 chars):', SUPABASE_KEY.slice(0, 20));
+console.log('[EMUG] window.supabase available:', !!window.supabase);
+if(!window.supabase) {
+  console.error('[EMUG] CRITICAL: Supabase library not loaded. Check CDN script tag in index.html.');
+}
+const db = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+console.log('[EMUG] Supabase client (db):', db ? 'initialized' : 'NULL — CDN failed');
 
 function showLoading(msg) {
   const o = document.getElementById('loading-overlay');
@@ -701,6 +708,19 @@ function feedbackToRow(fb) {
 
 // ─── DB LOAD ──────────────────────────────────────────────────────────────────
 async function dbLoad() {
+  if(!db) {
+    console.error('[EMUG] dbLoad aborted: Supabase client is null (CDN not loaded).');
+    return;
+  }
+
+  // ── DIRECT TEST FETCH (as requested for debugging) ───────────────────────────
+  try {
+    const test = await db.from('complaints').select('*');
+    console.log('[EMUG] DIRECT TEST:', JSON.stringify(test));
+  } catch(e) {
+    console.error('[EMUG] DIRECT TEST exception:', e);
+  }
+
   // Load complaints
   try {
     console.log('[EMUG] dbLoad: fetching complaints...');
@@ -711,7 +731,7 @@ async function dbLoad() {
       toast('Gagal memuat aduan: ' + error.message, 'error', 7000);
     } else if(data) {
       if(data.length === 0) {
-        console.warn('[EMUG] complaints table returned 0 rows. If data exists in Supabase, check RLS SELECT policy for anon role.');
+        console.warn('[EMUG] complaints table returned 0 rows. RLS disabled? Table name correct? Schema = public?');
       } else {
         console.log('[EMUG] first complaint row (raw):', data[0]);
       }
@@ -1000,6 +1020,7 @@ async function doLogin() {
     return;
   }
   user = found;
+  localStorage.setItem('emug_session', JSON.stringify({ username: found.username, role: found.role }));
   el('login-error').classList.remove('show');
   // Always re-fetch fresh data from Supabase on every login
   showLoading(lang==='bm'?'Memuatkan data...':'Loading data...');
