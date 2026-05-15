@@ -1,6 +1,22 @@
 ﻿/* ===== EMUG SYSTEM — app.js (v2) ===== */
 'use strict';
 
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://mrurkcrgncpqmhrszapi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydXJrY3JnbmNwcW1ocnN6YXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTM5MDYsImV4cCI6MjA5NDM2OTkwNn0.K2Ltr05cyAcZleBufxreICNPwtQXzryTRscYZsnTE6w';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function showLoading(msg) {
+  const o = document.getElementById('loading-overlay');
+  const m = document.getElementById('loading-msg');
+  if(o) o.style.display = 'flex';
+  if(m && msg) m.textContent = msg;
+}
+function hideLoading() {
+  const o = document.getElementById('loading-overlay');
+  if(o) { o.style.opacity = '0'; setTimeout(() => { o.style.display = 'none'; o.style.opacity = '1'; }, 300); }
+}
+
 // ─── LANGUAGE STRINGS ────────────────────────────────────────────────────────
 const T = {
   bm: {
@@ -349,14 +365,12 @@ let galleryTab = 'before';
 let fullscreenImages = [], fullscreenIdx = 0;
 // Star ratings state
 let starRatings = { quality:0, timeliness:0, service:0 };
-// Gallery data: { jobId: { before:[{src,ts,who}], during:[...], after:[...] } }
-let galleryData = JSON.parse(localStorage.getItem('emug_gallery')||'{}');
+// Gallery data: { ref: { before:[{src,ts,who}], during:[...], after:[...] } }
+let galleryData = {};
 // Booking calendar
 const BK_SLOTS = ['08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','13:00 - 14:00','14:00 - 15:00','15:00 - 16:00','16:00 - 17:00'];
 const BK_MAX_PER_SLOT = 3;
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
-// Feedback data
-let feedbackCounter = 6;
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const USERS = [
@@ -374,18 +388,7 @@ function dAgo(n)  { const d=new Date(); d.setDate(d.getDate()-n); return d.toISO
 function dAhead(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function now()    { return new Date().toISOString().slice(0,10); }
 
-let complaints = [
-  { id:'C001', ref:'EMUG-2026-0001', name:'Rajendran a/l Kumar', phone:'017-234 5678', address:'No. 12, Jln Kenanga 3, Taman Sri Plentong, 81750 Masai, Johor', problem:'Paip bocor', desc:'Paip bawah sinki dapur bocor teruk, air mengalir keluar berterusan.', prefDate:dAgo(5), prefTime:'09:00 - 10:00', urgency:'Normal', status:'Selesai', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:dAgo(4), adminNotes:'Tukar paip baharu 3/4 inci', techNotes:'Paip PVC lama sudah retak — diganti sepenuhnya. Selesai dalam masa 1 jam.', acceptedBy:'op1', acceptedByName:'Hafiz bin Rahman', acceptedAt:dAgo(4)+'T08:00:00', completedAt:dAgo(3)+'T15:30:00', submittedAt:dAgo(5)+'T09:00:00', updatedAt:dAgo(3)+'T15:30:00' },
-  { id:'C002', ref:'EMUG-2026-0002', name:'Lim Boon Seng',       phone:'016-567 8901', address:'No. 5, Jln Bahagia 2, Taman Bahagia, 81700 Pasir Gudang, Johor',problem:'Tandas tersumbat', desc:'Tandas tersumbat dan air tidak turun langsung sejak semalam.', prefDate:dAgo(3), prefTime:'10:00 - 11:00', urgency:'Segera', status:'Selesai', assignedTo:'siti', assignedName:'Siti Binti Hashim', schedDate:dAgo(3), adminNotes:'', techNotes:'Tersumbat kerana tisu dan sampah. Dibersihkan dengan snake drain.', acceptedBy:'op2', acceptedByName:'Zainal bin Ismail', acceptedAt:dAgo(3)+'T09:00:00', completedAt:dAgo(2)+'T11:00:00', submittedAt:dAgo(3)+'T08:00:00', updatedAt:dAgo(2)+'T11:00:00' },
-  { id:'C003', ref:'EMUG-2026-0003', name:'Ahmad Fauzi Bin Ramli',phone:'012-789 0123', address:'No. 23, Jln Helang 7, Taman Helang Jaya, 81700 Pasir Gudang, Johor',problem:'Tangki najis', desc:'Tangki najis penuh dan berbau teruk, perlu dikosongkan segera.', prefDate:dAgo(1), prefTime:'08:00 - 09:00', urgency:'Segera', status:'Sedang Berjalan', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:now(), adminNotes:'Bawa tangki pam — tangki 2000L', techNotes:'', submittedAt:dAgo(2)+'T14:00:00', updatedAt:now()+'T09:00:00' },
-  { id:'C004', ref:'EMUG-2026-0004', name:'Salmah Binti Osman',  phone:'013-456 7890', address:'Lot 45, Jln Industri 3, Kawasan Perindustrian Pasir Gudang, 81700 Johor',problem:'Pemasangan baru', desc:'Perlu pasang sistem paip baru untuk kilang kecil, termasuk 5 sinki dan 3 tandas.', prefDate:now(), prefTime:'09:00 - 10:00', urgency:'Normal', status:'Sedang Berjalan', assignedTo:'hassan', assignedName:'Hassan Bin Ismail', schedDate:now(), adminNotes:'Kerja besar — bawa peralatan lengkap. Mungkin 2 hari.', techNotes:'Hari pertama — letak paip utama siap.', submittedAt:dAgo(4)+'T10:00:00', updatedAt:now()+'T10:00:00' },
-  { id:'C005', ref:'EMUG-2026-0005', name:'Rajendran a/l Kumar', phone:'017-234 5678', address:'No. 12, Jln Kenanga 3, Taman Sri Plentong, 81750 Masai, Johor',problem:'Saliran tersumbat', desc:'Longkang di tepi rumah tersumbat, air bertakung waktu hujan.', prefDate:now(), prefTime:'14:00 - 15:00', urgency:'Normal', status:'Menunggu', assignedTo:'siti', assignedName:'Siti Binti Hashim', schedDate:now(), adminNotes:'', techNotes:'', submittedAt:now()+'T08:30:00', updatedAt:now()+'T08:30:00' },
-  { id:'C006', ref:'EMUG-2026-0006', name:'Noraini Binti Kadir', phone:'011-234 5678', address:'No. 7, Jln Maju 4, Taman Maju Jaya, 81700 Pasir Gudang, Johor',problem:'Pemeriksaan am', desc:'Minta pemeriksaan sistem paip tahunan sebelum rumah dijual.', prefDate:now(), prefTime:'11:00 - 12:00', urgency:'Normal', status:'Menunggu', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:now(), adminNotes:'', techNotes:'', submittedAt:now()+'T07:00:00', updatedAt:now()+'T07:00:00' },
-  { id:'C007', ref:'EMUG-2026-0007', name:'Lim Boon Seng',       phone:'016-567 8901', address:'No. 5, Jln Bahagia 2, Taman Bahagia, 81700 Pasir Gudang, Johor',problem:'Paip bocor', desc:'Paip luar rumah mengalami kebocoran kecil.', prefDate:dAhead(1), prefTime:'10:00 - 11:00', urgency:'Normal', status:'Menunggu', assignedTo:'zain', assignedName:'Zainudin Bin Razak', schedDate:dAhead(1), adminNotes:'', techNotes:'', submittedAt:now()+'T10:00:00', updatedAt:now()+'T10:00:00' },
-  { id:'C008', ref:'EMUG-2026-0008', name:'Mohd Rizal Bin Aziz', phone:'019-567 8901', address:'No. 34, Jln Wawasan 2, Taman Wawasan, 81710 Pasir Gudang, Johor',problem:'Tangki najis', desc:'Tangki najis bocor sedikit dan ada bau di kawasan sekitar.', prefDate:dAhead(2), prefTime:'09:00 - 10:00', urgency:'Segera', status:'Menunggu', assignedTo:'', assignedName:'', schedDate:'', adminNotes:'', techNotes:'', submittedAt:now()+'T11:30:00', updatedAt:now()+'T11:30:00' },
-  { id:'C009', ref:'EMUG-2026-0009', name:'Fatimah Binti Yusof', phone:'014-678 9012', address:'No. 19, Jln Cempaka 5, Taman Cempaka, 81700 Pasir Gudang, Johor',problem:'Tandas tersumbat', desc:'Tandas di luar tersumbat, tidak boleh digunakan.', prefDate:dAhead(3), prefTime:'14:00 - 15:00', urgency:'Normal', status:'Menunggu', assignedTo:'ali', assignedName:'Ali Bin Ahmad', schedDate:dAhead(3), adminNotes:'', techNotes:'', submittedAt:dAgo(1)+'T16:00:00', updatedAt:dAgo(1)+'T16:00:00' },
-  { id:'C010', ref:'EMUG-2026-0010', name:'Wong Ah Kow',          phone:'012-890 1234', address:'No. 88, Jln Permas 6, Taman Permas Jaya, 81750 Masai, Johor',problem:'Pemasangan baru', desc:'Pasang tangki air baru di bumbung, kapasiti 1000L.', prefDate:dAgo(10), prefTime:'08:00 - 09:00', urgency:'Normal', status:'Selesai', assignedTo:'zain', assignedName:'Zainudin Bin Razak', schedDate:dAgo(9), adminNotes:'', techNotes:'Tangki dipasang dengan jayanya. Ujian tekanan lulus.', submittedAt:dAgo(11)+'T09:00:00', updatedAt:dAgo(8)+'T14:00:00' },
-];
+let complaints = [];
 
 let notifs = [
   { id:1, type:'complaint', title:'Aduan Baru Diterima', msg:'EMUG-2026-0008 — Mohd Rizal Bin Aziz (Tangki najis, Segera)', time:5,  read:false, forRole:'admin' },
@@ -395,17 +398,12 @@ let notifs = [
   { id:5, type:'status',    title:'Status Dikemas Kini',   msg:'C001 — Selesai — Ali Bin Ahmad', time:1440, read:true, forRole:'admin' },
 ];
 
-let refCounter = 11;
+let refCounter = 1;
 let notifCounter = 10;
 
 // ─── FEEDBACK & TESTIMONIALS DATA ─────────────────────────────────────────────
-let feedbacks = [
-  { id:1, ref:'EMUG-2026-0001', name:'Rajendran Kumar', ratings:{quality:5,timeliness:4,service:5}, overall:4.7, comment:'Kerja cepat dan kemas. Ali sangat profesional dan tahu kerja dia. Paip tidak bocor lagi. Syabas!', published:true, date:dAgo(3) },
-  { id:2, ref:'EMUG-2026-0002', name:'Lim Boon Seng', ratings:{quality:5,timeliness:5,service:5}, overall:5.0, comment:'Sangat berpuas hati dengan perkhidmatan. Siti datang tepat pada masa dan selesaikan masalah dalam masa sejam. Harga berpatutan.', published:true, date:dAgo(2) },
-  { id:3, ref:'EMUG-2026-0010', name:'Wong Ah Kow', ratings:{quality:4,timeliness:4,service:5}, overall:4.3, comment:'Good service, the team was friendly and professional. Tank installation done perfectly. Will recommend to friends.', published:true, date:dAgo(9) },
-  { id:4, ref:'EMUG-2026-SAMP1', name:'Pelanggan EMUG', ratings:{quality:5,timeliness:4,service:4}, overall:4.3, comment:'Masalah longkang saya telah diselesaikan dengan baik. Juruteknik sangat berpengalaman. Terima kasih EMUG!', published:true, date:dAgo(15) },
-  { id:5, ref:'EMUG-2026-SAMP2', name:'Puan Rohani', ratings:{quality:5,timeliness:5,service:5}, overall:5.0, comment:'Terbaik! Tangki najis kami telah dikosongkan dengan cepat dan bersih. Tidak ada bau langsung selepas kerja. Sangat profesional.', published:true, date:dAgo(20) },
-];
+let feedbacks = [];
+let feedbackCounter = 0;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const t = k => (T[lang]?.[k] ?? T.bm[k] ?? k);
@@ -599,6 +597,182 @@ function showAppSection() {
   el('page-app').classList.add('active');
 }
 
+// ─── DB ROW MAPPERS ───────────────────────────────────────────────────────────
+function rowToComplaint(row) {
+  return {
+    id:            row.ref,
+    ref:           row.ref,
+    name:          row.name         || '',
+    phone:         row.phone        || '',
+    address:       row.address      || '',
+    problem:       row.problem      || '',
+    desc:          row.description  || '',
+    urgency:       row.urgency      || 'Normal',
+    prefDate:      row.pref_date    || '',
+    prefTime:      row.pref_time    || '',
+    status:        row.status       || 'Menunggu',
+    assignedTo:    row.assigned_to  || '',
+    assignedName:  row.assigned_name|| '',
+    schedDate:     row.sched_date   || '',
+    adminNotes:    row.admin_notes  || '',
+    techNotes:     row.tech_notes   || '',
+    coords:        row.coords       || null,
+    media:         row.media        || [],
+    submittedAt:   row.submitted_at || '',
+    updatedAt:     row.updated_at   || '',
+    acceptedBy:    row.accepted_by  || '',
+    acceptedByName:row.accepted_by_name || '',
+    acceptedAt:    row.accepted_at  || '',
+    completedAt:   row.completed_at || '',
+  };
+}
+
+function complaintToRow(c) {
+  return {
+    ref:             c.ref,
+    name:            c.name,
+    phone:           c.phone,
+    address:         c.address,
+    problem:         c.problem,
+    description:     c.desc,
+    urgency:         c.urgency,
+    pref_date:       c.prefDate   || null,
+    pref_time:       c.prefTime   || null,
+    status:          c.status,
+    assigned_to:     c.assignedTo   || null,
+    assigned_name:   c.assignedName || null,
+    sched_date:      c.schedDate    || null,
+    admin_notes:     c.adminNotes   || null,
+    tech_notes:      c.techNotes    || null,
+    coords:          c.coords       || null,
+    media:           c.media        || [],
+    submitted_at:    c.submittedAt,
+    updated_at:      c.updatedAt,
+    accepted_by:     c.acceptedBy     || null,
+    accepted_by_name:c.acceptedByName || null,
+    accepted_at:     c.acceptedAt     || null,
+    completed_at:    c.completedAt    || null,
+  };
+}
+
+function rowToFeedback(row) {
+  return {
+    id:       row.id,
+    ref:      row.ref   || '',
+    name:     row.name  || '',
+    ratings: {
+      quality:    row.rating_quality    || 0,
+      timeliness: row.rating_timeliness || 0,
+      service:    row.rating_service    || 0,
+    },
+    overall:  row.overall      || 0,
+    comment:  row.comment      || '',
+    published:row.is_published || false,
+    date:     row.created_at   || '',
+  };
+}
+
+function feedbackToRow(fb) {
+  return {
+    ref:               fb.ref,
+    name:              fb.name,
+    rating_quality:    fb.ratings.quality,
+    rating_timeliness: fb.ratings.timeliness,
+    rating_service:    fb.ratings.service,
+    overall:           fb.overall,
+    comment:           fb.comment,
+    is_published:      fb.published,
+  };
+}
+
+// ─── DB LOAD ──────────────────────────────────────────────────────────────────
+async function dbLoad() {
+  try {
+    const [cRes, jRes, fbRes] = await Promise.all([
+      db.from('complaints').select('*').order('submitted_at', { ascending: false }),
+      db.from('jobs').select('*'),
+      db.from('feedback').select('*').order('created_at', { ascending: false }),
+    ]);
+
+    if(!cRes.error && cRes.data) {
+      complaints = cRes.data.map(rowToComplaint);
+      complaints.forEach(c => {
+        const m = c.ref.match(/(\d+)$/);
+        if(m) { const n = parseInt(m[1]); if(n >= refCounter) refCounter = n + 1; }
+      });
+    }
+
+    if(!jRes.error && jRes.data) {
+      galleryData = {};
+      jRes.data.forEach(row => {
+        galleryData[row.complaint_ref] = {
+          before: row.photos_before || [],
+          during: row.photos_during || [],
+          after:  row.photos_after  || [],
+        };
+      });
+    }
+
+    if(!fbRes.error && fbRes.data) {
+      feedbacks = fbRes.data.map(rowToFeedback);
+      if(feedbacks.length) feedbackCounter = Math.max(...feedbacks.map(f => f.id)) + 1;
+    }
+  } catch(e) {
+    console.error('Supabase load error:', e);
+  }
+}
+
+// ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
+async function dbInsertComplaint(c) {
+  try {
+    const { error } = await db.from('complaints').insert(complaintToRow(c));
+    if(error) console.error('dbInsertComplaint:', error.message);
+  } catch(e) { console.error('dbInsertComplaint:', e); }
+}
+
+async function dbUpdateComplaint(c) {
+  try {
+    const { error } = await db.from('complaints').update(complaintToRow(c)).eq('ref', c.ref);
+    if(error) console.error('dbUpdateComplaint:', error.message);
+  } catch(e) { console.error('dbUpdateComplaint:', e); }
+}
+
+async function dbDeleteComplaint(ref) {
+  try {
+    const { error } = await db.from('complaints').delete().eq('ref', ref);
+    if(error) console.error('dbDeleteComplaint:', error.message);
+  } catch(e) { console.error('dbDeleteComplaint:', e); }
+}
+
+async function dbSaveGallery(jobRef) {
+  const gd = galleryData[jobRef] || { before:[], during:[], after:[] };
+  try {
+    const { error } = await db.from('jobs').upsert({
+      complaint_ref: jobRef,
+      photos_before: gd.before,
+      photos_during: gd.during,
+      photos_after:  gd.after,
+      updated_at:    new Date().toISOString(),
+    }, { onConflict: 'complaint_ref' });
+    if(error) console.error('dbSaveGallery:', error.message);
+  } catch(e) { console.error('dbSaveGallery:', e); }
+}
+
+async function dbInsertFeedback(fb) {
+  try {
+    const { data, error } = await db.from('feedback').insert(feedbackToRow(fb)).select('id').single();
+    if(error) console.error('dbInsertFeedback:', error.message);
+    else if(data) fb.id = data.id;
+  } catch(e) { console.error('dbInsertFeedback:', e); }
+}
+
+async function dbUpdateFeedback(fb) {
+  try {
+    const { error } = await db.from('feedback').update({ is_published: fb.published }).eq('id', fb.id);
+    if(error) console.error('dbUpdateFeedback:', error.message);
+  } catch(e) { console.error('dbUpdateFeedback:', e); }
+}
+
 // ─── COMPLAINT FORM (PUBLIC) ──────────────────────────────────────────────────
 function initComplaintForm() {
   el('cf-date').value = '';
@@ -639,7 +813,7 @@ function submitComplaint() {
   refCounter++;
 
   const c = {
-    id: `C${String(complaints.length+1).padStart(3,'0')}`,
+    id: ref,
     ref, name, phone, address, problem, desc, urgency,
     prefDate:date, prefTime:time||'—',
     status:'Menunggu', assignedTo:'', assignedName:'',
@@ -650,6 +824,7 @@ function submitComplaint() {
     updatedAt:   new Date().toISOString(),
   };
   complaints.push(c);
+  dbInsertComplaint(c);
 
   addNotif('complaint', t('notifNewComplaint'),
     `${ref} — ${name} (${problem}${urgency==='Segera'?' 🚨':''})`, 'admin');
@@ -1174,6 +1349,7 @@ function saveJob() {
   if(c.assignedTo && c.assignedTo!==prevAssign) {
     addNotif('assign', t('notifAssigned'), `${c.ref} — ${c.problem} di ${c.address.split(',')[0]}`, 'staff', c.assignedTo);
   }
+  dbUpdateComplaint(c);
   closeModal('modal-job');
   toast(t('saved'), 'success');
   renderComplaints();
@@ -1182,7 +1358,9 @@ function saveJob() {
 
 function deleteComplaint() {
   if(!confirm(t('confirmDelete'))) return;
+  const delRef = (complaints.find(x=>x.id===editJobId)||{}).ref;
   complaints = complaints.filter(x=>x.id!==editJobId);
+  if(delRef) dbDeleteComplaint(delRef);
   closeModal('modal-job');
   toast(t('deleted'), 'info');
   renderComplaints();
@@ -1210,6 +1388,7 @@ function confirmStatusUpdate() {
   if(note) c.techNotes = note;
   addNotif('status', t('notifStatusUpdate'),
     `${c.ref} — ${statusLabel(c.status)} · ${user.name}`, 'admin');
+  dbUpdateComplaint(c);
   closeModal('modal-status');
   toast(t('statusUpdated'), 'success');
   renderComplaintsList();
@@ -1650,7 +1829,7 @@ function updateGalleryTabBadges() {
 }
 
 function saveGallery() {
-  try { localStorage.setItem('emug_gallery', JSON.stringify(galleryData)); } catch(e){}
+  if(galleryJobId) dbSaveGallery(galleryJobId);
 }
 
 function renderGalleryGrid() {
@@ -1819,7 +1998,7 @@ function submitFeedback() {
   const vals    = cats.map(function(c){ return starRatings[c]; });
   const overall = +(vals.reduce(function(a,b){ return a+b; }, 0) / vals.length).toFixed(1);
   feedbackCounter++;
-  feedbacks.push({
+  const newFb = {
     id: feedbackCounter,
     ref: ref,
     name: name,
@@ -1828,7 +2007,9 @@ function submitFeedback() {
     comment: comment,
     published: false,
     date: new Date().toISOString()
-  });
+  };
+  feedbacks.push(newFb);
+  dbInsertFeedback(newFb);
   const confRef  = el('fb-confirm-ref');   if(confRef)   confRef.textContent  = ref;
   const confName = el('fb-confirm-name');  if(confName)  confName.textContent = name;
   const confStar = el('fb-confirm-stars'); if(confStar)  confStar.textContent = '⭐'.repeat(Math.round(overall)) + ' (' + overall + ')';
@@ -1926,6 +2107,7 @@ function toggleFeedbackPublish(id) {
   const fb = feedbacks.find(function(f){ return f.id===id; });
   if(!fb) return;
   fb.published = !fb.published;
+  dbUpdateFeedback(fb);
   renderAdminFeedback();
   renderTestimonials();
   toast(fb.published?(lang==='bm'?'Ulasan diterbitkan.':'Review published.'):(lang==='bm'?'Ulasan disembunyikan.':'Review hidden.'), 'success');
@@ -2163,6 +2345,7 @@ function acceptJob(cid) {
   c.status         = 'Sedang Berjalan';
   c.updatedAt      = new Date().toISOString();
   if(!galleryData[cid]) galleryData[cid] = { before:[], during:[], after:[] };
+  dbUpdateComplaint(c);
   addNotif('assign', lang==='bm'?'Aduan Diterima Operator':'Job Accepted by Operator',
     c.ref+' — '+(lang==='bm'?'Diterima oleh ':'Accepted by ')+user.name, 'admin');
   toast(lang==='bm'?'Kerja berjaya diterima! Sila muat naik gambar Sebelum, Semasa dan Selepas.':'Job accepted! Please upload Before, During and After photos.', 'success');
@@ -2190,6 +2373,7 @@ function markJobComplete(cid) {
   c.status      = 'Selesai';
   c.completedAt = new Date().toISOString();
   c.updatedAt   = new Date().toISOString();
+  dbUpdateComplaint(c);
   var notifMsg = lang==='bm'
     ? 'Operator '+user.name+' telah menyelesaikan kerja '+c.ref
     : 'Operator '+user.name+' has completed job '+c.ref;
@@ -2388,7 +2572,15 @@ window.addEventListener('popstate', function() {
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-(function init() {
+(async function init() {
+  // Apply language immediately so loading overlay text is correct
+  const lbl = lang==='bm'?'EN':'BM';
+  document.querySelectorAll('#pub-lang-btn,#login-lang-btn,#app-lang-btn').forEach(b=>b.textContent=lbl);
+
+  showLoading(lang==='bm'?'Memuatkan sistem...':'Loading system...');
+  await dbLoad();
+  hideLoading();
+
   setLang(lang);
   initComplaintForm();
 
@@ -2407,7 +2599,6 @@ window.addEventListener('popstate', function() {
 
   // No valid session — route by URL
   if(isStaff) {
-    // Direct navigation to /staff or /admin: show login immediately
     el('pub-nav').style.display = 'none';
     el('page-login').style.display = 'block';
     el('page-app').classList.remove('active');
