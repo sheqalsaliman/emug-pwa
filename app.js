@@ -395,14 +395,8 @@ let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const USERS = [
-  { id:1, username:'admin',  password:'admin123', name:'Azman Bin Daud',     role:'admin',    phone:'013-728 0397', email:'admin@emanutama.com',  staffId:'DIR001' },
-  { id:2, username:'ali',    password:'staff123', name:'Ali Bin Ahmad',       role:'staff',    phone:'012-345 6789', email:'ali@emanutama.com',    staffId:'EMP001' },
-  { id:3, username:'siti',   password:'staff456', name:'Siti Binti Hashim',   role:'staff',    phone:'019-876 5432', email:'siti@emanutama.com',   staffId:'EMP002' },
-  { id:4, username:'hassan', password:'staff789', name:'Hassan Bin Ismail',   role:'staff',    phone:'011-345 6789', email:'hassan@emanutama.com', staffId:'EMP003' },
-  { id:5, username:'zain',   password:'staff000', name:'Zainudin Bin Razak',  role:'staff',    phone:'013-456 7890', email:'zain@emanutama.com',   staffId:'EMP004' },
-  { id:6, username:'op1',    password:'op123',    name:'Hafiz bin Rahman',    role:'operator', phone:'011-123 4567', email:'hafiz@emanutama.com',  staffId:'OPR001' },
-  { id:7, username:'op2',    password:'op456',    name:'Zainal bin Ismail',   role:'operator', phone:'011-234 5678', email:'zainal@emanutama.com', staffId:'OPR002' },
-  { id:8, username:'op3',    password:'op789',    name:'Fadzli bin Omar',     role:'operator', phone:'011-345 6789', email:'fadzli@emanutama.com', staffId:'OPR003' },
+  { id:1, username:'sheqal@emanutama', password:'emanutama14', name:'MOHAMMAD SHEQAL BIN SALIMAN', role:'admin',    phone:'', email:'sheqal@emanutama.com',  staffId:'ADM001' },
+  { id:2, username:'awang@emanutama',  password:'emanutama14', name:'AWANG OTHMAN BIN AWANG AHMAD', role:'operator', phone:'', email:'awang@emanutama.com',   staffId:'OPR001' },
 ];
 
 function dAgo(n)  { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
