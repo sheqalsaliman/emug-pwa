@@ -847,7 +847,7 @@ function initComplaintForm() {
   initBookingCalendar();
 }
 
-function submitComplaint() {
+async function submitComplaint() {
   const name    = el('cf-name').value.trim();
   const phone   = el('cf-phone').value.trim();
   const address = el('cf-addr').value.trim();
@@ -868,7 +868,6 @@ function submitComplaint() {
 
   const year = new Date().getFullYear();
   const ref  = `EMUG-${year}-${String(refCounter).padStart(4,'0')}`;
-  refCounter++;
 
   const c = {
     id: ref,
@@ -881,8 +880,33 @@ function submitComplaint() {
     submittedAt: new Date().toISOString(),
     updatedAt:   new Date().toISOString(),
   };
+
+  // Disable button to prevent double-submission
+  const btn = el('cf-submit-btn');
+  if(btn) { btn.disabled = true; btn.textContent = lang==='bm'?'Menghantar...':'Submitting...'; }
+
+  // ── INSERT INTO SUPABASE ──────────────────────────────────────────────────────
+  console.log('[EMUG] submitComplaint: inserting into Supabase...', complaintToRow(c));
+  try {
+    const { data, error } = await db.from('complaints').insert([complaintToRow(c)]).select();
+    console.log('[EMUG] submitComplaint: Supabase response → error:', error, '| data:', data);
+    if(error) {
+      console.error('[EMUG] submitComplaint insert error:', error.message, error);
+      toast((lang==='bm'?'Gagal menghantar aduan: ':'Failed to submit: ') + error.message, 'error', 7000);
+      if(btn) { btn.disabled = false; btn.innerHTML = '📤 <span id="cf-submit-txt">' + t('cfSubmit') + '</span>'; }
+      return;
+    }
+  } catch(e) {
+    console.error('[EMUG] submitComplaint exception:', e);
+    toast(lang==='bm'?'Ralat sambungan. Sila cuba lagi.':'Connection error. Please try again.', 'error', 7000);
+    if(btn) { btn.disabled = false; btn.innerHTML = '📤 <span id="cf-submit-txt">' + t('cfSubmit') + '</span>'; }
+    return;
+  }
+
+  // ── SUCCESS ───────────────────────────────────────────────────────────────────
+  refCounter++;
   complaints.push(c);
-  dbInsertComplaint(c);
+  console.log('[EMUG] submitComplaint: SUCCESS — ref:', ref);
 
   addNotif('complaint', t('notifNewComplaint'),
     `${ref} — ${name} (${problem}${urgency==='Segera'?' 🚨':''})`, 'admin');
