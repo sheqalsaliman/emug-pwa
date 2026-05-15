@@ -163,6 +163,20 @@ const T = {
     bkSummaryLbl:'Tempahan Dipilih',bkSummaryDate:'Tarikh',bkSummaryTime:'Masa',
     bkPleaseDate:'Sila pilih tarikh dahulu.',bkPleaseSlot:'Sila pilih tarikh dan masa tempahan.',
     bkFull:'Slot ini telah penuh. Sila pilih slot lain.',
+    // Operator role
+    role_operator:'Operator Lapangan',
+    opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
+    opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
+    opAcceptJob:'Terima Kerja',opCompleteJob:'Kerja Selesai',
+    opNoNewJobs:'Tiada aduan baru pada masa ini.',opNoMyJobs:'Tiada kerja yang diterima lagi.',
+    opAccepted:'Diterima',opAcceptedBy:'Diterima Oleh',opAcceptedAt:'Masa Terima',
+    opCompletedAt:'Masa Selesai',opOperator:'Operator',
+    opCompleteWarn:'Sila muat naik sekurang-kurangnya 1 gambar setiap kategori (Sebelum, Semasa, Selepas) sebelum menandakan kerja selesai.',
+    opPhotosRequired:'Gambar Sebelum / Semasa / Selepas diperlukan',
+    custPhotos:'Gambar Aduan Pelanggan',noCustPhotos:'Tiada gambar dilampirkan.',
+    completionGallery:'Gambar Penyelesaian Kerja',noGalleryPhotos:'Gambar belum dimuat naik.',
+    trOperator:'Operator',trAccepted:'Kerja Diterima',trCompleted:'Kerja Diselesaikan',
+    fbRate:'Beri Penilaian',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -687,24 +701,32 @@ function feedbackToRow(fb) {
 
 // ─── DB LOAD ──────────────────────────────────────────────────────────────────
 async function dbLoad() {
+  // Load complaints
   try {
-    const [cRes, jRes, fbRes] = await Promise.all([
-      db.from('complaints').select('*').order('submitted_at', { ascending: false }),
-      db.from('jobs').select('*'),
-      db.from('feedback').select('*').order('created_at', { ascending: false }),
-    ]);
-
-    if(!cRes.error && cRes.data) {
-      complaints = cRes.data.map(rowToComplaint);
-      complaints.forEach(c => {
+    const { data, error } = await db.from('complaints').select('*');
+    if(error) {
+      console.error('dbLoad complaints:', error.message);
+      toast('Gagal memuat aduan: ' + error.message, 'error', 6000);
+    } else if(data) {
+      complaints = data.map(rowToComplaint);
+      // Sort newest-first client-side (avoids dependency on specific column name)
+      complaints.sort(function(a, b) {
+        return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+      });
+      complaints.forEach(function(c) {
+        if(!c.ref) return;
         const m = c.ref.match(/(\d+)$/);
         if(m) { const n = parseInt(m[1]); if(n >= refCounter) refCounter = n + 1; }
       });
     }
+  } catch(e) { console.error('dbLoad complaints exception:', e); }
 
-    if(!jRes.error && jRes.data) {
+  // Load gallery (jobs table — optional, skip silently if missing)
+  try {
+    const { data, error } = await db.from('jobs').select('*');
+    if(!error && data) {
       galleryData = {};
-      jRes.data.forEach(row => {
+      data.forEach(function(row) {
         galleryData[row.complaint_ref] = {
           before: row.photos_before || [],
           during: row.photos_during || [],
@@ -712,14 +734,21 @@ async function dbLoad() {
         };
       });
     }
+  } catch(e) { console.error('dbLoad jobs exception:', e); }
 
-    if(!fbRes.error && fbRes.data) {
-      feedbacks = fbRes.data.map(rowToFeedback);
-      if(feedbacks.length) feedbackCounter = Math.max(...feedbacks.map(f => f.id)) + 1;
+  // Load feedback
+  try {
+    const { data, error } = await db.from('feedback').select('*');
+    if(error) {
+      console.error('dbLoad feedback:', error.message);
+    } else if(data) {
+      feedbacks = data.map(rowToFeedback);
+      feedbacks.sort(function(a, b) {
+        return (b.date || '').localeCompare(a.date || '');
+      });
+      if(feedbacks.length) feedbackCounter = Math.max.apply(null, feedbacks.map(function(f){ return f.id||0; })) + 1;
     }
-  } catch(e) {
-    console.error('Supabase load error:', e);
-  }
+  } catch(e) { console.error('dbLoad feedback exception:', e); }
 }
 
 // ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
@@ -971,7 +1000,12 @@ function doLogout() {
   localStorage.removeItem('emug_session');
   closeAllDDs();
   closeSidebar();
-  showPubPage('landing'); // showPubPage already replaceStates to '/'
+  // Hide app and public pages, show login at /staff
+  el('page-app').classList.remove('active');
+  document.querySelectorAll('.pub-page').forEach(p=>p.classList.remove('active'));
+  el('pub-nav').style.display = 'none';
+  el('page-login').style.display = 'block';
+  history.replaceState({}, '', '/staff');
   el('login-user').value='';
   el('login-pass').value='';
 }
