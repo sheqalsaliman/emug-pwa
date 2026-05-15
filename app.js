@@ -703,13 +703,19 @@ function feedbackToRow(fb) {
 async function dbLoad() {
   // Load complaints
   try {
+    console.log('[EMUG] dbLoad: fetching complaints...');
     const { data, error } = await db.from('complaints').select('*');
+    console.log('[EMUG] complaints response → error:', error, '| rows:', data ? data.length : 'null');
     if(error) {
-      console.error('dbLoad complaints:', error.message);
-      toast('Gagal memuat aduan: ' + error.message, 'error', 6000);
+      console.error('[EMUG] dbLoad complaints error:', error.message, error);
+      toast('Gagal memuat aduan: ' + error.message, 'error', 7000);
     } else if(data) {
+      if(data.length === 0) {
+        console.warn('[EMUG] complaints table returned 0 rows. If data exists in Supabase, check RLS SELECT policy for anon role.');
+      } else {
+        console.log('[EMUG] first complaint row (raw):', data[0]);
+      }
       complaints = data.map(rowToComplaint);
-      // Sort newest-first client-side (avoids dependency on specific column name)
       complaints.sort(function(a, b) {
         return (b.submittedAt || '').localeCompare(a.submittedAt || '');
       });
@@ -718,8 +724,9 @@ async function dbLoad() {
         const m = c.ref.match(/(\d+)$/);
         if(m) { const n = parseInt(m[1]); if(n >= refCounter) refCounter = n + 1; }
       });
+      console.log('[EMUG] complaints loaded:', complaints.length);
     }
-  } catch(e) { console.error('dbLoad complaints exception:', e); }
+  } catch(e) { console.error('[EMUG] dbLoad complaints exception:', e); }
 
   // Load gallery (jobs table — optional, skip silently if missing)
   try {
@@ -733,22 +740,24 @@ async function dbLoad() {
           after:  row.photos_after  || [],
         };
       });
+      console.log('[EMUG] jobs loaded:', data.length);
     }
-  } catch(e) { console.error('dbLoad jobs exception:', e); }
+  } catch(e) { console.error('[EMUG] dbLoad jobs exception:', e); }
 
   // Load feedback
   try {
     const { data, error } = await db.from('feedback').select('*');
     if(error) {
-      console.error('dbLoad feedback:', error.message);
+      console.error('[EMUG] dbLoad feedback error:', error.message);
     } else if(data) {
       feedbacks = data.map(rowToFeedback);
       feedbacks.sort(function(a, b) {
         return (b.date || '').localeCompare(a.date || '');
       });
       if(feedbacks.length) feedbackCounter = Math.max.apply(null, feedbacks.map(function(f){ return f.id||0; })) + 1;
+      console.log('[EMUG] feedback loaded:', feedbacks.length);
     }
-  } catch(e) { console.error('dbLoad feedback exception:', e); }
+  } catch(e) { console.error('[EMUG] dbLoad feedback exception:', e); }
 }
 
 // ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
@@ -980,7 +989,7 @@ function fillDemo(u,p) {
   el('login-error').classList.remove('show');
 }
 
-function doLogin() {
+async function doLogin() {
   const u = el('login-user').value.trim();
   const p = el('login-pass').value;
   const found = USERS.find(x=>x.username===u && x.password===p);
@@ -992,6 +1001,10 @@ function doLogin() {
   }
   user = found;
   el('login-error').classList.remove('show');
+  // Always re-fetch fresh data from Supabase on every login
+  showLoading(lang==='bm'?'Memuatkan data...':'Loading data...');
+  await dbLoad();
+  hideLoading();
   initApp();
 }
 
