@@ -405,13 +405,7 @@ function now()    { return new Date().toISOString().slice(0,10); }
 
 let complaints = [];
 
-let notifs = [
-  { id:1, type:'complaint', title:'Aduan Baru Diterima', msg:'EMUG-2026-0008 — Mohd Rizal Bin Aziz (Tangki najis, Segera)', time:5,  read:false, forRole:'admin' },
-  { id:2, type:'assign',    title:'Kerja Baru Ditugaskan', msg:'C006 — Pemeriksaan am di Taman Maju Jaya', time:60, read:false, forRole:'staff', forUser:'ali' },
-  { id:3, type:'status',    title:'Status Dikemas Kini',   msg:'C002 — Selesai oleh Siti Binti Hashim', time:180, read:false, forRole:'admin' },
-  { id:4, type:'assign',    title:'Kerja Baru Ditugaskan', msg:'C005 — Saliran tersumbat di Taman Sri Plentong', time:30, read:true, forRole:'staff', forUser:'siti' },
-  { id:5, type:'status',    title:'Status Dikemas Kini',   msg:'C001 — Selesai — Ali Bin Ahmad', time:1440, read:true, forRole:'admin' },
-];
+let notifs = [];
 
 let refCounter = 1;
 let notifCounter = 10;
