@@ -266,7 +266,7 @@ textarea.form-control { resize:vertical; min-height:90px; }
 
 /* ===== HERO ===== */
 .hero {
-  background:linear-gradient(150deg,var(--navy-dark) 0%,var(--navy) 55%,var(--navy-light) 100%);
+  background:#4BB8FA;
   min-height:76vh; display:flex; align-items:center; justify-content:center;
   padding:60px 20px 120px; position:relative; overflow:hidden; text-align:center;
 }
