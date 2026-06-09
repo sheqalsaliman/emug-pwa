@@ -1326,55 +1326,61 @@ function renderDashboard() {
   const done  = mc.filter(c=>c.status==='Selesai');
 
   const statsAdmin = `
-    <div class="stat-card c-navy" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div><div class="stat-action">Lihat semua →</div></div>
-    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Tugaskan →</div></div>
-    <div class="stat-card c-info" style="cursor:pointer;" onclick="openStatModal('Sedang Berjalan')"><div class="stat-icon">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div><div class="stat-action">Pantau →</div></div>
-    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>
-    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
-    <div class="stat-card c-danger"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`;
+    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div><div class="stat-action">Lihat semua →</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Tugaskan →</div></div>
+    <div class="stat-card c-info" style="cursor:pointer;" onclick="openStatModal('Sedang Berjalan')"><div class="stat-icon-box si-blue">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div><div class="stat-action">Pantau →</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
+    <div class="stat-card c-navy"><div class="stat-icon-box si-navy">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`;
   const statsStaff = `
-    <div class="stat-card c-navy" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div><div class="stat-action">Lihat semua →</div></div>
-    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
-    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Kemaskini →</div></div>
-    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>`;
+    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div><div class="stat-action">Lihat semua →</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Kemaskini →</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>`;
   setHTML('d-stats', user.role==='admin' ? statsAdmin : statsStaff);
 
   // Recent
   const recent = [...mc].sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt)).slice(0,5);
   setHTML('d-recent-list', recent.length ? `
     <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th style="width:110px;">ID</th>
-          <th>Masalah</th>
-          <th>Lokasi</th>
-          <th style="width:60px;text-align:center;">Keutamaan</th>
-          <th style="width:110px;">Status</th>
-          <th style="width:44px;"></th>
+      <table style="font-size:.85rem;">
+        <thead><tr style="background:var(--gray-50);">
+          <th style="font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);font-weight:700;padding:10px 12px;width:120px;">ID / Aduan</th>
+          <th style="font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);font-weight:700;padding:10px 12px;">Masalah</th>
+          <th style="font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);font-weight:700;padding:10px 12px;">Lokasi</th>
+          <th style="font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);font-weight:700;padding:10px 12px;width:90px;">Keutamaan</th>
+          <th style="font-size:.62rem;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-400);font-weight:700;padding:10px 12px;width:110px;">Status</th>
+          <th style="width:60px;"></th>
         </tr></thead>
-        <tbody>${recent.map(c=>`<tr>
-          <td style="font-size:.75rem;font-weight:700;color:var(--navy);">${c.ref}</td>
-          <td style="font-size:.82rem;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.problem}</td>
-          <td style="font-size:.75rem;color:var(--gray-500);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(c.address||'').split(',').slice(-2).join(',').trim()}</td>
-          <td style="text-align:center;"><span class="priority-dot priority-${c.urgency==='Segera'?'high':'low'}"></span></td>
-          <td>${statusBadge(c.status)}</td>
-          <td><button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')" style="padding:3px 8px;font-size:.72rem;">→</button></td>
+        <tbody>${recent.map(c=>`<tr style="transition:background .15s;" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background=''">
+          <td style="padding:11px 12px;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--navy);">${c.ref}</div>
+            <div style="font-size:.72rem;color:var(--gray-400);margin-top:1px;">${fmtDateShort(c.prefDate)}</div>
+          </td>
+          <td style="padding:11px 12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem;">${c.problem}</td>
+          <td style="padding:11px 12px;font-size:.75rem;color:var(--gray-500);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${(c.address||'').split(',').slice(-2).join(',').trim()}</td>
+          <td style="padding:11px 12px;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:${c.urgency==='Segera'?'var(--danger)':'var(--success)'};">
+              <span class="priority-dot priority-${c.urgency==='Segera'?'high':'low'}"></span>${c.urgency==='Segera'?'Segera':'Normal'}
+            </span>
+          </td>
+          <td style="padding:11px 12px;">${statusBadge(c.status)}</td>
+          <td style="padding:11px 12px;"><button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')" style="padding:4px 10px;font-size:.72rem;font-weight:600;">Buka</button></td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`
     : `<div class="empty-state"><div class="empty-state-icon">📋</div><p>${t('noJobs')}</p></div>`);
 
   // Notif preview
-  const ns = myNotifs().slice(0,4);
-  setHTML('d-notif-preview', ns.length ? ns.map(n=>{
-    const icon = n.type==='complaint'?'📋':n.type==='assign'?'🔧':'🔄';
-    return `<div class="timeline-item">
-      <div class="tl-dot ${n.read?'selesai':'menunggu'}"></div>
-      <div class="tl-info">
-        <div class="tl-title" style="font-weight:${n.read?500:700};">${icon} ${n.title}</div>
-        <div class="tl-sub">${n.msg} · ${fmtTimeAgo(n.time)}</div>
+  const ns = myNotifs().slice(0,5);
+  setHTML('d-notif-preview', ns.length ? ns.map(n=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">
+      <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;background:${n.read?'var(--gray-300)':'var(--lime)'}; display:inline-block;"></span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.82rem;font-weight:${n.read?400:600};color:var(--gray-900);line-height:1.4;">${n.title}</div>
+        <div style="font-size:.72rem;color:var(--gray-400);margin-top:2px;">${fmtTimeAgo(n.time)}</div>
       </div>
-    </div>`;}).join('')
+    </div>`).join('')
     : `<div class="empty-state"><div class="empty-state-icon">🔔</div><p>${t('noNotifs')}</p></div>`);
 
   // Today's schedule
