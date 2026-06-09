@@ -1659,21 +1659,18 @@ function renderDayView() {
     setHTML('sc-day-content',`<div class="empty-state"><div class="empty-state-icon">🗓️</div><p>${t('noScheduleToday')}</p></div>`);
     return;
   }
-  setHTML('sc-day-content',`<div class="card"><div class="card-body">
-    ${dayEntries.map(e=>`
-    <div class="timeline-item">
-      <div class="tl-dot ${statusClass(e.status)}"></div>
-      <div class="tl-time">${(e.time||'').slice(0,5)||'—'}</div>
-      <div class="tl-info" style="flex:1;">
-        <div class="tl-title">👷 ${e.staffName}</div>
-        <div class="tl-sub">🔧 ${e.description}</div>
-        <div class="tl-sub">📍 ${e.location}</div>
+  setHTML('sc-day-content', dayEntries.map(e=>`
+    <div style="border-left:4px solid var(--navy);background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="margin-bottom:8px;">
+          <span style="background:var(--navy);color:var(--white);font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:10px;">${(e.time||'').slice(0,5)||'—'}</span>
+        </div>
+        <div style="font-weight:700;font-size:.92rem;color:var(--gray-900);margin-bottom:4px;">👷 ${e.staffName}</div>
+        <div style="font-size:.8rem;color:var(--gray-600);margin-bottom:2px;">📍 ${e.location}</div>
+        <div style="font-size:.8rem;color:var(--gray-500);">🔧 ${e.description}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-        ${statusBadge(e.status)}
-      </div>
-    </div>`).join('')}
-  </div></div>`);
+      <div style="flex-shrink:0;">${statusBadge(e.status)}</div>
+    </div>`).join(''));
 }
 
 function renderWeekView() {
@@ -1686,12 +1683,17 @@ function renderWeekView() {
     const ds = d.toISOString().slice(0,10);
     const dj = myWorkSchedule().filter(e=>e.date===ds);
     const isTd = ds===todayS;
-    html += `<div class="week-cell">
+    html += `<div class="week-cell"${isTd?' style="background:var(--lime-pale);"':''}>
       <div class="week-cell-head${isTd?' today':''}">
         <div class="wc-num">${d.getDate()}</div>
         <div class="wc-day">${T[lang].dayNamesShort[d.getDay()]}</div>
       </div>
-      ${dj.map(e=>`<div class="week-job-dot ${statusClass(e.status)}" title="${e.staffName}: ${e.description}">${e.staffName.split(' ')[0]}</div>`).join('')}
+      ${dj.map(e=>`
+        <div style="border-left:3px solid var(--navy);background:var(--white);border-radius:3px;padding:5px 7px;margin:4px;font-size:.7rem;box-shadow:0 1px 2px rgba(0,0,0,.06);">
+          <div style="font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.staffName}</div>
+          <div style="color:var(--navy);font-weight:600;">${(e.time||'').slice(0,5)}</div>
+          <div style="color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${e.location}</div>
+        </div>`).join('')}
     </div>`;
   }
   setHTML('sc-week-grid', html);

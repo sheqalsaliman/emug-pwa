@@ -1465,7 +1465,7 @@ tbody tr:hover { background:var(--gray-50); }
 .date-nav-btn:hover { border-color:var(--navy); color:var(--navy); }
 .date-display { flex:1; text-align:center; font-weight:700; font-size:1rem; color:var(--navy); }
 .week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:20px; }
-.week-cell { border:1px solid var(--gray-200); border-radius:var(--r); overflow:hidden; min-height:100px; }
+.week-cell { border:1px solid var(--gray-200); border-radius:var(--r); overflow:hidden; min-height:120px; }
 .week-cell-head {
   background:var(--navy); color:var(--white); padding:6px 4px; text-align:center; font-size:.7rem; font-weight:700;
 }
