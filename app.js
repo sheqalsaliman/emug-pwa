@@ -346,8 +346,8 @@ const T = {
     // Completion photos on track page
     completionGallery:'Gambar Penyelesaian Kerja',noGalleryPhotos:'Gambar belum dimuat naik.',
     trOperator:'Operator',trAccepted:'Kerja Diterima',trCompleted:'Kerja Diselesaikan',
-    fbaTitle:'Pengurusan Maklum Balas',fbaSub:'Semak dan urus maklum balas pelanggan',
-    fbaListTitle:'Semua Ulasan',fbaPublish:'Terbit',fbaUnpublish:'Sembunyikan',
+    fbaTitle:'Feedback Management',fbaSub:'Review and manage customer feedback',
+    fbaListTitle:'All Reviews',fbaPublish:'Publish',fbaUnpublish:'Unpublish',
     fbaPublished:'published',
     fbaQuality:'Quality',fbaTimeliness:'Timeliness',fbaService:'Service',fbaOverall:'Overall',
     fbRate:'Rate Our Service',
