@@ -30,7 +30,9 @@
       "Bash(curl -s -o /dev/null -w \"app.js:     %{http_code}\\\\n\" http://localhost:8765/app.js)",
       "Bash(curl -s -o /dev/null -w \"Band1 photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/High%20Pressure%20Water%20Jetting%20\\(3\\).jpg\")",
       "Bash(curl -s -o /dev/null -w \"Band2 photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/Manhole%20Cleaning.jpg\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

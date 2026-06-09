@@ -1256,17 +1256,17 @@ function renderDashboard() {
   const done  = mc.filter(c=>c.status==='Selesai');
 
   const statsAdmin = `
-    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
-    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
-    <div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div></div>
-    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>
-    <div class="stat-card c-lime"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
+    <div class="stat-card c-navy" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-info" style="cursor:pointer;" onclick="openStatModal('Sedang Berjalan')"><div class="stat-icon">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
     <div class="stat-card c-danger"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`;
   const statsStaff = `
-    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div></div>
-    <div class="stat-card c-lime"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
-    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
-    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>`;
+    <div class="stat-card c-navy" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div></div>`;
   setHTML('d-stats', user.role==='admin' ? statsAdmin : statsStaff);
 
   // Recent
@@ -1369,6 +1369,29 @@ function renderComplaintsList() {
         ${c.coords?`<a class="maps-btn" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener">${t('locOpenMaps')}</a>`:''}
       </div>
     </div>`;}).join(''));
+}
+
+// ─── STAT DRILL-DOWN MODAL ────────────────────────────────────────────────────
+function openStatModal(filter) {
+  const mc = myComplaints();
+  const labelMap = { all:t('totalJobs'), today:t('todayJobs'), Menunggu:t('pending'), 'Sedang Berjalan':t('inProgress'), Selesai:t('completed') };
+  const iconMap  = { all:'📋', today:'📅', Menunggu:'⏳', 'Sedang Berjalan':'🔄', Selesai:'✅' };
+  let list;
+  if(filter==='all')        list = mc;
+  else if(filter==='today') list = mc.filter(c=>(c.schedDate||c.prefDate)===now());
+  else                      list = mc.filter(c=>c.status===filter);
+  setTxt('sm-title', `${iconMap[filter]||'📋'} ${labelMap[filter]||filter} (${list.length})`);
+  setHTML('sm-body', list.length ? list.map(c=>`
+    <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-weight:700;font-size:.9rem;">${c.ref}</span>
+        ${statusBadge(c.status)}
+      </div>
+      <div style="font-size:.82rem;color:var(--gray-700);margin-bottom:2px;">🔧 ${c.problem}${c.desc?` · <span style="color:var(--gray-500);">${c.desc}</span>`:''}</div>
+      <div style="font-size:.78rem;color:var(--gray-500);">📍 ${c.address.split(',').slice(-3).join(',').trim()}</div>
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">${iconMap[filter]||'📋'}</div><p>${t('noJobs')}</p></div>`);
+  openModal('modal-stats');
 }
 
 // ─── JOB MODAL ────────────────────────────────────────────────────────────────

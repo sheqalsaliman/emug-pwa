@@ -1117,6 +1117,25 @@
 </div>
 
 <!-- ======================================================
+     STAT DRILL-DOWN MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-stats">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="sm-title">📋 Senarai Aduan</div>
+        <button class="modal-close" onclick="closeModal('modal-stats')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body" id="sm-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-stats')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      GALLERY MODAL (Before/During/After Photos)
      ====================================================== -->
 <div class="modal-overlay gallery-modal" id="modal-gallery">
