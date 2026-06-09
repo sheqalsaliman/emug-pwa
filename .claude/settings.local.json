@@ -3,7 +3,34 @@
     "allow": [
       "Bash(node -e ' *)",
       "PowerShell($content = Get-Content \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\app.js\" -Raw; $lines = $content -split \"`n\"; \"Total lines: $\\($lines.Count\\)\"; \\($lines | Select-Object -Last 30\\) -join \"`n\")",
-      "PowerShell(node --check \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\app.js\" 2>&1)"
+      "PowerShell(node --check \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\app.js\" 2>&1)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Get-Command npx, node, python -ErrorAction SilentlyContinue)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "mcp__Claude_in_Chrome__select_browser",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(python3 -m http.server 8081)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8081/index.html)",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\nodejs\\\\\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\\\\\" -ErrorAction SilentlyContinue | Select-Object -First 5 Name; Get-ChildItem \"$env:APPDATA\\\\npm\\\\\", \"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\\" -ErrorAction SilentlyContinue | Select-Object -First 5 Name)",
+      "PowerShell(Start-Process powershell -ArgumentList \"-NoProfile\",\"-ExecutionPolicy\",\"Bypass\",\"-File\",\"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\.claude\\\\serve.ps1\",\"-Port\",\"8765\",\"-Root\",\"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\" -WindowStyle Minimized; Start-Sleep -Seconds 2; try { \\(Invoke-WebRequest -Uri \"http://localhost:8765/index.html\" -UseBasicParsing -TimeoutSec 3\\).StatusCode } catch { \"Server not responding: $_\" })",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\\\\.claude\\\\serve.ps1\" -Port 8765 -Root \"C:\\\\Users\\\\Sales Eman Utama\\\\Documents\\\\EMUG-System\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:8765/index.html)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 5 \"http://localhost:8765/index.html\")",
+      "Bash(curl -s -o /dev/null -w \"index.html: HTTP %{http_code}\\\\n\" http://localhost:8765/index.html)",
+      "Bash(curl -s -o /dev/null -w \"app.js: HTTP %{http_code}\\\\n\" http://localhost:8765/app.js)",
+      "Bash(curl -s -o /dev/null -w \"index.html: %{http_code}\\\\napp.js:     %{http_code}\\\\nstyles.css: \" http://localhost:8765/index.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8765/styles.css)",
+      "Bash(curl -s -o /dev/null -w \"Hero photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/High%20Pressure%20Water%20Jetting.jpg\")",
+      "Bash(curl -s -o /dev/null -w \"index.html: %{http_code}\\\\n\" http://localhost:8765/index.html)",
+      "Bash(curl -s -o /dev/null -w \"styles.css: %{http_code}\\\\n\" http://localhost:8765/styles.css)",
+      "Bash(curl -s -o /dev/null -w \"app.js:     %{http_code}\\\\n\" http://localhost:8765/app.js)",
+      "Bash(curl -s -o /dev/null -w \"Band1 photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/High%20Pressure%20Water%20Jetting%20\\(3\\).jpg\")",
+      "Bash(curl -s -o /dev/null -w \"Band2 photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/Manhole%20Cleaning.jpg\")",
+      "Bash(git add *)"
     ]
   }
 }

@@ -23,16 +23,26 @@ function hideLoading() {
   const o = document.getElementById('loading-overlay');
   if(o) { o.style.opacity = '0'; setTimeout(() => { o.style.display = 'none'; o.style.opacity = '1'; }, 300); }
 }
+function showLoadingError(msg) {
+  const errEl  = document.getElementById('loading-error');
+  const btnEl  = document.getElementById('loading-dismiss');
+  const msgEl  = document.getElementById('loading-msg');
+  const barEl  = document.getElementById('loading-bar');
+  if(errEl)  { errEl.textContent = msg; errEl.style.display = 'block'; }
+  if(btnEl)  { btnEl.style.display = 'inline-block'; }
+  if(msgEl)  { msgEl.style.color = 'rgba(255,255,255,.35)'; }
+  if(barEl)  { barEl.style.animation = 'none'; barEl.style.background = '#ef5350'; barEl.style.width = '100%'; }
+}
 
 // ─── LANGUAGE STRINGS ────────────────────────────────────────────────────────
 const T = {
   bm: {
     tagline:'Pakar Paip & Pembetungan Johor',
     staffLoginBtn:'Log Masuk Kakitangan',
-    badge:'✅ Berlesen & Berpengalaman',
-    heroTitle:'Pakar Paip & Pembetungan<br>Johor',
-    heroSub:'E Man Utama Group Sdn. Bhd.',
-    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Sejak 2005',
+    badge:'Berlesen & berpengalaman sejak 2015',
+    heroTitle:'Masalah paip?<br><span class="lp-headline-accent">Buat aduan dalam 1 minit.</span>',
+    heroSub:'Pasukan pakar kami di seluruh Johor sedia membantu — dari paip bocor hingga tangki najis. Respons pantas, kerja berjamin.',
+    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Sejak 2015',
     heroCta:'📋 Buat Aduan',
     heroTrack:'🔍 Semak Status',
     svTag:'🔧 Perkhidmatan Kami',
@@ -188,10 +198,10 @@ const T = {
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
     staffLoginBtn:'Staff Login',
-    badge:'✅ Licensed & Experienced',
-    heroTitle:'Plumbing & Sewerage<br>Expert in Johor',
-    heroSub:'E Man Utama Group Sdn. Bhd.',
-    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Since 2005',
+    badge:'Licensed & experienced since 2015',
+    heroTitle:'Pipe problem?<br><span class="lp-headline-accent">Lodge a complaint in 1 minute.</span>',
+    heroSub:'Our expert team across Johor is ready to help — from leaking pipes to septic tanks. Fast response, guaranteed work.',
+    heroTag:'Pasir Gudang, Johor &nbsp;•&nbsp; Since 2015',
     heroCta:'📋 Submit Complaint',
     heroTrack:'🔍 Track Status',
     svTag:'🔧 Our Services',
@@ -712,15 +722,36 @@ function feedbackToRow(fb) {
 async function dbLoad() {
   if(!db) {
     console.error('[EMUG] dbLoad aborted: Supabase client is null (CDN not loaded).');
-    return;
+    throw new Error('Supabase client failed to load — check internet connection');
   }
 
-  // ── DIRECT TEST FETCH (as requested for debugging) ───────────────────────────
+  // ── PREFLIGHT: raw fetch to detect HTML error pages (paused / misconfigured project) ──
+  const controller = new AbortController();
+  const probeTimer = setTimeout(() => controller.abort(), 6000);
   try {
-    const test = await db.from('complaints').select('*');
-    console.log('[EMUG] DIRECT TEST:', JSON.stringify(test));
+    const probe = await fetch(
+      `${SUPABASE_URL}/rest/v1/complaints?select=id&limit=1`,
+      {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        signal: controller.signal
+      }
+    );
+    clearTimeout(probeTimer);
+    const ct = probe.headers.get('content-type') || '';
+    if(ct.includes('text/html')) {
+      // Supabase returns an HTML error page when the project is paused or the URL is wrong
+      console.error('[EMUG] Supabase returned HTML — project is likely paused or URL is invalid. Status:', probe.status);
+      throw new Error('Supabase connection failed — check project status at supabase.com');
+    }
+    console.log('[EMUG] Preflight OK — content-type:', ct, '| status:', probe.status);
   } catch(e) {
-    console.error('[EMUG] DIRECT TEST exception:', e);
+    clearTimeout(probeTimer);
+    if(e.name === 'AbortError') {
+      console.error('[EMUG] Preflight timed out after 6s');
+      throw new Error('Supabase connection timed out — server unreachable');
+    }
+    // Re-throw preflight error (HTML response or network failure)
+    throw e;
   }
 
   // Load complaints
@@ -2146,9 +2177,10 @@ function submitFeedback() {
 
 // --- TESTIMONIALS (PUBLIC LANDING) ---
 function renderTestimonials() {
-  const grid    = el('testimonials-grid');
-  const banner  = el('avg-rating-banner');
-  const avgNum  = el('avg-rating-num');
+  // Hidden elements still updated so admin feedback panel works
+  const grid   = el('testimonials-grid');
+  const banner = el('avg-rating-banner');
+  const avgNum = el('avg-rating-num');
   const published = feedbacks.filter(function(f){ return f.published; });
 
   if(avgNum) {
@@ -2160,20 +2192,42 @@ function renderTestimonials() {
       if(banner) banner.style.display = 'none';
     }
   }
+  if(grid) grid.innerHTML = '';  // kept in DOM (hidden) — no content needed
 
-  if(!grid) return;
+  // ── Landing page review strip ──────────────────────────────────
+  const stripEmpty   = el('lp-reviews-empty');
+  const stripDisplay = el('lp-reviews-display');
+  const summaryEl    = el('lp-reviews-summary');
+  const listEl       = el('lp-reviews-list');
+
   if(!published.length) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--gray-400);">'+(lang==='bm'?'Tiada ulasan lagi.':'No reviews yet.')+'</div>';
+    // No reviews: show the soft prompt, hide the review display
+    if(stripEmpty)   stripEmpty.style.display   = 'flex';
+    if(stripDisplay) stripDisplay.style.display = 'none';
     return;
   }
-  grid.innerHTML = published.slice().reverse().slice(0,6).map(function(f){
-    return '<div class="testi-card">'
-      +'<div class="testi-stars">'+'⭐'.repeat(Math.round(f.overall))+' <span style="font-size:.8rem;color:var(--gray-500);">'+f.overall+'</span></div>'
-      +'<div class="testi-comment">“'+(f.comment||'—')+'”</div>'
-      +'<div class="testi-author">— '+f.name+' · <span style="font-size:.75rem;color:var(--gray-400);">'+fmtDate(f.date)+'</span></div>'
-      +'<div style="font-size:.72rem;color:var(--gray-400);">'+f.ref+'</div>'
-      +'</div>';
-  }).join('');
+
+  // Has reviews: hide the prompt, show summary + up to 3 mini cards
+  if(stripEmpty)   stripEmpty.style.display   = 'none';
+  if(stripDisplay) stripDisplay.style.display = 'block';
+
+  if(summaryEl) {
+    const avg = (published.reduce(function(s,f){ return s+f.overall; }, 0) / published.length).toFixed(1);
+    summaryEl.innerHTML =
+      '<span style=”font-size:1.1rem;font-weight:800;color:var(--lp-navy);”>★ '+avg+'</span>'
+      +' <span style=”font-size:.8rem;color:var(--lp-text-muted);margin-left:4px;”>'
+      +published.length+' '+(lang==='bm'?'ulasan':'reviews')+'</span>';
+  }
+
+  if(listEl) {
+    listEl.innerHTML = published.slice().reverse().slice(0,3).map(function(f){
+      return '<div class=”lp-review-mini-card”>'
+        +'<div class=”mini-stars”>'+'★'.repeat(Math.round(f.overall))+'</div>'
+        +'<div>”'+(f.comment ? f.comment.slice(0,80)+(f.comment.length>80?'…':'') : '—')+'”</div>'
+        +'<div class=”mini-author”>— '+f.name+'</div>'
+        +'</div>';
+    }).join('');
+  }
 }
 
 // --- ADMIN FEEDBACK MANAGEMENT ---
@@ -2522,6 +2576,227 @@ if('serviceWorker' in navigator) {
   });
 }
 
+// ─── ANIMATED STATUS CARD ────────────────────────────────────────────────────
+(function initStatusCard() {
+  // Wait for DOM — card may not exist if user is on /staff
+  function boot() {
+    const card = document.getElementById('sc-card');
+    if (!card) return;
+
+    // ── Element refs ──────────────────────────────────────────────────────
+    const steps   = [1,2,3,4].map(function(n){ return document.getElementById('sc-step-'+n); });
+    const circle3 = document.getElementById('sc-circle-3');
+    const circle4 = document.getElementById('sc-circle-4');
+    const conn3   = document.getElementById('sc-conn-3');
+    const spinIcon= document.getElementById('sc-spin-icon');
+    const step3sub= document.getElementById('sc-step3-sub');
+    const fill    = document.getElementById('sc-fill');
+    const pct     = document.getElementById('sc-pct');
+    const etaVal  = document.getElementById('sc-eta-val');
+    const badge   = document.getElementById('sc-badge');
+    const badgeTxt= document.getElementById('sc-badge-txt');
+    const dot     = document.getElementById('sc-dot');
+
+    // ── State ────────────────────────────────────────────────────────────
+    var progressRaf = null;   // rAF handle for counter
+    var loopTimer   = null;   // setTimeout handle
+    var resetTimer  = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function setProgress(targetPct, durationMs, onDone) {
+      if (progressRaf) cancelAnimationFrame(progressRaf);
+      var start = null;
+      var from  = parseFloat(fill.style.width) || 0;
+      function tick(ts) {
+        if (!start) start = ts;
+        var elapsed = ts - start;
+        var t = Math.min(elapsed / durationMs, 1);
+        // ease-out cubic
+        var eased = 1 - Math.pow(1 - t, 3);
+        var now = from + (targetPct - from) * eased;
+        fill.style.width  = now.toFixed(1) + '%';
+        pct.textContent   = Math.round(now) + '%';
+        if (t < 1) {
+          progressRaf = requestAnimationFrame(tick);
+        } else {
+          progressRaf = null;
+          if (onDone) onDone();
+        }
+      }
+      progressRaf = requestAnimationFrame(tick);
+    }
+
+    // ── Phase A: INITIAL state (steps 1+2 done, step 3 active, step 4 pending) ──
+    function applyInitialState() {
+      // Step 3 circle — active
+      circle3.className = 'sc-circle sc-circle-active';
+      circle3.innerHTML = '<span class="sc-spin-icon" id="sc-spin-icon">⟳</span>';
+      // Step 4 circle — pending
+      circle4.className = 'sc-circle sc-circle-pending';
+      circle4.innerHTML = '';
+      // Connector 3 — dim
+      conn3.className = 'sc-connector sc-connector-dim';
+      // Step 3 text
+      var s3title = steps[2].querySelector('.sc-step-title');
+      s3title.className = 'sc-step-title sc-step-title-active';
+      step3sub.className = 'sc-step-sub sc-step-sub-active';
+      step3sub.textContent = 'Pasukan dalam perjalanan...';
+      // Step 4 text
+      var s4title = steps[3].querySelector('.sc-step-title');
+      s4title.className = 'sc-step-title sc-step-title-pending';
+      // Badge
+      badge.className = 'sc-badge';
+      badgeTxt.textContent = 'AKTIF';
+      // Progress + ETA
+      fill.className = 'sc-progress-fill';
+      pct.className  = 'sc-progress-pct';
+      etaVal.className = 'sc-eta-val';
+      etaVal.textContent = 'Hari ini, 2:30 PM';
+    }
+
+    // ── Phase B: COMPLETE state ──────────────────────────────────────────
+    function applyCompleteState(onDone) {
+      // Step 3 → done
+      circle3.className = 'sc-circle sc-circle-done';
+      circle3.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20,6 9,17 4,12"/></svg>';
+      conn3.className = 'sc-connector';
+      var s3title = steps[2].querySelector('.sc-step-title');
+      s3title.className = 'sc-step-title';
+      step3sub.className = 'sc-step-sub';
+      step3sub.textContent = 'Selesai';
+
+      // 400ms later: step 4 → done
+      loopTimer = setTimeout(function() {
+        circle4.className = 'sc-circle sc-circle-done';
+        circle4.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20,6 9,17 4,12"/></svg>';
+        var s4title = steps[3].querySelector('.sc-step-title');
+        s4title.className = 'sc-step-title';
+
+        // Progress to 100%
+        setProgress(100, 700, function() {
+          fill.className  = 'sc-progress-fill sc-progress-fill-done';
+          pct.className   = 'sc-progress-pct sc-progress-pct-done';
+          etaVal.className = 'sc-eta-val sc-eta-val-done';
+          etaVal.textContent = 'Selesai ✓';
+          badge.className = 'sc-badge sc-badge-done';
+          badgeTxt.textContent = 'SELESAI';
+          if (onDone) onDone();
+        });
+      }, 400);
+    }
+
+    // ── Staggered entrance (steps slide in from left) ─────────────────────
+    function entranceAnimation(onDone) {
+      steps.forEach(function(step, i) {
+        if (!step) return;
+        step.classList.remove('sc-visible');
+        setTimeout(function() {
+          step.classList.add('sc-visible');
+          if (i === steps.length - 1 && onDone) {
+            setTimeout(onDone, 400);
+          }
+        }, 120 + i * 200);
+      });
+    }
+
+    // ── Full cycle ────────────────────────────────────────────────────────
+    function runCycle() {
+      // 1. Reset to initial state
+      applyInitialState();
+      fill.style.width = '0%';
+      pct.textContent  = '0%';
+
+      // 2. Entrance animation (steps stagger in)
+      entranceAnimation(function() {
+        // 3. Count progress bar up to 65%
+        setProgress(65, 1200, function() {
+
+          // 4. Wait 5s in "active" state
+          loopTimer = setTimeout(function() {
+
+            // 5. Trigger completion
+            applyCompleteState(function() {
+
+              // 6. Hold completed state 2s then reset
+              resetTimer = setTimeout(function() {
+                runCycle();
+              }, 2000);
+            });
+          }, 5000);
+        });
+      });
+    }
+
+    // ── Kick off ──────────────────────────────────────────────────────────
+    applyInitialState();
+    // Small delay so the card CSS entrance animation finishes first
+    setTimeout(runCycle, 500);
+  }
+
+  // Run after DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+}());
+
+// ─── PARALLAX BANDS ──────────────────────────────────────────────────────────
+// Uses scroll events + rAF to drive a CSS custom property (--pb-offset) on
+// each .lp-parallax-band. This supplements the CSS background-attachment:fixed
+// fallback — both can coexist because the pseudo-element uses both transform
+// AND background-attachment; on mobile we force transform:none via media query.
+//
+// Guards: desktop-only (>768px), respects prefers-reduced-motion, no-op if
+// IntersectionObserver unavailable (older browsers fall back to CSS only).
+(function initParallaxBands() {
+  // Bail on mobile or if user prefers reduced motion
+  if (window.matchMedia('(max-width: 768px)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const bands = Array.from(document.querySelectorAll('.lp-parallax-band'));
+  if (!bands.length) return;
+
+  // Strength: how many px the photo shifts per viewport-height of scroll.
+  // 0.18 = subtle. Range 0.1–0.3 feels natural.
+  const STRENGTH = 0.18;
+
+  let ticking = false;
+
+  function updateBands() {
+    const vh = window.innerHeight;
+    bands.forEach(function(band) {
+      const rect = band.getBoundingClientRect();
+      // Progress: 0 when top of band is at bottom of viewport,
+      //           1 when bottom of band is at top of viewport.
+      const progress = 1 - (rect.bottom / (vh + rect.height));
+      // Map to a pixel offset centred around 0
+      const offset = (progress - 0.5) * vh * STRENGTH;
+      band.style.setProperty('--pb-offset', offset.toFixed(2) + 'px');
+    });
+    ticking = false;
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      requestAnimationFrame(updateBands);
+      ticking = true;
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  // Run once immediately to set initial position
+  updateBands();
+
+  // Re-check on resize (e.g. window narrowed past 768px breakpoint)
+  window.addEventListener('resize', function() {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      window.removeEventListener('scroll', onScroll);
+      bands.forEach(function(b) { b.style.removeProperty('--pb-offset'); });
+    }
+  }, { passive: true });
+}());
+
 // ─── BOOKING CALENDAR ────────────────────────────────────────────────────────
 function getBkCounts(dateStr) {
   var counts = {};
@@ -2706,8 +2981,26 @@ window.addEventListener('popstate', function() {
   document.querySelectorAll('#pub-lang-btn,#login-lang-btn,#app-lang-btn').forEach(b=>b.textContent=lbl);
 
   showLoading(lang==='bm'?'Memuatkan sistem...':'Loading system...');
-  await dbLoad();
-  hideLoading();
+  try {
+    // Race dbLoad() against a hard 8s wall-clock timeout.
+    // dbLoad() itself throws immediately if it detects an HTML response (paused project).
+    await Promise.race([
+      dbLoad(),
+      new Promise((_, reject) => setTimeout(() => reject(
+        new Error(lang === 'bm'
+          ? 'Sambungan tamat masa — sistem dimuat tanpa data pangkalan data'
+          : 'Connection timed out — loading without database data')
+      ), 8000))
+    ]);
+    hideLoading();
+  } catch(e) {
+    console.error('[EMUG] Database connection error:', e.message);
+    // Show friendly error on the loading screen; user can dismiss manually
+    showLoadingError(e.message);
+    // Auto-dismiss after 4s so the page still boots
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    hideLoading();
+  }
 
   setLang(lang);
   initComplaintForm();
