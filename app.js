@@ -195,6 +195,16 @@ const T = {
     completionGallery:'Gambar Penyelesaian Kerja',noGalleryPhotos:'Gambar belum dimuat naik.',
     trOperator:'Operator',trAccepted:'Kerja Diterima',trCompleted:'Kerja Diselesaikan',
     fbRate:'Beri Penilaian',
+    dashTitle:'Papan Pemuka',dashSub:'Selamat datang! Ini ringkasan sistem hari ini.',
+    statTotal:'Jumlah Aduan',statPending:'Menunggu',statProgress:'Sedang Berjalan',
+    statDone:'Selesai',statJobs:'Kerja Hari Ini',statStaff:'Jumlah Kakitangan',
+    recentTitle:'Aduan Terkini',noComplaints:'Tiada aduan dijumpai.',
+    schedToday:'Jadual Hari Ini',noSched:'Tiada jadual untuk hari ini.',
+    notifTitle:'Pemberitahuan',noNotif:'Tiada pemberitahuan.',
+    navDashboard:'Papan Pemuka',navComplaints:'Senarai Aduan',navSchedule:'Jadual Kerja',
+    navStaff:'Kakitangan',navReports:'Laporan',navNotif:'Pemberitahuan',
+    navFeedback:'Pengurusan Ulasan',navProfile:'Profil Saya',
+    btnLogout:'Log Keluar',roleAdmin:'Pentadbir',roleStaff:'Kakitangan',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -373,6 +383,16 @@ const T = {
     bkSummaryLbl:'Selected Booking',bkSummaryDate:'Date',bkSummaryTime:'Time',
     bkPleaseDate:'Please select a date first.',bkPleaseSlot:'Please select a booking date and time.',
     bkFull:'This slot is full. Please choose another slot.',
+    dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
+    statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
+    statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
+    recentTitle:'Recent Complaints',noComplaints:'No complaints found.',
+    schedToday:"Today's Schedule",noSched:'No schedule for today.',
+    notifTitle:'Notifications',noNotif:'No notifications.',
+    navDashboard:'Dashboard',navComplaints:'Complaint List',navSchedule:'Work Schedule',
+    navStaff:'Staff',navReports:'Reports',navNotif:'Notifications',
+    navFeedback:'Feedback Management',navProfile:'My Profile',
+    btnLogout:'Logout',roleAdmin:'Admin',roleStaff:'Staff',
   }
 };
 
