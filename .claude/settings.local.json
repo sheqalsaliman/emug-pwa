@@ -32,7 +32,9 @@
       "Bash(curl -s -o /dev/null -w \"Band2 photo: %{http_code}\\\\n\" \"http://localhost:8765/Images/Manhole%20Cleaning.jpg\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)"
     ]
   }
 }

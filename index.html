@@ -898,7 +898,8 @@
               <div class="page-title">🗓️ <span id="sc-title">Jadual Kerja</span></div>
               <div class="page-sub" id="sc-sub">Lihat jadual kerja harian/mingguan</div>
             </div>
-            <div class="schedule-tabs">
+            <div class="schedule-tabs" style="display:flex;align-items:center;gap:8px;">
+              <button class="btn btn-sm btn-lime" id="sc-add-btn" onclick="openSchedAddModal()" style="display:none;">+ Tambah Jadual</button>
               <button class="schedule-tab active" id="sc-tab-day" onclick="switchSchedView('day')">Hari</button>
               <button class="schedule-tab" id="sc-tab-week" onclick="switchSchedView('week')">Minggu</button>
             </div>
@@ -1112,6 +1113,60 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-status')" id="ms-cancel">Batal</button>
       <button class="btn btn-primary" onclick="confirmStatusUpdate()" id="ms-confirm">✓ Kemaskini</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     SCHEDULE ADD MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-sched-add">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="sa-title">🗓️ Tambah Jadual</div>
+        <button class="modal-close" onclick="closeModal('modal-sched-add')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="sa-lbl-staff">Kakitangan</label>
+        <select class="form-control" id="sa-staff"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" id="sa-lbl-date">Tarikh</label>
+          <input type="date" class="form-control" id="sa-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="sa-lbl-time">Masa</label>
+          <select class="form-control" id="sa-time">
+            <option value="">-- Pilih Masa --</option>
+            <option value="08:00">08:00 – 09:00</option>
+            <option value="09:00">09:00 – 10:00</option>
+            <option value="10:00">10:00 – 11:00</option>
+            <option value="11:00">11:00 – 12:00</option>
+            <option value="12:00">12:00 – 13:00</option>
+            <option value="13:00">13:00 – 14:00</option>
+            <option value="14:00">14:00 – 15:00</option>
+            <option value="15:00">15:00 – 16:00</option>
+            <option value="16:00">16:00 – 17:00</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="sa-lbl-location">Lokasi</label>
+        <input type="text" class="form-control" id="sa-location" placeholder="Alamat / lokasi kerja">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="sa-lbl-desc">Penerangan Kerja</label>
+        <textarea class="form-control" id="sa-desc" rows="3" placeholder="Penerangan tugas..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-sched-add')" id="sa-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="saveSchedEntry()" id="sa-save">💾 Simpan</button>
     </div>
   </div>
 </div>

@@ -111,6 +111,7 @@ const T = {
     statusUpdated:'Status telah dikemas kini.',
     updateStatus:'Kemaskini Status',techNote:'Nota Juruteknik',
     noScheduleToday:'Tiada jadual untuk hari ini.',
+    addSchedule:'Tambah Jadual',schedSaved:'Jadual berjaya disimpan.',
     monthNames:['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'],
     dayNames:['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'],
     dayNamesShort:['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'],
@@ -270,6 +271,7 @@ const T = {
     statusUpdated:'Status updated.',
     updateStatus:'Update Status',techNote:'Technician Note',
     noScheduleToday:'No schedule for today.',
+    addSchedule:'Add Schedule',schedSaved:'Schedule saved.',
     monthNames:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dayNames:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
     dayNamesShort:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
@@ -423,6 +425,7 @@ let notifCounter = 10;
 // ─── FEEDBACK & TESTIMONIALS DATA ─────────────────────────────────────────────
 let feedbacks = [];
 let feedbackCounter = 0;
+let workSchedule = [];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const t = k => (T[lang]?.[k] ?? T.bm[k] ?? k);
@@ -821,6 +824,7 @@ async function dbLoad() {
       console.log('[EMUG] feedback loaded:', feedbacks.length);
     }
   } catch(e) { console.error('[EMUG] dbLoad feedback exception:', e); }
+  await dbLoadWorkSchedule();
 }
 
 // ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
@@ -890,6 +894,41 @@ async function dbUpdateFeedback(fb) {
     const { error } = await db.from('feedback').update({ is_published: fb.published }).eq('id', fb.id);
     if(error) console.error('dbUpdateFeedback:', error.message);
   } catch(e) { console.error('dbUpdateFeedback:', e); }
+}
+
+async function dbLoadWorkSchedule() {
+  try {
+    const { data, error } = await db.from('work_schedule').select('*').order('date').order('time');
+    if(error) { console.error('dbLoadWorkSchedule:', error.message); return; }
+    if(data) workSchedule = data.map(r=>({
+      id:            r.id,
+      staffUsername: r.staff_username,
+      staffName:     r.staff_name,
+      date:          r.date,
+      time:          r.time,
+      location:      r.location,
+      description:   r.description,
+      status:        r.status || 'Menunggu',
+      createdAt:     r.created_at,
+    }));
+    console.log('[EMUG] work_schedule loaded:', workSchedule.length);
+  } catch(e) { console.error('dbLoadWorkSchedule:', e); }
+}
+
+async function dbInsertWorkSchedule(entry) {
+  try {
+    const { data, error } = await db.from('work_schedule').insert({
+      staff_username: entry.staffUsername,
+      staff_name:     entry.staffName,
+      date:           entry.date,
+      time:           entry.time,
+      location:       entry.location,
+      description:    entry.description,
+      status:         entry.status,
+    }).select().single();
+    if(error) { console.error('dbInsertWorkSchedule:', error.message); return null; }
+    return data ? { ...entry, id: data.id } : null;
+  } catch(e) { console.error('dbInsertWorkSchedule:', e); return null; }
 }
 
 // ─── COMPLAINT FORM (PUBLIC) ──────────────────────────────────────────────────
@@ -1224,6 +1263,11 @@ function myComplaints() {
   if(user.role==='admin') return complaints;
   if(user.role==='operator') return complaints.filter(c=>c.acceptedBy===user.username);
   return complaints.filter(c=>c.assignedTo===user.username);
+}
+function myWorkSchedule() {
+  if(!user) return [];
+  if(user.role==='admin') return workSchedule;
+  return workSchedule.filter(e=>e.staffUsername===user.username);
 }
 function availableJobs() {
   return complaints.filter(c=>!c.acceptedBy && c.status==='Menunggu');
@@ -1590,6 +1634,9 @@ function navDate(dir) {
 function goToday() { schedDate=new Date(); renderSchedule(); }
 
 function renderSchedule() {
+  const addBtn = el('sc-add-btn');
+  if(addBtn) addBtn.style.display = user?.role==='admin' ? '' : 'none';
+  if(addBtn) addBtn.textContent = `+ ${t('addSchedule')}`;
   if(schedView==='day') {
     const dn = T[lang].dayNames[schedDate.getDay()];
     const mn = T[lang].monthNames[schedDate.getMonth()];
@@ -1607,27 +1654,23 @@ function renderSchedContent() { schedView==='day'?renderDayView():renderWeekView
 
 function renderDayView() {
   const ds = schedDate.toISOString().slice(0,10);
-  const dayJobs = myComplaints().filter(c=>(c.schedDate||c.prefDate)===ds).sort((a,b)=>(a.prefTime||'').localeCompare(b.prefTime||''));
-  if(!dayJobs.length) {
+  const dayEntries = myWorkSchedule().filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  if(!dayEntries.length) {
     setHTML('sc-day-content',`<div class="empty-state"><div class="empty-state-icon">🗓️</div><p>${t('noScheduleToday')}</p></div>`);
     return;
   }
   setHTML('sc-day-content',`<div class="card"><div class="card-body">
-    ${dayJobs.map(c=>`
+    ${dayEntries.map(e=>`
     <div class="timeline-item">
-      <div class="tl-dot ${statusClass(c.status)}"></div>
-      <div class="tl-time">${(c.prefTime||'').slice(0,5)||'—'}</div>
+      <div class="tl-dot ${statusClass(e.status)}"></div>
+      <div class="tl-time">${(e.time||'').slice(0,5)||'—'}</div>
       <div class="tl-info" style="flex:1;">
-        <div class="tl-title">${c.name} <span style="font-size:.7rem;color:var(--gray-400);">${c.ref}</span></div>
-        <div class="tl-sub">🔧 ${c.problem}</div>
-        <div class="tl-sub">📍 ${c.address.split(',').slice(-3).join(',').trim()}</div>
-        ${c.adminNotes?`<div class="tl-sub">📝 ${c.adminNotes}</div>`:''}
-        ${c.assignedName?`<div class="tl-sub">👷 ${c.assignedName}</div>`:''}
+        <div class="tl-title">👷 ${e.staffName}</div>
+        <div class="tl-sub">🔧 ${e.description}</div>
+        <div class="tl-sub">📍 ${e.location}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-        ${statusBadge(c.status)}
-        <button class="btn btn-sm btn-primary" onclick="openStatusModal('${c.id}')">🔄</button>
-        ${user.role==='admin'?`<button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')">✏️</button>`:''}
+        ${statusBadge(e.status)}
       </div>
     </div>`).join('')}
   </div></div>`);
@@ -1641,17 +1684,55 @@ function renderWeekView() {
   for(let i=0;i<7;i++) {
     const d = new Date(start); d.setDate(d.getDate()+i);
     const ds = d.toISOString().slice(0,10);
-    const dj = myComplaints().filter(c=>(c.schedDate||c.prefDate)===ds);
+    const dj = myWorkSchedule().filter(e=>e.date===ds);
     const isTd = ds===todayS;
     html += `<div class="week-cell">
       <div class="week-cell-head${isTd?' today':''}">
         <div class="wc-num">${d.getDate()}</div>
         <div class="wc-day">${T[lang].dayNamesShort[d.getDay()]}</div>
       </div>
-      ${dj.map(c=>`<div class="week-job-dot ${statusClass(c.status)}" onclick="openStatusModal('${c.id}')" title="${c.name}: ${c.problem}">${c.name.split(' ')[0]}</div>`).join('')}
+      ${dj.map(e=>`<div class="week-job-dot ${statusClass(e.status)}" title="${e.staffName}: ${e.description}">${e.staffName.split(' ')[0]}</div>`).join('')}
     </div>`;
   }
   setHTML('sc-week-grid', html);
+}
+
+// ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────
+function openSchedAddModal() {
+  const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+  const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
+  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
+  el('sa-date').value = schedDate.toISOString().slice(0,10);
+  el('sa-time').value = '';
+  el('sa-location').value = '';
+  el('sa-desc').value = '';
+  setTxt('sa-title', `🗓️ ${t('addSchedule')}`);
+  setTxt('sa-cancel', t('cancel'));
+  openModal('modal-sched-add');
+}
+
+async function saveSchedEntry() {
+  const staffSel = el('sa-staff');
+  const staffUsername = staffSel.value;
+  const staffName = staffSel.options[staffSel.selectedIndex]?.dataset.name || '';
+  const date        = el('sa-date').value;
+  const time        = el('sa-time').value;
+  const location    = el('sa-location').value.trim();
+  const description = el('sa-desc').value.trim();
+  if(!staffUsername||!date||!time||!location||!description) {
+    toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error');
+    return;
+  }
+  const entry = { staffUsername, staffName, date, time, location, description, status:'Menunggu' };
+  const saved = await dbInsertWorkSchedule(entry);
+  if(saved) {
+    workSchedule.push(saved);
+    closeModal('modal-sched-add');
+    toast(t('schedSaved'), 'success');
+    renderSchedule();
+  } else {
+    toast(lang==='bm'?'Gagal menyimpan jadual.':'Failed to save schedule.', 'error');
+  }
 }
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
