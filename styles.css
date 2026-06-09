@@ -1,4 +1,5 @@
 /* ===== EMUG SYSTEM — styles.css ===== */
+/* EMUG v2.1 dark sidebar */
 :root {
   --navy:        #1a237e;
   --navy-dark:   #0d1257;
@@ -2165,3 +2166,23 @@ tbody tr:hover { background:var(--gray-50); }
   padding: 2px 0;
 }
 .bk-summary-row strong { color: var(--navy); }
+
+/* ===== SIDEBAR DARK OVERRIDE (highest specificity) ===== */
+nav#sidebar,
+nav.sidebar,
+#sidebar {
+  background-color: #0a1f44 !important;
+  background: #0a1f44 !important;
+}
+
+nav#sidebar .nav-item,
+nav.sidebar .nav-item {
+  color: rgba(255,255,255,0.6) !important;
+}
+
+nav#sidebar .nav-item.active,
+nav.sidebar .nav-item.active {
+  background: rgba(168,212,74,0.12) !important;
+  color: #a8d44a !important;
+  border-left: 2px solid #a8d44a !important;
+}
