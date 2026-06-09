@@ -1295,9 +1295,40 @@ textarea.form-control { resize:vertical; min-height:90px; }
 .sidebar-overlay.open { display:block; }
 
 .sidebar {
-  width:220px; background:#0a1f44; border-right:none;
-  overflow-y:auto; flex-shrink:0; display:flex; flex-direction:column;
-  height:calc(100vh - 48px); position:sticky; top:48px; transition:transform .3s ease;
+  width: 220px;
+  background: #0a1f44 !important;
+  color: white;
+  position: sticky;
+  top: 60px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar .nav-item {
+  color: rgba(255,255,255,0.6) !important;
+  border-left: 2px solid transparent;
+}
+.sidebar .nav-item:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: white !important;
+}
+.sidebar .nav-item.active {
+  background: rgba(168,212,74,0.12) !important;
+  color: #a8d44a !important;
+  border-left: 2px solid #a8d44a !important;
+}
+.sidebar .sidebar-user {
+  background: rgba(0,0,0,0.2) !important;
+}
+.sidebar .sidebar-user * {
+  color: white !important;
+}
+#btn-logout {
+  color: rgba(255,255,255,0.45) !important;
+}
+#btn-logout:hover {
+  color: #f07070 !important;
 }
 .sb-brand {
   display:flex; align-items:center; gap:8px;
