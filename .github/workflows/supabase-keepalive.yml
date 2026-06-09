@@ -1,0 +1,53 @@
+name: Supabase Keep-Alive
+
+# Supabase free tier pauses projects after 7 days of inactivity.
+# This workflow pings the REST API every 3 days to prevent that.
+# It uses the public anon key (already in app.js — not a secret).
+
+on:
+  schedule:
+    # Every 3 days at 08:00 UTC (4:00 PM MYT) — well within the 7-day window
+    - cron: '0 8 */3 * *'
+  workflow_dispatch:        # allow manual trigger from GitHub Actions tab
+
+jobs:
+  ping:
+    name: Ping Supabase REST API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      SUPABASE_URL: https://mrurkcrgncpqmhrszapi.supabase.co
+      # anon key — read-only, safe to store here (it's already public in app.js)
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ydXJrY3JnbmNwcW1ocnN6YXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTM5MDYsImV4cCI6MjA5NDM2OTkwNn0.K2Ltr05cyAcZleBufxreICNPwtQXzryTRscYZsnTE6w
+
+    steps:
+      - name: Ping complaints table (HEAD request)
+        id: ping
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 15 \
+            -X HEAD \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/complaints?select=id&limit=1")
+
+          echo "HTTP status: $HTTP_STATUS"
+          echo "http_status=$HTTP_STATUS" >> $GITHUB_OUTPUT
+
+          if [[ "$HTTP_STATUS" == "200" || "$HTTP_STATUS" == "206" ]]; then
+            echo "✅ Supabase is alive (HTTP $HTTP_STATUS)"
+          elif [[ "$HTTP_STATUS" == "000" ]]; then
+            echo "❌ Connection failed — Supabase may be unreachable or paused"
+            exit 1
+          else
+            echo "⚠️  Unexpected status $HTTP_STATUS — project may need attention"
+            exit 1
+          fi
+
+      - name: Report result
+        if: always()
+        run: |
+          echo "Ping completed at $(date -u '+%Y-%m-%d %H:%M UTC')"
+          echo "Project: mrurkcrgncpqmhrszapi.supabase.co"
+          echo "Status:  ${{ steps.ping.outputs.http_status }}"
