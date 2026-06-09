@@ -898,16 +898,16 @@ async function dbUpdateFeedback(fb) {
 
 async function dbLoadWorkSchedule() {
   try {
-    const { data, error } = await db.from('work_schedule').select('*').order('date').order('time');
+    const { data, error } = await db.from('work_schedule').select('*').order('job_date').order('job_time');
     if(error) { console.error('dbLoadWorkSchedule:', error.message); return; }
     if(data) workSchedule = data.map(r=>({
       id:            r.id,
       staffUsername: r.staff_username,
       staffName:     r.staff_name,
-      date:          r.date,
-      time:          r.time,
+      date:          r.job_date,
+      time:          r.job_time,
       location:      r.location,
-      description:   r.description,
+      description:   r.job_description,
       status:        r.status || 'Menunggu',
       createdAt:     r.created_at,
     }));
@@ -920,13 +920,13 @@ async function dbInsertWorkSchedule(entry) {
     const { data, error } = await db.from('work_schedule').insert({
       staff_username: entry.staffUsername,
       staff_name:     entry.staffName,
-      date:           entry.date,
-      time:           entry.time,
-      location:       entry.location,
-      description:    entry.description,
+      job_date:        entry.date,
+      job_time:        entry.time,
+      location:        entry.location,
+      job_description: entry.description,
       status:         entry.status,
     }).select().single();
-    if(error) { console.error('dbInsertWorkSchedule:', error.message); return null; }
+    if(error) { console.error('dbInsertWorkSchedule error:', JSON.stringify(error, null, 2)); return null; }
     return data ? { ...entry, id: data.id } : null;
   } catch(e) { console.error('dbInsertWorkSchedule:', e); return null; }
 }
@@ -1724,6 +1724,7 @@ async function saveSchedEntry() {
     return;
   }
   const entry = { staffUsername, staffName, date, time, location, description, status:'Menunggu' };
+  console.log('[saveSchedEntry] payload:', JSON.stringify(entry, null, 2));
   const saved = await dbInsertWorkSchedule(entry);
   if(saved) {
     workSchedule.push(saved);
