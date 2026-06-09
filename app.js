@@ -1744,18 +1744,19 @@ async function saveSchedEntry() {
   const staffSel = el('sa-staff');
   const staffUsername = staffSel.value;
   const staffName = staffSel.options[staffSel.selectedIndex]?.dataset.name || '';
-  const date        = el('sa-date').value;
+  // Read date as plain YYYY-MM-DD string — never pass through new Date() to avoid UTC shift
+  const dateVal     = el('sa-date').value.slice(0,10);
   const time        = el('sa-time').value;
   const location    = el('sa-location').value.trim();
   const description = el('sa-desc').value.trim();
-  if(!staffUsername||!date||!time||!location||!description) {
+  if(!staffUsername||!dateVal||!time||!location||!description) {
     toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error');
     return;
   }
   if(schedEditId) {
     const existing = workSchedule.find(x=>x.id===schedEditId);
     if(!existing) return;
-    const updated = { ...existing, staffUsername, staffName, date, time, location, description };
+    const updated = { ...existing, staffUsername, staffName, date: dateVal, time, location, description };
     const ok = await dbUpdateWorkSchedule(updated);
     if(ok) {
       Object.assign(existing, updated);
@@ -1767,7 +1768,7 @@ async function saveSchedEntry() {
       toast(lang==='bm'?'Gagal mengemaskini jadual.':'Failed to update schedule.', 'error');
     }
   } else {
-    const entry = { staffUsername, staffName, date, time, location, description, status:'Menunggu' };
+    const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
     const saved = await dbInsertWorkSchedule(entry);
     if(saved) {
       workSchedule.push(saved);
