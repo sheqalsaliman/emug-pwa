@@ -1118,6 +1118,27 @@
 </div>
 
 <!-- ======================================================
+     SCHEDULE DETAIL MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-sched-detail">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title">🗓️ <span id="sd-title">Butiran Jadual</span></div>
+        <button class="modal-close" onclick="closeModal('modal-sched-detail')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body" id="sd-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-sched-detail')" id="sd-close">Tutup</button>
+      <button class="btn btn-outline" id="sd-edit" onclick="editSchedEntry()" style="display:none;">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" id="sd-delete" onclick="deleteSchedEntry()" style="display:none;">🗑️ Padam</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      SCHEDULE ADD MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-sched-add">

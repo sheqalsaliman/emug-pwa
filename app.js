@@ -382,6 +382,8 @@ let user   = null;           // logged-in staff/admin user
 let page   = 'dashboard';    // current dashboard page
 let schedView = 'day';
 let schedDate = new Date();
+let schedEditId   = null;
+let schedDetailId = null;
 let editJobId   = null;
 let statusJobId = null;
 let cpFilter    = 'all';
@@ -929,6 +931,30 @@ async function dbInsertWorkSchedule(entry) {
     if(error) { console.error('dbInsertWorkSchedule error:', JSON.stringify(error, null, 2)); return null; }
     return data ? { ...entry, id: data.id } : null;
   } catch(e) { console.error('dbInsertWorkSchedule:', e); return null; }
+}
+
+async function dbUpdateWorkSchedule(entry) {
+  try {
+    const { error } = await db.from('work_schedule').update({
+      staff_username:  entry.staffUsername,
+      staff_name:      entry.staffName,
+      job_date:        entry.date,
+      job_time:        entry.time,
+      location:        entry.location,
+      job_description: entry.description,
+      status:          entry.status,
+    }).eq('id', entry.id);
+    if(error) { console.error('dbUpdateWorkSchedule:', error.message); return false; }
+    return true;
+  } catch(e) { console.error('dbUpdateWorkSchedule:', e); return false; }
+}
+
+async function dbDeleteWorkSchedule(id) {
+  try {
+    const { error } = await db.from('work_schedule').delete().eq('id', id);
+    if(error) { console.error('dbDeleteWorkSchedule:', error.message); return false; }
+    return true;
+  } catch(e) { console.error('dbDeleteWorkSchedule:', e); return false; }
 }
 
 // ─── COMPLAINT FORM (PUBLIC) ──────────────────────────────────────────────────
@@ -1653,14 +1679,14 @@ function renderSchedule() {
 function renderSchedContent() { schedView==='day'?renderDayView():renderWeekView(); }
 
 function renderDayView() {
-  const ds = schedDate.toISOString().slice(0,10);
+  const ds = schedDate.toLocaleDateString('en-CA');
   const dayEntries = myWorkSchedule().filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(!dayEntries.length) {
     setHTML('sc-day-content',`<div class="empty-state"><div class="empty-state-icon">🗓️</div><p>${t('noScheduleToday')}</p></div>`);
     return;
   }
   setHTML('sc-day-content', dayEntries.map(e=>`
-    <div style="border-left:4px solid var(--navy);background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+    <div style="border-left:4px solid var(--navy);background:var(--white);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;" onclick="openSchedDetail('${e.id}')">
       <div style="flex:1;min-width:0;">
         <div style="margin-bottom:8px;">
           <span style="background:var(--navy);color:var(--white);font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:10px;">${(e.time||'').slice(0,5)||'—'}</span>
@@ -1676,11 +1702,11 @@ function renderDayView() {
 function renderWeekView() {
   const start = new Date(schedDate);
   start.setDate(start.getDate()-((start.getDay()+6)%7));
-  const todayS = now();
+  const todayS = new Date().toLocaleDateString('en-CA');
   let html = '';
   for(let i=0;i<7;i++) {
     const d = new Date(start); d.setDate(d.getDate()+i);
-    const ds = d.toISOString().slice(0,10);
+    const ds = d.toLocaleDateString('en-CA');
     const dj = myWorkSchedule().filter(e=>e.date===ds);
     const isTd = ds===todayS;
     html += `<div class="week-cell"${isTd?' style="background:var(--lime-pale);"':''}>
@@ -1689,7 +1715,7 @@ function renderWeekView() {
         <div class="wc-day">${T[lang].dayNamesShort[d.getDay()]}</div>
       </div>
       ${dj.map(e=>`
-        <div style="border-left:3px solid var(--navy);background:var(--white);border-radius:3px;padding:5px 7px;margin:4px;font-size:.7rem;box-shadow:0 1px 2px rgba(0,0,0,.06);">
+        <div style="border-left:3px solid var(--navy);background:var(--white);border-radius:3px;padding:5px 7px;margin:4px;font-size:.7rem;box-shadow:0 1px 2px rgba(0,0,0,.06);cursor:pointer;" onclick="openSchedDetail('${e.id}')">
           <div style="font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.staffName}</div>
           <div style="color:var(--navy);font-weight:600;">${(e.time||'').slice(0,5)}</div>
           <div style="color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${e.location}</div>
@@ -1701,10 +1727,11 @@ function renderWeekView() {
 
 // ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────
 function openSchedAddModal() {
+  schedEditId = null;
   const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
   const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
   el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
-  el('sa-date').value = schedDate.toISOString().slice(0,10);
+  el('sa-date').value = schedDate.toLocaleDateString('en-CA');
   el('sa-time').value = '';
   el('sa-location').value = '';
   el('sa-desc').value = '';
@@ -1725,16 +1752,91 @@ async function saveSchedEntry() {
     toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error');
     return;
   }
-  const entry = { staffUsername, staffName, date, time, location, description, status:'Menunggu' };
-  console.log('[saveSchedEntry] payload:', JSON.stringify(entry, null, 2));
-  const saved = await dbInsertWorkSchedule(entry);
-  if(saved) {
-    workSchedule.push(saved);
-    closeModal('modal-sched-add');
-    toast(t('schedSaved'), 'success');
+  if(schedEditId) {
+    const existing = workSchedule.find(x=>x.id===schedEditId);
+    if(!existing) return;
+    const updated = { ...existing, staffUsername, staffName, date, time, location, description };
+    const ok = await dbUpdateWorkSchedule(updated);
+    if(ok) {
+      Object.assign(existing, updated);
+      schedEditId = null;
+      closeModal('modal-sched-add');
+      toast(t('schedSaved'), 'success');
+      renderSchedule();
+    } else {
+      toast(lang==='bm'?'Gagal mengemaskini jadual.':'Failed to update schedule.', 'error');
+    }
+  } else {
+    const entry = { staffUsername, staffName, date, time, location, description, status:'Menunggu' };
+    const saved = await dbInsertWorkSchedule(entry);
+    if(saved) {
+      workSchedule.push(saved);
+      closeModal('modal-sched-add');
+      toast(t('schedSaved'), 'success');
+      renderSchedule();
+    } else {
+      toast(lang==='bm'?'Gagal menyimpan jadual.':'Failed to save schedule.', 'error');
+    }
+  }
+}
+
+// ─── SCHEDULE DETAIL / EDIT / DELETE ─────────────────────────────────────────
+function openSchedDetail(id) {
+  const e = workSchedule.find(x=>x.id===id);
+  if(!e) return;
+  schedDetailId = id;
+  setHTML('sd-body', `
+    <div style="display:grid;gap:12px;padding:4px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="background:var(--navy);color:var(--white);font-size:.78rem;font-weight:700;padding:3px 12px;border-radius:10px;">${(e.time||'').slice(0,5)||'—'}</span>
+        ${statusBadge(e.status)}
+      </div>
+      <div style="background:var(--gray-50);border-radius:var(--r);padding:14px;display:grid;gap:10px;font-size:.88rem;">
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">👷 ${lang==='bm'?'Kakitangan':'Staff'}</div><strong>${e.staffName}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📅 ${lang==='bm'?'Tarikh':'Date'}</div><strong>${fmtDate(e.date)}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📍 ${lang==='bm'?'Lokasi':'Location'}</div><strong>${e.location}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">🔧 ${lang==='bm'?'Penerangan':'Description'}</div><span>${e.description}</span></div>
+      </div>
+    </div>`);
+  const isAdmin = user?.role==='admin';
+  el('sd-edit').style.display   = isAdmin ? '' : 'none';
+  el('sd-delete').style.display = isAdmin ? '' : 'none';
+  openModal('modal-sched-detail');
+}
+
+function editSchedEntry() {
+  const e = workSchedule.find(x=>x.id===schedDetailId);
+  if(!e) return;
+  closeModal('modal-sched-detail');
+  schedEditId = schedDetailId;
+  const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+  const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
+  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
+  el('sa-staff').value   = e.staffUsername;
+  el('sa-date').value    = e.date;
+  el('sa-time').value    = e.time;
+  el('sa-location').value = e.location;
+  el('sa-desc').value    = e.description;
+  setTxt('sa-title', `✏️ ${lang==='bm'?'Edit Jadual':'Edit Schedule'}`);
+  setTxt('sa-cancel', t('cancel'));
+  openModal('modal-sched-add');
+}
+
+async function deleteSchedEntry() {
+  const e = workSchedule.find(x=>x.id===schedDetailId);
+  if(!e) return;
+  const msg = lang==='bm'
+    ? `Padam jadual untuk ${e.staffName} pada ${fmtDateShort(e.date)}?`
+    : `Delete schedule for ${e.staffName} on ${fmtDateShort(e.date)}?`;
+  if(!confirm(msg)) return;
+  const ok = await dbDeleteWorkSchedule(schedDetailId);
+  if(ok) {
+    workSchedule = workSchedule.filter(x=>x.id!==schedDetailId);
+    closeModal('modal-sched-detail');
+    toast(lang==='bm'?'Jadual dipadam.':'Schedule deleted.', 'success');
     renderSchedule();
   } else {
-    toast(lang==='bm'?'Gagal menyimpan jadual.':'Failed to save schedule.', 'error');
+    toast(lang==='bm'?'Gagal memadam jadual.':'Failed to delete schedule.', 'error');
   }
 }
 
