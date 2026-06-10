@@ -2156,6 +2156,13 @@ async function deleteSchedEntry() {
 }
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
+function getHiddenStaff() {
+  try { return JSON.parse(localStorage.getItem('emug_hidden_staff')||'[]'); } catch{ return []; }
+}
+function saveHiddenStaff(arr) {
+  localStorage.setItem('emug_hidden_staff', JSON.stringify(arr));
+}
+
 function toggleStaffDeleteMode() {
   staffDeleteMode = !staffDeleteMode;
   renderStaff();
@@ -2209,15 +2216,14 @@ async function saveNewStaff() {
 }
 
 function confirmDeleteStaff(username, isDynamic) {
-  // Find from the right source
   const su = isDynamic
     ? dynamicStaff.find(u=>u.username===username)
     : USERS.find(u=>u.username===username);
   if(!su) return;
+  const name = su.name;
+  const sid  = su.staff_id || su.staffId || '';
   const msgEl = el('sfdel-msg');
   const btnEl = el('sfdel-confirm');
-  const name  = su.name;
-  const sid   = su.staff_id || su.staffId || '';
   if(msgEl) msgEl.textContent = lang==='bm'
     ? `Padam kakitangan ini? Tindakan ini tidak boleh dibuat alik.\n\n${name}${sid?' ('+sid+')':''}`
     : `Remove this staff member? This action cannot be undone.\n\n${name}${sid?' ('+sid+')':''}`;
@@ -2230,18 +2236,21 @@ function confirmDeleteStaff(username, isDynamic) {
 }
 
 async function deleteStaff(username, isDynamic, dbId) {
+  const confirmBtn = el('sfdel-confirm');
   if(isDynamic) {
-    const newBtn = el('sfdel-confirm');
-    if(newBtn) { newBtn.disabled=true; newBtn.textContent='⏳ Memadam...'; }
+    // Dynamic staff → delete from Supabase staff table
+    if(confirmBtn) { confirmBtn.disabled=true; confirmBtn.textContent='⏳ Memadam...'; }
     const ok = await dbDeleteDynamicStaff(dbId);
+    if(confirmBtn) { confirmBtn.disabled=false; confirmBtn.innerHTML='✓ Padam'; }
     if(!ok) {
-      if(newBtn) { newBtn.disabled=false; newBtn.textContent='✓ Padam'; }
       toast(lang==='bm'?'Gagal memadam. Cuba lagi.':'Delete failed. Try again.','error'); return;
     }
     dynamicStaff = dynamicStaff.filter(u=>u.id!==dbId);
+  } else {
+    // Hardcoded USERS → hide via localStorage (cannot delete from source code at runtime)
+    const hidden = getHiddenStaff();
+    if(!hidden.includes(username)) { hidden.push(username); saveHiddenStaff(hidden); }
   }
-  // For hardcoded USERS, no DB action needed — just re-render without them
-  // (we simply remove from dynamicStaff above; USERS can't be deleted but can be hidden if needed)
   closeModal('modal-staff-del');
   staffDeleteMode = false;
   toast(lang==='bm'?'Kakitangan berjaya dipadam.':'Staff member removed successfully.','success');
@@ -2249,8 +2258,10 @@ async function deleteStaff(username, isDynamic, dbId) {
 }
 
 function renderStaff() {
-  // Combine hardcoded USERS + Supabase dynamicStaff (no hidden-staff filtering needed now)
-  const hardcoded = USERS.map(u=>({ ...u, _source:'hardcoded', staffId: u.staffId, staff_id: u.staffId }));
+  // Combine hardcoded USERS (minus any hidden) + Supabase dynamicStaff
+  const hidden    = getHiddenStaff();
+  const hardcoded = USERS.filter(u=>!hidden.includes(u.username))
+                         .map(u=>({ ...u, _source:'hardcoded', staffId: u.staffId, staff_id: u.staffId }));
   const dynamic   = dynamicStaff.map(u=>({ ...u, _source:'dynamic', staffId: u.staff_id||'', username: u.username, name: u.name, role: u.role, email: u.email, phone: u.phone }));
   const slist     = [...hardcoded, ...dynamic];
   const isAdmin   = user.role==='admin';
@@ -2288,15 +2299,16 @@ function renderStaff() {
     const recentJobs = allJobs.slice(-3).reverse();
     const isDynamic = su._source === 'dynamic';
 
-    // Only dynamic staff can have trash icon (hardcoded accounts are system accounts)
-    const trashOverlay = (isAdmin && staffDeleteMode && isDynamic) ? `
-      <button class="sf-trash-btn" onclick="confirmDeleteStaff('${su.username}',true)" title="${lang==='bm'?'Padam kakitangan ini':'Remove this staff member'}">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    // All cards show trash in delete mode; isDynamic controls whether we hit Supabase or localStorage
+    const trashOverlay = (isAdmin && staffDeleteMode) ? `
+      <button class="sf-trash-btn" onclick="event.stopPropagation();confirmDeleteStaff('${su.username}',${isDynamic})" title="${lang==='bm'?'Padam kakitangan ini':'Remove this staff member'}"
+        style="position:absolute;top:10px;right:10px;z-index:20;width:34px;height:34px;border-radius:8px;background:#e24b4a;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(226,75,74,.5);pointer-events:all;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
       </button>` : '';
 
     const systemBadge = !isDynamic ? `<span style="font-size:.6rem;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:1px 6px;margin-left:4px;font-weight:600;">SISTEM</span>` : '';
 
-    return `<div class="card sf-card${staffDeleteMode&&isDynamic?' sf-delmode':''}" style="margin:0;position:relative;">
+    return `<div class="card sf-card${staffDeleteMode?' sf-delmode':''}" style="margin:0;position:relative;overflow:visible;">
       ${trashOverlay}
       <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:18px 20px;color:white;display:flex;align-items:center;gap:14px;">
         <div style="width:52px;height:52px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
