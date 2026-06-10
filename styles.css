@@ -2188,90 +2188,127 @@ nav.sidebar .nav-item.active {
 }
 
 /* ==========================================================================
-   DASHBOARD DARK THEME — scoped to #dp-dashboard only
+   DASHBOARD DARK THEME — true black, scoped to all dash pages except profile
+   Palette: page #0d0d0d · card #161616 · elevated #1a1a1a · border #2a2a2a
+            text #ffffff · secondary #9bb0cc · muted #6b8bb0 · link #5aa9ff
    ========================================================================== */
-/* Page background */
-.main-content:has(> #dp-dashboard.active) { background:#0a1626; }
-#dp-dashboard { background:#0a1626; }
+/* ---- Page background ---- */
+.main-content:has(.dash-page:not(#dp-profile).active) { background:#0d0d0d; }
+.dash-page:not(#dp-profile) { background:#0d0d0d; }
 
-/* Page header text */
-#dp-dashboard .page-title { color:#ffffff; }
+/* ---- Page header text ---- */
+.dash-page:not(#dp-profile) .page-title { color:#ffffff; }
+.dash-page:not(#dp-profile) .page-sub   { color:#9bb0cc; }
 #dp-dashboard .page-sub {
   color:#6b8bb0; text-transform:uppercase; letter-spacing:1px;
   font-size:.72rem; font-weight:600;
 }
-#dp-dashboard #dp-d-date { color:#6b8bb0 !important; }
+.dash-page:not(#dp-profile) #dp-d-date { color:#6b8bb0 !important; }
+.dash-page:not(#dp-profile) label,
+.dash-page:not(#dp-profile) .form-label { color:#9bb0cc; }
 
-/* ---- STAT CARDS ---- */
-#dp-dashboard .stat-card {
-  background:#11233c; border:1px solid #1f3450; border-radius:12px;
+/* ---- STAT CARDS (elevated) ---- */
+.dash-page:not(#dp-profile) .stat-card {
+  background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px;
 }
 #dp-dashboard .stat-card::before { display:none; }
 #dp-dashboard .stat-card.c-danger { border-left:3px solid #e24b4a; }
-#dp-dashboard .stat-value  { color:#ffffff; }
+.dash-page:not(#dp-profile) .stat-value  { color:#ffffff; }
 #dp-dashboard .stat-card.c-danger .stat-value { color:#ff7a7a; }
-#dp-dashboard .stat-label  { color:#9bb0cc; }
-#dp-dashboard .stat-action { color:#6b8bb0; }
-#dp-dashboard .stat-action::after { color:#8fc63d; }
+.dash-page:not(#dp-profile) .stat-label  { color:#9bb0cc; }
+.dash-page:not(#dp-profile) .stat-action { color:#6b8bb0; }
 
-/* Icon boxes */
-#dp-dashboard .si-red   { background:#3a1f24; color:#ff7a7a; }
-#dp-dashboard .si-warn  { background:#3a2e1a; color:#f5b54a; }
-#dp-dashboard .si-blue  { background:#16304d; color:#5aa9ff; }
-#dp-dashboard .si-green { background:#1e3320; color:#8fd06a; }
-#dp-dashboard .si-navy  { background:#16304d; color:#5aa9ff; }
-#dp-dashboard .si-lime  { background:#1e3320; color:#8fd06a; }
+/* Icon boxes — keep colored backgrounds */
+.dash-page:not(#dp-profile) .si-red   { background:#3a1f24; color:#ff7a7a; }
+.dash-page:not(#dp-profile) .si-warn  { background:#3a2e1a; color:#f5b54a; }
+.dash-page:not(#dp-profile) .si-blue  { background:#16304d; color:#5aa9ff; }
+.dash-page:not(#dp-profile) .si-green { background:#1e3320; color:#8fd06a; }
+.dash-page:not(#dp-profile) .si-navy  { background:#16304d; color:#5aa9ff; }
+.dash-page:not(#dp-profile) .si-lime  { background:#1e3320; color:#8fd06a; }
 
-/* ---- CARDS (recent / jadual / notifikasi) ---- */
-#dp-dashboard .card {
-  background:#0e2038; border:1px solid #1c2d44; border-radius:12px;
+/* ---- CARDS / PANELS ---- */
+.dash-page:not(#dp-profile) .card {
+  background:#161616; border:1px solid #2a2a2a; border-radius:12px;
 }
-#dp-dashboard .card-header { border-bottom-color:#1c2d44; }
-#dp-dashboard .card-title { color:#ffffff; }
+.dash-page:not(#dp-profile) .card-header { border-bottom-color:#2a2a2a; }
+.dash-page:not(#dp-profile) .card-title  { color:#ffffff; }
+.dash-page:not(#dp-profile) .card-body   { color:#9bb0cc; }
 
-/* Recent complaints table (JS inline styles need !important) */
-#dp-dashboard #d-recent-list table thead tr { background:#0a1a2e !important; }
+/* ---- TABLES (generic across pages) ---- */
+.dash-page:not(#dp-profile) thead th {
+  background:#161616 !important; color:#6b8bb0 !important;
+  border-bottom-color:#2a2a2a !important;
+}
+.dash-page:not(#dp-profile) tbody td        { border-bottom-color:#2a2a2a !important; color:#9bb0cc; }
+.dash-page:not(#dp-profile) tbody td strong { color:#ffffff; }
+.dash-page:not(#dp-profile) tbody tr:hover  { background:#1a1a1a !important; }
+
+/* ---- Recent complaints table (JS inline styles → !important) ---- */
+#dp-dashboard #d-recent-list table thead tr { background:#161616 !important; }
 #dp-dashboard #d-recent-list th { color:#6b8bb0 !important; }
-#dp-dashboard #d-recent-list td { border-color:#1c2d44 !important; }
-#dp-dashboard #d-recent-list tbody tr { border-bottom:1px solid #1c2d44; }
-#dp-dashboard #d-recent-list tbody tr:hover { background:#11233c !important; }
+#dp-dashboard #d-recent-list td { border-color:#2a2a2a !important; }
+#dp-dashboard #d-recent-list tbody tr { border-bottom:1px solid #2a2a2a; }
+#dp-dashboard #d-recent-list tbody tr:hover { background:#1a1a1a !important; }
 #dp-dashboard #d-recent-list td > div:first-child { color:#ffffff !important; }
 #dp-dashboard #d-recent-list td > div:last-child { color:#6b8bb0 !important; }
 #dp-dashboard #d-recent-list td[style*="max-width:180px"] { color:#9bb0cc !important; }
 #dp-dashboard #d-recent-list td[style*="max-width:130px"] { color:#9bb0cc !important; }
 
-/* Links / action buttons */
-#dp-dashboard #d-view-all,
-#dp-dashboard #d-recent-list .btn-outline,
-#dp-dashboard .card .btn-outline {
-  color:#5aa9ff !important; border-color:#2a557f !important; background:transparent !important;
+/* ---- Links / outline buttons ---- */
+.dash-page:not(#dp-profile) #d-view-all,
+.dash-page:not(#dp-profile) .btn-outline {
+  color:#5aa9ff !important; border-color:#2a2a2a !important; background:transparent !important;
 }
-#dp-dashboard #d-view-all:hover,
-#dp-dashboard #d-recent-list .btn-outline:hover,
-#dp-dashboard .card .btn-outline:hover { background:#16304d !important; }
+.dash-page:not(#dp-profile) #d-view-all:hover,
+.dash-page:not(#dp-profile) .btn-outline:hover { background:#1a1a1a !important; }
 
-/* ---- STATUS PILLS ---- */
-#dp-dashboard .badge-menunggu { background:#3a2e1a !important; color:#f5b54a !important; }
-#dp-dashboard .badge-berjalan { background:#16304d !important; color:#5aa9ff !important; border:1px solid #2a557f; }
-#dp-dashboard .badge-selesai  { background:#1e3320 !important; color:#8fd06a !important; border:1px solid #356b3a; }
+/* ---- SEARCH BAR ---- */
+.dash-page:not(#dp-profile) .search-bar { background:#1a1a1a; border-color:#2a2a2a; }
+.dash-page:not(#dp-profile) .search-bar input { color:#ffffff; }
+.dash-page:not(#dp-profile) .search-bar input::placeholder { color:#6b8bb0; }
+.dash-page:not(#dp-profile) .search-icon { color:#6b8bb0; }
 
-/* ---- PRIORITY DOTS ---- */
-#dp-dashboard .priority-high { background:#e24b4a !important; }
-#dp-dashboard .priority-med  { background:#f5b54a !important; }
-#dp-dashboard .priority-low  { background:#8fd06a !important; }
+/* ---- FILTER CHIPS ---- */
+.dash-page:not(#dp-profile) .chip { background:#1a1a1a; border-color:#2a2a2a; color:#9bb0cc; }
+.dash-page:not(#dp-profile) .chip.active,
+.dash-page:not(#dp-profile) .chip:hover { background:#16304d; border-color:#2a557f; color:#5aa9ff; }
+
+/* ---- FORM INPUTS / SELECTS / DATE PICKERS / TEXTAREAS ---- */
+.dash-page:not(#dp-profile) .form-control {
+  background:#1a1a1a; border-color:#2a2a2a; color:#ffffff;
+}
+.dash-page:not(#dp-profile) .form-control:focus {
+  background:#1a1a1a; border-color:#5aa9ff; box-shadow:0 0 0 3px rgba(90,169,255,.15);
+}
+.dash-page:not(#dp-profile) .form-control::placeholder { color:#6b8bb0; }
+.dash-page:not(#dp-profile) select.form-control {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%236b8bb0'/%3E%3C/svg%3E");
+}
+.dash-page:not(#dp-profile) input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.6); }
+.dash-page:not(#dp-profile) .input-icon-wrap .i-icon { color:#6b8bb0; }
+
+/* ---- STATUS PILLS (accent — unchanged) ---- */
+.dash-page:not(#dp-profile) .badge-menunggu { background:#3a2e1a !important; color:#f5b54a !important; }
+.dash-page:not(#dp-profile) .badge-berjalan { background:#16304d !important; color:#5aa9ff !important; border:1px solid #2a557f; }
+.dash-page:not(#dp-profile) .badge-selesai  { background:#1e3320 !important; color:#8fd06a !important; border:1px solid #356b3a; }
+
+/* ---- PRIORITY DOTS (accent — unchanged) ---- */
+.dash-page:not(#dp-profile) .priority-high { background:#e24b4a !important; }
+.dash-page:not(#dp-profile) .priority-med  { background:#f5b54a !important; }
+.dash-page:not(#dp-profile) .priority-low  { background:#8fd06a !important; }
 
 /* ---- TODAY'S SCHEDULE (JS inline styles) ---- */
-#dp-dashboard #d-today-sched > div { border-bottom-color:#1c2d44 !important; }
-#dp-dashboard #d-today-sched > div > div > div:first-child { color:#e0e8f2 !important; }
+#dp-dashboard #d-today-sched > div { border-bottom-color:#2a2a2a !important; }
+#dp-dashboard #d-today-sched > div > div > div:first-child { color:#ffffff !important; }
 #dp-dashboard #d-today-sched > div > div > div:last-child  { color:#6b8bb0 !important; }
 #dp-dashboard #d-today-sched span[style*="background"] { background:#16304d !important; color:#5aa9ff !important; }
 
 /* ---- NOTIFICATIONS (JS inline styles) ---- */
-#dp-dashboard #d-notif-preview > div { border-bottom-color:#1c2d44 !important; }
+#dp-dashboard #d-notif-preview > div { border-bottom-color:#2a2a2a !important; }
 #dp-dashboard #d-notif-preview > div > div > div:first-child { color:#e0e8f2 !important; }
 #dp-dashboard #d-notif-preview > div > div > div:last-child  { color:#6b8bb0 !important; }
 #dp-dashboard #d-notif-preview > div > span:first-child { background:#5aa9ff !important; }
 
-/* Empty states */
-#dp-dashboard .empty-state { color:#6b8bb0; }
-#dp-dashboard .empty-state p { color:#6b8bb0; }
+/* ---- Empty states ---- */
+.dash-page:not(#dp-profile) .empty-state,
+.dash-page:not(#dp-profile) .empty-state p { color:#6b8bb0; }
