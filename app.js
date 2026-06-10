@@ -1430,6 +1430,8 @@ function myNotifs() {
 function renderDashboard() {
   if(user.role==='operator') { renderOperatorDashboard(); return; }
   // Restore 2-col layout for admin/staff (operator may have collapsed it)
+  var opCalWrapReset = el('op-cal-wrap');
+  if(opCalWrapReset) { opCalWrapReset.style.display = 'none'; opCalWrapReset.innerHTML = ''; }
   var dashCols = document.querySelector('.dash-cols');
   if(dashCols) {
     dashCols.style.gridTemplateColumns = '';
@@ -3253,15 +3255,19 @@ function renderOperatorDashboard() {
     }).join('') : '')
     +'</div>';
 
-  // ── Operator Team Schedule Calendar ─────────────────────────────────────
+  setHTML('d-recent-list', newJobsHTML + myJobsHTML);
+
+  // ── Operator Team Schedule Calendar (separate section below the card) ────
   const todayD = now();
   if(opCalYear === undefined || opCalMonth === undefined) {
     opCalYear  = todayD.getFullYear();
     opCalMonth = todayD.getMonth();
   }
-  var opCalHTML = buildOpCalHTML();
-
-  setHTML('d-recent-list', newJobsHTML + myJobsHTML + opCalHTML);
+  var opCalWrap = el('op-cal-wrap');
+  if(opCalWrap) {
+    opCalWrap.style.display = '';
+    opCalWrap.innerHTML = buildOpCalHTML();
+  }
 
   // Collapse to single-column and hide the notif card (operator doesn't need it here)
   var staffCard = el('d-staff-card');
