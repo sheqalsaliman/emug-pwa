@@ -1170,6 +1170,58 @@
 </div>
 
 <!-- ======================================================
+     ADD STAFF MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-add-staff">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title">👤 Tambah Kakitangan Baru</div>
+        <button class="modal-close" onclick="closeModal('modal-add-staff')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Nama Penuh <span style="color:#ff7a7a;">*</span></label>
+        <input type="text" class="form-control" id="asf-name" placeholder="Contoh: AHMAD BIN ALI" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Username <span style="color:#ff7a7a;">*</span></label>
+          <input type="text" class="form-control" id="asf-username" placeholder="ahmad@emanutama" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Kata Laluan <span style="color:#ff7a7a;">*</span></label>
+          <input type="password" class="form-control" id="asf-password" placeholder="Min 6 aksara" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Emel</label>
+          <input type="email" class="form-control" id="asf-email" placeholder="ahmad@emanutama.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">No. Telefon</label>
+          <input type="tel" class="form-control" id="asf-phone" placeholder="0123456789">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Peranan <span style="color:#ff7a7a;">*</span></label>
+        <select class="form-control" id="asf-role">
+          <option value="operator">Field Operator</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add-staff')">Batal</button>
+      <button class="btn btn-lime" onclick="saveNewStaff()">💾 Simpan Kakitangan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      SCHEDULE ADD MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-sched-add">

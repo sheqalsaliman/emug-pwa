@@ -450,6 +450,7 @@ let feedbacks = [];
 let feedbackCounter = 0;
 let workSchedule = [];
 let manualJobs = [];
+let dynamicStaff = [];   // staff added via Add Staff form (stored in Supabase `staff` table)
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const t = k => (T[lang]?.[k] ?? T.bm[k] ?? k);
@@ -850,6 +851,7 @@ async function dbLoad() {
   } catch(e) { console.error('[EMUG] dbLoad feedback exception:', e); }
   await dbLoadWorkSchedule();
   await dbLoadManualJobs();
+  await dbLoadDynamicStaff();
   // One-time cleanup of test/demo records (silently skips if none found)
   cleanupTestData();
 }
@@ -1012,6 +1014,40 @@ async function dbAcceptManualJob(jobId, opUsername, opName) {
     if(error) console.error('dbAcceptManualJob:', error.message);
     return !error;
   } catch(e) { console.error('dbAcceptManualJob:', e); return false; }
+}
+
+// ─── DYNAMIC STAFF DB ─────────────────────────────────────────────────────────
+async function dbLoadDynamicStaff() {
+  try {
+    const { data, error } = await db.from('staff').select('*').order('created_at', { ascending: true });
+    if(!error && data) { dynamicStaff = data; console.log('[EMUG] dynamic staff loaded:', data.length); }
+    else if(error && error.code === '42P01') { /* table doesn't exist yet — ignore */ }
+  } catch(e) { console.warn('[EMUG] dbLoadDynamicStaff (staff table may not exist yet):', e.message); }
+}
+
+async function dbInsertStaff(entry) {
+  try {
+    const { data, error } = await db.from('staff').insert({
+      name:       entry.name,
+      username:   entry.username,
+      email:      entry.email   || null,
+      password:   entry.password,          // stored as plain text to match USERS pattern
+      phone:      entry.phone   || null,
+      role:       entry.role,
+      staff_id:   entry.staffId,
+      status:     'active',
+    }).select().single();
+    if(error) { console.error('dbInsertStaff:', error.message, JSON.stringify(error, null, 2)); return null; }
+    return data;
+  } catch(e) { console.error('dbInsertStaff:', e); return null; }
+}
+
+async function dbDeleteDynamicStaff(id) {
+  try {
+    const { error } = await db.from('staff').delete().eq('id', id);
+    if(error) { console.error('dbDeleteDynamicStaff:', error.message); return false; }
+    return true;
+  } catch(e) { console.error('dbDeleteDynamicStaff:', e); return false; }
 }
 
 async function dbUpdateWorkSchedule(entry) {
@@ -2120,55 +2156,107 @@ async function deleteSchedEntry() {
 }
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
-function getHiddenStaff() {
-  try { return JSON.parse(localStorage.getItem('emug_hidden_staff')||'[]'); } catch{ return []; }
-}
-function saveHiddenStaff(arr) {
-  localStorage.setItem('emug_hidden_staff', JSON.stringify(arr));
-}
-
 function toggleStaffDeleteMode() {
   staffDeleteMode = !staffDeleteMode;
   renderStaff();
 }
 
-function confirmDeleteStaff(username) {
-  const su = USERS.find(u=>u.username===username);
+function openAddStaffModal() {
+  ['asf-name','asf-username','asf-email','asf-password','asf-phone'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
+  el('asf-role').value = 'operator';
+  openModal('modal-add-staff');
+}
+
+async function saveNewStaff() {
+  const name     = (el('asf-name')?.value||'').trim().toUpperCase();
+  const username = (el('asf-username')?.value||'').trim().toLowerCase();
+  const password = (el('asf-password')?.value||'').trim();
+  const email    = (el('asf-email')?.value||'').trim();
+  const phone    = (el('asf-phone')?.value||'').trim();
+  const role     = el('asf-role')?.value || 'operator';
+
+  if(!name||!username||!password) {
+    toast(lang==='bm'?'Sila isi Nama, Username dan Kata Laluan.':'Please fill in Name, Username and Password.','error'); return;
+  }
+  if(password.length < 6) {
+    toast(lang==='bm'?'Kata laluan mesti sekurang-kurangnya 6 aksara.':'Password must be at least 6 characters.','error'); return;
+  }
+  // Check for duplicate username across USERS and dynamicStaff
+  const allUsernames = [...USERS.map(u=>u.username), ...dynamicStaff.map(u=>u.username)];
+  if(allUsernames.includes(username)) {
+    toast(lang==='bm'?'Username sudah digunakan. Sila pilih username lain.':'Username already taken. Please choose another.','error'); return;
+  }
+
+  const rolePrefix = role==='admin' ? 'ADM' : 'OPR';
+  const staffIdNum = String(dynamicStaff.filter(s=>s.role===role).length + USERS.filter(u=>u.role===role).length + 1).padStart(3,'0');
+  const staffId    = rolePrefix + staffIdNum;
+
+  const btn = document.querySelector('#modal-add-staff .btn-lime');
+  if(btn) { btn.disabled=true; btn.textContent='⏳ Menyimpan...'; }
+
+  const saved = await dbInsertStaff({ name, username, email, password, phone, role, staffId });
+
+  if(btn) { btn.disabled=false; btn.innerHTML='💾 Simpan Kakitangan'; }
+
+  if(!saved) {
+    toast(lang==='bm'?'Gagal menyimpan. Semak konsol untuk butiran.':'Failed to save. Check console for details.','error'); return;
+  }
+
+  dynamicStaff.push(saved);
+  closeModal('modal-add-staff');
+  toast(lang==='bm'?'Kakitangan baru berjaya ditambah! 🎉':'New staff member added successfully! 🎉','success',4000);
+  renderStaff();
+}
+
+function confirmDeleteStaff(username, isDynamic) {
+  // Find from the right source
+  const su = isDynamic
+    ? dynamicStaff.find(u=>u.username===username)
+    : USERS.find(u=>u.username===username);
   if(!su) return;
   const msgEl = el('sfdel-msg');
   const btnEl = el('sfdel-confirm');
-  if(msgEl) msgEl.textContent = (lang==='bm'
-    ? `Padam kakitangan ini? Tindakan ini tidak boleh dibuat alik.\n\n${su.name} (${su.staffId})`
-    : `Remove this staff member? This action cannot be undone.\n\n${su.name} (${su.staffId})`);
+  const name  = su.name;
+  const sid   = su.staff_id || su.staffId || '';
+  if(msgEl) msgEl.textContent = lang==='bm'
+    ? `Padam kakitangan ini? Tindakan ini tidak boleh dibuat alik.\n\n${name}${sid?' ('+sid+')':''}`
+    : `Remove this staff member? This action cannot be undone.\n\n${name}${sid?' ('+sid+')':''}`;
   if(btnEl) {
-    // Replace with a fresh clone so no stale onclick leaks
     const newBtn = btnEl.cloneNode(true);
-    newBtn.onclick = () => deleteStaff(username);
+    newBtn.onclick = () => deleteStaff(username, isDynamic, su.id);
     btnEl.parentNode.replaceChild(newBtn, btnEl);
   }
   openModal('modal-staff-del');
 }
 
-function deleteStaff(username) {
-  const hidden = getHiddenStaff();
-  if(!hidden.includes(username)) hidden.push(username);
-  saveHiddenStaff(hidden);
+async function deleteStaff(username, isDynamic, dbId) {
+  if(isDynamic) {
+    const newBtn = el('sfdel-confirm');
+    if(newBtn) { newBtn.disabled=true; newBtn.textContent='⏳ Memadam...'; }
+    const ok = await dbDeleteDynamicStaff(dbId);
+    if(!ok) {
+      if(newBtn) { newBtn.disabled=false; newBtn.textContent='✓ Padam'; }
+      toast(lang==='bm'?'Gagal memadam. Cuba lagi.':'Delete failed. Try again.','error'); return;
+    }
+    dynamicStaff = dynamicStaff.filter(u=>u.id!==dbId);
+  }
+  // For hardcoded USERS, no DB action needed — just re-render without them
+  // (we simply remove from dynamicStaff above; USERS can't be deleted but can be hidden if needed)
   closeModal('modal-staff-del');
   staffDeleteMode = false;
-  const su = USERS.find(u=>u.username===username);
-  toast((lang==='bm'?'Kakitangan dipadam: ':'Staff removed: ')+(su?.name||username), 'success');
+  toast(lang==='bm'?'Kakitangan berjaya dipadam.':'Staff member removed successfully.','success');
   renderStaff();
 }
 
 function renderStaff() {
-  const hidden  = getHiddenStaff();
-  const slist   = USERS.filter(u=>!hidden.includes(u.username));
-  const isAdmin = user.role==='admin';
+  // Combine hardcoded USERS + Supabase dynamicStaff (no hidden-staff filtering needed now)
+  const hardcoded = USERS.map(u=>({ ...u, _source:'hardcoded', staffId: u.staffId, staff_id: u.staffId }));
+  const dynamic   = dynamicStaff.map(u=>({ ...u, _source:'dynamic', staffId: u.staff_id||'', username: u.username, name: u.name, role: u.role, email: u.email, phone: u.phone }));
+  const slist     = [...hardcoded, ...dynamic];
+  const isAdmin   = user.role==='admin';
 
-  // ── Action buttons row ─────────────────────────────────────────────────────
   const addBtn = isAdmin ? `
-    <button class="btn btn-lime btn-sm sf-action-btn"
-      onclick="toast(lang==='bm'?\'Fungsi tambah kakitangan akan datang.\':\' Add staff feature coming soon.\',\'info\')"
+    <button class="btn btn-lime btn-sm sf-action-btn" onclick="openAddStaffModal()"
       style="display:inline-flex;align-items:center;gap:6px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       ${lang==='bm'?'Tambah Kakitangan':'Add Staff'}
@@ -2187,64 +2275,70 @@ function renderStaff() {
   const roleColors = { admin:'#1a237e', operator:'#2e7d32', staff:'#0277bd' };
   const roleLabels = { admin: lang==='bm'?'Pentadbir':'Admin', operator: lang==='bm'?'Operator':'Operator', staff: lang==='bm'?'Kakitangan':'Staff' };
 
-  setHTML('sf-content', btnRow + (slist.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
-    ${slist.map(su=>{
-      const assigned  = complaints.filter(c=>c.assignedTo===su.username);
-      const accepted  = complaints.filter(c=>c.acceptedBy===su.username);
-      const allJobIds = new Set([...assigned.map(c=>c.id), ...accepted.map(c=>c.id)]);
-      const allJobs   = complaints.filter(c=>allJobIds.has(c.id));
-      const active    = allJobs.filter(c=>c.status==='Sedang Berjalan').length;
-      const done      = allJobs.filter(c=>c.status==='Selesai').length;
-      const total     = allJobs.length;
-      const rColor    = roleColors[su.role]||'#666';
-      const rLabel    = roleLabels[su.role]||su.role;
-      const recentJobs = allJobs.slice(-3).reverse();
+  const cardHTML = slist.map(su=>{
+    const assigned  = complaints.filter(c=>c.assignedTo===su.username);
+    const accepted  = complaints.filter(c=>c.acceptedBy===su.username);
+    const allJobIds = new Set([...assigned.map(c=>c.id), ...accepted.map(c=>c.id)]);
+    const allJobs   = complaints.filter(c=>allJobIds.has(c.id));
+    const active    = allJobs.filter(c=>c.status==='Sedang Berjalan').length;
+    const done      = allJobs.filter(c=>c.status==='Selesai').length;
+    const total     = allJobs.length;
+    const rColor    = roleColors[su.role]||'#666';
+    const rLabel    = roleLabels[su.role]||su.role;
+    const recentJobs = allJobs.slice(-3).reverse();
+    const isDynamic = su._source === 'dynamic';
 
-      // Trash overlay — only shown when staffDeleteMode is active
-      const trashOverlay = (isAdmin && staffDeleteMode) ? `
-        <button class="sf-trash-btn" onclick="confirmDeleteStaff('${su.username}')" title="${lang==='bm'?'Padam kakitangan ini':'Remove this staff member'}">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        </button>` : '';
+    // Only dynamic staff can have trash icon (hardcoded accounts are system accounts)
+    const trashOverlay = (isAdmin && staffDeleteMode && isDynamic) ? `
+      <button class="sf-trash-btn" onclick="confirmDeleteStaff('${su.username}',true)" title="${lang==='bm'?'Padam kakitangan ini':'Remove this staff member'}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>` : '';
 
-      return `<div class="card sf-card${staffDeleteMode?' sf-delmode':''}" style="margin:0;position:relative;">
-        ${trashOverlay}
-        <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:18px 20px;color:white;display:flex;align-items:center;gap:14px;">
-          <div style="width:52px;height:52px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
-            ${iniOf(su.name)}
+    const systemBadge = !isDynamic ? `<span style="font-size:.6rem;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:1px 6px;margin-left:4px;font-weight:600;">SISTEM</span>` : '';
+
+    return `<div class="card sf-card${staffDeleteMode&&isDynamic?' sf-delmode':''}" style="margin:0;position:relative;">
+      ${trashOverlay}
+      <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:18px 20px;color:white;display:flex;align-items:center;gap:14px;">
+        <div style="width:52px;height:52px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
+          ${iniOf(su.name)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${su.name}${systemBadge}</div>
+          <div style="font-size:.7rem;opacity:.7;margin-bottom:5px;">ID: ${su.staffId||su.staff_id||'—'}</div>
+          <span style="font-size:.68rem;background:${rColor};color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;">${rLabel}</span>
+        </div>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+      <div class="card-body">
+        <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:10px;">
+          ${su.email?`📧 ${su.email}`:''}${su.phone&&su.email?' · ':''}${su.phone?`📞 ${su.phone}`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:14px;">
+          <div style="padding:8px 4px;background:var(--gray-50);border-radius:var(--r);">
+            <div style="font-size:1.3rem;font-weight:900;color:var(--navy);">${total}</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Jumlah':'Total'}</div>
           </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${su.name}</div>
-            <div style="font-size:.7rem;opacity:.7;margin-bottom:5px;">ID: ${su.staffId}</div>
-            <span style="font-size:.68rem;background:${rColor};color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;">${rLabel}</span>
+          <div style="padding:8px 4px;background:var(--info-lt);border-radius:var(--r);">
+            <div style="font-size:1.3rem;font-weight:900;color:var(--info);">${active}</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Aktif':'Active'}</div>
+          </div>
+          <div style="padding:8px 4px;background:var(--success-lt);border-radius:var(--r);">
+            <div style="font-size:1.3rem;font-weight:900;color:var(--success);">${done}</div>
+            <div style="font-size:.65rem;color:var(--gray-500);">${t('completed')}</div>
           </div>
         </div>
-        <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
-        <div class="card-body">
-          <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:10px;">
-            ${su.email?`📧 ${su.email}`:''}${su.phone&&su.email?' · ':''}${su.phone?`📞 ${su.phone}`:''}
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:14px;">
-            <div style="padding:8px 4px;background:var(--gray-50);border-radius:var(--r);">
-              <div style="font-size:1.3rem;font-weight:900;color:var(--navy);">${total}</div>
-              <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Jumlah':'Total'}</div>
-            </div>
-            <div style="padding:8px 4px;background:var(--info-lt);border-radius:var(--r);">
-              <div style="font-size:1.3rem;font-weight:900;color:var(--info);">${active}</div>
-              <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Aktif':'Active'}</div>
-            </div>
-            <div style="padding:8px 4px;background:var(--success-lt);border-radius:var(--r);">
-              <div style="font-size:1.3rem;font-weight:900;color:var(--success);">${done}</div>
-              <div style="font-size:.65rem;color:var(--gray-500);">${t('completed')}</div>
-            </div>
-          </div>
-          ${recentJobs.map(c=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:.78rem;">
-              <span style="color:var(--gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;">${c.ref}</span>
-              ${statusBadge(c.status)}
-            </div>`).join('')||`<div class="text-muted text-sm">${t('noJobs')}</div>`}
-        </div>
-      </div>`;}).join('')}
-  </div>` : `<div class="empty-state"><div class="empty-state-icon">👷</div><p>${lang==='bm'?'Tiada kakitangan berdaftar.':'No staff registered.'}</p></div>`));
+        ${recentJobs.map(c=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:.78rem;">
+            <span style="color:var(--gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;">${c.ref}</span>
+            ${statusBadge(c.status)}
+          </div>`).join('')||`<div class="text-muted text-sm">${t('noJobs')}</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  setHTML('sf-content', btnRow + (slist.length
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">${cardHTML}</div>`
+    : `<div class="empty-state"><div class="empty-state-icon">👷</div><p>${lang==='bm'?'Tiada kakitangan berdaftar.':'No staff registered.'}</p></div>`));
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────────
