@@ -1468,28 +1468,34 @@ function renderComplaintsList() {
   const isAdmin = user.role==='admin';
   setHTML('cp-list', list.map(c=>{
     const urgIcon = c.urgency==='Segera'?' 🚨':'';
-    return `<div class="job-card ${statusClass(c.status)}">
-      <div class="job-card-top">
-        <div>
-          <div class="job-ref">${c.ref}${urgIcon}</div>
-          <div class="job-name">${c.name}</div>
+    const assigned = !!c.assignedName;
+    return `<div class="cp-card ${statusClass(c.status)}">
+      <div class="cp-card-top">
+        <div class="cp-id-wrap">
+          <div class="cp-ref">${c.ref}${urgIcon}</div>
+          <div class="cp-name">${c.name}</div>
         </div>
         ${statusBadge(c.status)}
       </div>
-      <div class="job-prob">🔧 ${c.problem}${c.media&&c.media.length?` <span style="font-size:.72rem;background:rgba(118,185,0,.15);color:#3a6000;border-radius:10px;padding:1px 7px;font-weight:600;">📷 ${c.media.length}</span>`:''}</div>
-      ${c.desc?`<div style="font-size:.82rem;color:var(--gray-500);margin-bottom:8px;">💬 ${c.desc}</div>`:''}
-      <div class="job-meta">
-        <div class="job-meta-item">📞 ${c.phone}</div>
-        <div class="job-meta-item">📅 ${fmtDateShort(c.prefDate)}</div>
-        <div class="job-meta-item">🕐 ${c.prefTime}</div>
-        <div class="job-meta-item">👷 ${c.assignedName||`<em>${t('notAssigned')}</em>`}</div>
-        ${c.acceptedByName?`<div class="job-meta-item">🧰 ${c.acceptedByName}</div>`:''}
+      <div class="cp-tags">
+        <span class="cp-tag"><span class="cp-tag-ic">🔧</span><span class="cp-tag-txt">${c.problem}</span></span>
+        ${c.desc?`<span class="cp-tag"><span class="cp-tag-ic">💬</span><span class="cp-tag-txt">${c.desc}</span></span>`:''}
+        ${c.media&&c.media.length?`<span class="cp-tag"><span class="cp-tag-ic">📷</span><span class="cp-tag-txt">${c.media.length}</span></span>`:''}
       </div>
-      <div class="job-actions">
-        ${isAdmin?`<button class="btn btn-sm btn-outline" onclick="openJobModal('${c.id}')">✏️ ${t('editComplaint')}</button>`:''}
-        <button class="btn btn-sm btn-primary" onclick="openStatusModal('${c.id}')">🔄 ${t('update')}</button>
-        <button class="btn btn-sm btn-outline" onclick="openGalleryModal('${c.id}')" title="${t('galleryView')}">📷 ${t('galleryView')}</button>
-        ${c.coords?`<a class="maps-btn" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener">${t('locOpenMaps')}</a>`:''}
+      <div class="cp-meta">
+        <div class="cp-meta-item"><span class="cp-meta-ic">📞</span>${c.phone}</div>
+        <div class="cp-meta-item"><span class="cp-meta-ic">📅</span>${fmtDateShort(c.prefDate)}</div>
+        <div class="cp-meta-item"><span class="cp-meta-ic">🕐</span>${c.prefTime}</div>
+        ${assigned
+          ? `<div class="cp-meta-item"><span class="cp-meta-ic">🧑‍🔧</span>${lang==='bm'?'Ditugaskan':'Assigned'}: ${c.assignedName}</div>`
+          : `<div class="cp-meta-item cp-warn"><span class="cp-meta-ic">⚠️</span>${t('notAssigned')}</div>`}
+        ${c.acceptedByName?`<div class="cp-meta-item"><span class="cp-meta-ic">🧰</span>${c.acceptedByName}</div>`:''}
+      </div>
+      <div class="cp-actions">
+        ${isAdmin?`<button class="cp-btn cp-btn-sec" onclick="openJobModal('${c.id}')">✏️ ${t('editComplaint')}</button>`:''}
+        <button class="cp-btn cp-btn-sec" onclick="openGalleryModal('${c.id}')">🖼️ ${t('galleryView')}</button>
+        <button class="cp-btn cp-btn-pri" onclick="openStatusModal('${c.id}')">🔄 ${t('updateStatus')}</button>
+        ${c.coords?`<a class="cp-btn cp-btn-sec" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener" style="text-decoration:none;">🗺️ ${lang==='bm'?'Peta':'Map'}</a>`:''}
       </div>
     </div>`;}).join(''));
 }

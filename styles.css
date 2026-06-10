@@ -2382,3 +2382,67 @@ nav.sidebar .nav-item.active {
   .job-chip { font-size:.58rem; padding:1px 4px; gap:3px; }
   .month-dow { font-size:.6rem; }
 }
+
+/* ==========================================================================
+   COMPLAINTS PAGE — dark cards, search & chips
+   ========================================================================== */
+#dp-complaints .page-sub { color:#6b8bb0; }
+
+/* Search bar */
+#dp-complaints .search-bar { background:#161616; border:1px solid #2a2a2a; border-radius:10px; }
+#dp-complaints .search-bar input { color:#ffffff; }
+#dp-complaints .search-bar input::placeholder { color:#6b8bb0; }
+#dp-complaints .search-icon { color:#6b8bb0; }
+
+/* Filter chips */
+#dp-complaints .chip {
+  background:#161616; border:1px solid #2a2a2a; color:#9bb0cc;
+  border-radius:8px; padding:9px 15px; font-weight:500;
+}
+#dp-complaints .chip:hover { background:#161616; border-color:#3a4a5a; color:#cdd9e8; }
+#dp-complaints .chip.active {
+  background:#8fc63d; border-color:#8fc63d; color:#0d0d0d; font-weight:500;
+}
+
+/* Complaint cards */
+.cp-card {
+  background:#161616; border:1px solid #2a2a2a; border-left:3px solid #2a2a2a;
+  border-radius:12px; padding:16px; margin-bottom:14px;
+}
+.cp-card.menunggu { border-left-color:#f5b54a; }
+.cp-card.berjalan { border-left-color:#5aa9ff; }
+.cp-card.selesai  { border-left-color:#8fd06a; }
+
+.cp-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+.cp-ref  { font-size:11px; color:#6b8bb0; text-transform:uppercase; letter-spacing:.8px; font-weight:600; }
+.cp-name { font-size:16px; color:#ffffff; font-weight:500; margin-top:2px; }
+
+.cp-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.cp-tag {
+  display:inline-flex; align-items:center; gap:6px; max-width:100%;
+  background:#1f1f1f; border:1px solid #2a2a2a; border-radius:7px;
+  padding:5px 9px; font-size:11px; color:#cdd9e8;
+}
+.cp-tag-ic  { color:#8fc63d; font-size:.8rem; flex-shrink:0; }
+.cp-tag-txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.cp-meta {
+  display:flex; flex-wrap:wrap; gap:18px;
+  border-top:1px solid #2a2a2a; border-bottom:1px solid #2a2a2a;
+  padding:12px 0; margin-bottom:12px;
+}
+.cp-meta-item { display:flex; align-items:center; gap:6px; font-size:12px; color:#9bb0cc; }
+.cp-meta-ic   { color:#6b8bb0; font-size:.78rem; }
+.cp-meta-item.cp-warn,
+.cp-meta-item.cp-warn .cp-meta-ic { color:#f5b54a; }
+
+.cp-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.cp-btn {
+  display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+  padding:8px 13px; border-radius:9px; cursor:pointer; border:1px solid transparent;
+  transition:var(--tr); line-height:1;
+}
+.cp-btn-sec { background:#1a1a1a; border-color:#2a2a2a; color:#cdd9e8; }
+.cp-btn-sec:hover { border-color:#3a4a5a; }
+.cp-btn-pri { background:#8fc63d; border-color:#8fc63d; color:#0d0d0d; }
+.cp-btn-pri:hover { filter:brightness(1.06); }
