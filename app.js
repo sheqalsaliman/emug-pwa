@@ -1695,132 +1695,93 @@ function confirmStatusUpdate() {
   buildSidebar();
 }
 
-// ─── SCHEDULE ─────────────────────────────────────────────────────────────────
-// Week view removed — day view only. switchSchedView kept as a no-op for safety.
-function switchSchedView() { renderDayView(); }
+// ─── SCHEDULE (FULL MONTH CALENDAR) ──────────────────────────────────────────
+let schedYear, schedMonth;   // currently-viewed month (0-based month)
 
-function navDate(dir) {
-  schedDate = new Date(schedDate);
-  schedDate.setDate(schedDate.getDate() + dir);
+function switchSchedView() { renderSchedule(); }   // legacy no-op safety
+
+function goToday() {
+  const d = new Date();
+  schedYear = d.getFullYear(); schedMonth = d.getMonth();
+  schedDate = d;
   renderSchedule();
 }
-function goToday() { schedDate=new Date(); renderSchedule(); }
+
+async function schedShiftMonth(dir) {
+  schedMonth += dir;
+  if(schedMonth < 0)  { schedMonth = 11; schedYear--; }
+  else if(schedMonth > 11) { schedMonth = 0; schedYear++; }
+  await dbLoadWorkSchedule();   // re-fetch entries for the newly visible month
+  renderMonthView();
+}
+function schedPrevMonth() { schedShiftMonth(-1); }
+function schedNextMonth() { schedShiftMonth(1); }
+
+// Click empty cell area → open Tambah Jadual prefilled with that date (admin only)
+function addSchedOn(ds) {
+  if(user?.role !== 'admin') return;
+  const p = ds.split('-').map(Number);
+  schedDate = new Date(p[0], p[1]-1, p[2]);   // tz-safe local date
+  openSchedAddModal();
+}
 
 function renderSchedule() {
   const addBtn = el('sc-add-btn');
   if(addBtn) { addBtn.style.display = user?.role==='admin' ? '' : 'none'; addBtn.textContent = `+ ${t('addSchedule')}`; }
-  const dn = T[lang].dayNames[schedDate.getDay()];
-  const mn = T[lang].monthNames[schedDate.getMonth()];
-  el('sc-date-display').textContent = `${dn}, ${schedDate.getDate()} ${mn} ${schedDate.getFullYear()}`;
-  renderDayView();
-}
-
-function renderSchedContent() { renderDayView(); }
-
-function renderDayView() {
-  const ds = schedDate.toLocaleDateString('en-CA');
-  const dayEntries = myWorkSchedule().filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  if(!dayEntries.length) {
-    setHTML('sc-day-content',`<div class="empty-state"><div class="empty-state-icon">🗓️</div><p>${t('noScheduleToday')}</p></div>`);
-    return;
+  if(schedYear == null || schedMonth == null) {
+    schedYear = schedDate.getFullYear(); schedMonth = schedDate.getMonth();
   }
-  setHTML('sc-day-content', dayEntries.map(e=>`
-    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-left:4px solid #8fc63d;border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;" onclick="openSchedDetail('${e.id}')">
-      <div style="flex:1;min-width:0;">
-        <div style="margin-bottom:8px;">
-          <span style="background:#16304d;color:#5aa9ff;font-size:.72rem;font-weight:700;padding:2px 10px;border-radius:10px;">${(e.time||'').slice(0,5)||'—'}</span>
-        </div>
-        <div style="font-weight:700;font-size:.92rem;color:#ffffff;margin-bottom:4px;">👷 ${e.staffName}</div>
-        <div style="font-size:.8rem;color:#9bb0cc;margin-bottom:2px;">📍 ${e.location}</div>
-        <div style="font-size:.8rem;color:#6b8bb0;">🔧 ${e.description}</div>
-      </div>
-      <div style="flex-shrink:0;">${statusBadge(e.status)}</div>
-    </div>`).join(''));
+  renderMonthView();
 }
+function renderSchedContent() { renderMonthView(); }
 
-// ─── CALENDAR MONTH PICKER ────────────────────────────────────────────────────
-let calYear, calMonth;
-function openCalPicker() {
-  calYear  = schedDate.getFullYear();
-  calMonth = schedDate.getMonth();
-  renderCalPicker();
-  openModal('modal-cal-picker');
-}
-function calShiftMonth(d) {
-  calMonth += d;
-  if(calMonth < 0)  { calMonth = 11; calYear--; }
-  else if(calMonth > 11) { calMonth = 0; calYear++; }
-  renderCalPicker();
-}
-function selectCalDate(ds) {
-  const p = ds.split('-').map(Number);
-  schedDate = new Date(p[0], p[1]-1, p[2]);   // local date, tz-safe
-  closeModal('modal-cal-picker');
-  renderSchedule();
-}
-function renderCalPicker() {
+function renderMonthView() {
+  // header month name + day-of-week row
+  const nm = el('sc-month-name');
+  if(nm) nm.textContent = `${T[lang].monthNames[schedMonth].slice(0,3)} ${schedYear}`;
+  const dowEl = el('sc-month-dow');
+  if(dowEl) dowEl.innerHTML = T[lang].dayNamesShort.map(d=>`<div class="month-dow">${d}</div>`).join('');
+
   const pad = n => String(n).padStart(2,'0');
-  const firstDow = new Date(calYear, calMonth, 1).getDay();
-  const dim      = new Date(calYear, calMonth+1, 0).getDate();
-  const prevDim  = new Date(calYear, calMonth, 0).getDate();
-  const todayS = new Date().toLocaleDateString('en-CA');
-  const selS   = schedDate.toLocaleDateString('en-CA');
-  const haveSet = new Set(myWorkSchedule().map(e=>e.date));  // dynamic: dates with entries
-  let cells = '';
-  for(let i=0;i<42;i++) {
-    const dayNum = i - firstDow + 1;
-    let y=calYear, m=calMonth, dn=dayNum, other=false;
-    if(dayNum < 1)        { other=true; m=calMonth-1; if(m<0){m=11;y--;} dn=prevDim+dayNum; }
-    else if(dayNum > dim) { other=true; m=calMonth+1; if(m>11){m=0;y++;} dn=dayNum-dim; }
-    const ds = `${y}-${pad(m+1)}-${pad(dn)}`;
-    const isToday = !other && ds===todayS;
-    const isSel   = !other && ds===selS;
-    const has     = !other && haveSet.has(ds);
-    const cls = 'cal-day' + (other?' other':'') + (isToday?' today':'') + (isSel?' sel':'');
-    const click = other ? '' : ` onclick="selectCalDate('${ds}')"`;
-    cells += `<div class="${cls}"${click}>${dn}${has?'<span class="cal-dot"></span>':''}</div>`;
-  }
-  const dows = T[lang].dayNamesShort.map(d=>`<div class="cal-dow">${d}</div>`).join('');
-  setHTML('cal-picker-content',
-    `<div class="cal-head">
-       <div class="cal-title">${T[lang].monthNames[calMonth].slice(0,3)} ${calYear}</div>
-       <div style="display:flex;gap:6px;">
-         <button class="cal-nav-btn" onclick="calShiftMonth(-1)">‹</button>
-         <button class="cal-nav-btn" onclick="calShiftMonth(1)">›</button>
-       </div>
-     </div>
-     <div class="cal-dow-row">${dows}</div>
-     <div class="cal-grid">${cells}</div>
-     <div class="cal-foot">
-       <span class="cal-legend"><span class="ld"></span> ${lang==='bm'?'Ada jadual':'Has schedule'}</span>
-       <button class="cal-close-btn" onclick="closeModal('modal-cal-picker')">${lang==='bm'?'Tutup':'Close'}</button>
-     </div>`);
-}
+  const firstDow = new Date(schedYear, schedMonth, 1).getDay();
+  const dim      = new Date(schedYear, schedMonth+1, 0).getDate();
+  const prevDim  = new Date(schedYear, schedMonth, 0).getDate();
+  const todayS   = new Date().toLocaleDateString('en-CA');
 
-function renderWeekView() {
-  const start = new Date(schedDate);
-  start.setDate(start.getDate()-((start.getDay()+6)%7));
-  const todayS = new Date().toLocaleDateString('en-CA');
+  // group visible entries by date string
+  const byDate = {};
+  myWorkSchedule().forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+
+  const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
   let html = '';
-  for(let i=0;i<7;i++) {
-    const d = new Date(start); d.setDate(d.getDate()+i);
-    const ds = d.toLocaleDateString('en-CA');
-    const dj = myWorkSchedule().filter(e=>e.date===ds);
-    const isTd = ds===todayS;
-    html += `<div class="week-cell"${isTd?' style="background:var(--lime-pale);"':''}>
-      <div class="week-cell-head${isTd?' today':''}">
-        <div class="wc-num">${d.getDate()}</div>
-        <div class="wc-day">${T[lang].dayNamesShort[d.getDay()]}</div>
-      </div>
-      ${dj.map(e=>`
-        <div style="border-left:3px solid var(--navy);background:var(--white);border-radius:3px;padding:5px 7px;margin:4px;font-size:.7rem;box-shadow:0 1px 2px rgba(0,0,0,.06);cursor:pointer;" onclick="openSchedDetail('${e.id}')">
-          <div style="font-weight:700;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.staffName}</div>
-          <div style="color:var(--navy);font-weight:600;">${(e.time||'').slice(0,5)}</div>
-          <div style="color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${e.location}</div>
-        </div>`).join('')}
-    </div>`;
+  for(let i=0;i<totalCells;i++) {
+    const dayNum = i - firstDow + 1;
+    let y=schedYear, m=schedMonth, dn=dayNum, other=false;
+    if(dayNum < 1)        { other=true; m=schedMonth-1; if(m<0){m=11;y--;} dn=prevDim+dayNum; }
+    else if(dayNum > dim) { other=true; m=schedMonth+1; if(m>11){m=0;y++;} dn=dayNum-dim; }
+    const ds = `${y}-${pad(m+1)}-${pad(dn)}`;
+
+    if(other) {
+      html += `<div class="month-cell other"><div class="month-daynum">${dn}</div></div>`;
+      continue;
+    }
+
+    const isToday = ds===todayS;
+    const list = (byDate[ds] || []).slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    let chips = '';
+    list.slice(0,2).forEach(e => {
+      const cls  = statusClass(e.status);                       // menunggu | berjalan | selesai
+      const tm   = (e.time||'').slice(0,5);
+      const name = (e.description || e.location || '').trim();
+      chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openSchedDetail('${e.id}')" title="${tm} ${name}">`
+            +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${name}</span></div>`;
+    });
+    const more = list.length>2 ? `<div class="month-more">+${list.length-2} ${lang==='bm'?'lagi':'more'}</div>` : '';
+
+    html += `<div class="month-cell${isToday?' today':''}" onclick="addSchedOn('${ds}')">`
+         +  `<div class="month-daynum">${dn}</div>${chips}${more}</div>`;
   }
-  setHTML('sc-week-grid', html);
+  setHTML('sc-month-grid', html);
 }
 
 // ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────

@@ -909,18 +909,20 @@
             </div>
             <div class="schedule-tabs" style="display:flex;align-items:center;gap:8px;">
               <button class="btn btn-sm btn-lime" id="sc-add-btn" onclick="openSchedAddModal()" style="display:none;">+ Tambah Jadual</button>
-              <button class="cal-icon-btn" id="sc-cal-btn" onclick="openCalPicker()" title="Pilih tarikh">📅</button>
             </div>
           </div>
         </div>
         <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
-        <div class="date-nav">
-          <button class="date-nav-btn" onclick="navDate(-1)">◀</button>
-          <div class="date-display" id="sc-date-display"></div>
-          <button class="date-nav-btn" onclick="navDate(1)">▶</button>
-          <button class="btn btn-sm btn-outline" onclick="goToday()" id="sc-today">Hari Ini</button>
+        <div class="sched-monthbar">
+          <div class="sched-monthbar-left">
+            <button class="sched-nav-btn" onclick="schedPrevMonth()">‹</button>
+            <div class="sched-month-name" id="sc-month-name"></div>
+            <button class="sched-nav-btn" onclick="schedNextMonth()">›</button>
+          </div>
+          <button class="btn btn-sm btn-outline" id="sc-today" onclick="goToday()">Hari ini</button>
         </div>
-        <div id="sc-day-view"><div id="sc-day-content"></div></div>
+        <div class="month-dow-row" id="sc-month-dow"></div>
+        <div class="month-grid" id="sc-month-grid"></div>
       </div>
 
       <!-- STAFF MANAGEMENT (admin only) -->
@@ -1031,13 +1033,6 @@
 <!-- ======================================================
      MODALS
      ====================================================== -->
-
-<!-- Calendar Month Picker (Schedule) -->
-<div class="modal-overlay" id="modal-cal-picker">
-  <div id="cal-picker">
-    <div id="cal-picker-content"></div>
-  </div>
-</div>
 
 <!-- Assign / Edit Job Modal -->
 <div class="modal-overlay" id="modal-job">
