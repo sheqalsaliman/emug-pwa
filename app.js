@@ -184,6 +184,7 @@ const T = {
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
+    opSchedTitle:'Jadual Kerja',opSchedSub:'Jadual kerja pasukan',
     opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
     opAcceptJob:'Terima Kerja',opCompleteJob:'Kerja Selesai',
     opNoNewJobs:'Tiada aduan baru pada masa ini.',opNoMyJobs:'Tiada kerja yang diterima lagi.',
@@ -344,6 +345,7 @@ const T = {
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
+    opSchedTitle:'Jadual Kerja',opSchedSub:'Jadual kerja pasukan',
     opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
     opAcceptJob:'Terima Kerja',opCompleteJob:'Kerja Selesai',
     opNoNewJobs:'Tiada aduan baru pada masa ini.',opNoMyJobs:'Tiada kerja yang diterima lagi.',
@@ -364,6 +366,7 @@ const T = {
     // Operator role
     role_operator:'Field Operator',
     opDashTitle:'Operator Dashboard',opDashSub:'Field team job management',
+    opSchedTitle:'Work Schedule',opSchedSub:'Team work schedule',
     opNewJobs:'New Jobs',opMyJobs:'My Jobs',
     opAcceptJob:'Accept Job',opCompleteJob:'Mark Complete',
     opNoNewJobs:'No new jobs available.',opNoMyJobs:'No jobs accepted yet.',
@@ -1352,6 +1355,7 @@ function buildSidebar() {
     { pg:'profile',    icon:'👤', lbl:t('profile') },
   ] : user.role==='operator' ? [
     { pg:'dashboard',    icon:'🏗️', lbl:t('opDashTitle') },
+    { pg:'op-schedule',  icon:'🗓️', lbl:t('opSchedTitle') },
     { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
     { pg:'profile',      icon:'👤', lbl:t('profile') },
   ] : [
@@ -1401,6 +1405,7 @@ function renderPage(pg) {
     case 'notifications': renderNotifications(); break;
     case 'profile':       renderProfile(); break;
     case 'feedback':      renderAdminFeedback(); break;
+    case 'op-schedule':   renderOpSchedulePage(); break;
   }
 }
 
@@ -1433,8 +1438,6 @@ function myNotifs() {
 function renderDashboard() {
   if(user.role==='operator') { renderOperatorDashboard(); return; }
   // Restore 2-col layout for admin/staff (operator may have collapsed it)
-  var opCalWrapReset = el('op-cal-wrap');
-  if(opCalWrapReset) { opCalWrapReset.style.display = 'none'; opCalWrapReset.innerHTML = ''; }
   var dashCols = document.querySelector('.dash-cols');
   if(dashCols) {
     dashCols.style.gridTemplateColumns = '';
@@ -3260,28 +3263,6 @@ function renderOperatorDashboard() {
 
   setHTML('d-recent-list', newJobsHTML + myJobsHTML);
 
-  // ── Operator Team Schedule Calendar (separate section below the card) ────
-  const todayD = now();
-  if(opCalYear === undefined || opCalMonth === undefined) {
-    opCalYear  = new Date().getFullYear();
-    opCalMonth = new Date().getMonth();
-  }
-  var opCalWrap = el('op-cal-wrap');
-  console.log('[EMUG] renderOperatorDashboard: op-cal-wrap element =', opCalWrap, 'opCalYear=', opCalYear, 'opCalMonth=', opCalMonth);
-  if(opCalWrap) {
-    try {
-      opCalWrap.style.display = '';
-      opCalWrap.innerHTML = buildOpCalHTML();
-      console.log('[EMUG] Operator calendar rendered OK');
-    } catch(calErr) {
-      console.error('[EMUG] buildOpCalHTML error:', calErr);
-      opCalWrap.style.display = '';
-      opCalWrap.innerHTML = '<div style="color:#ff7a7a;padding:12px;font-size:.8rem;">⚠️ Gagal memuatkan kalendar: ' + calErr.message + '</div>';
-    }
-  } else {
-    console.warn('[EMUG] #op-cal-wrap not found in DOM');
-  }
-
   // Collapse to single-column and hide the notif card (operator doesn't need it here)
   var staffCard = el('d-staff-card');
   if(staffCard) staffCard.style.display = 'none';
@@ -3294,7 +3275,21 @@ function renderOperatorDashboard() {
   setHTML('d-notif-preview','');
 }
 
-// ─── OPERATOR CALENDAR ────────────────────────────────────────────────────────
+// ─── OPERATOR SCHEDULE PAGE ───────────────────────────────────────────────────
+function renderOpSchedulePage() {
+  // Ensure calendar state is initialised
+  if(typeof opCalYear !== 'number' || typeof opCalMonth !== 'number') {
+    opCalYear  = new Date().getFullYear();
+    opCalMonth = new Date().getMonth();
+  }
+  const wrap = el('op-sched-cal');
+  if(wrap) {
+    try { wrap.innerHTML = buildOpCalHTML(); }
+    catch(e) { wrap.innerHTML = '<div style="color:#ff7a7a;padding:16px;">⚠️ ' + e.message + '</div>'; }
+  }
+}
+
+// ─── OPERATOR CALENDAR (shared builder) ───────────────────────────────────────
 function buildOpCalHTML() {
   const pad = n => String(n).padStart(2,'0');
   const todayObj = new Date();
@@ -3377,38 +3372,33 @@ function buildOpCalHTML() {
               +  `<div class="month-daynum">${dn}</div>${chips}${more}</div>`;
   }
 
-  return `<div style="margin-top:32px;">
-    <div class="card-header" style="padding:0 0 14px 0;">
-      <div class="card-title">📅 ${lang==='bm'?'Jadual Kerja Pasukan':'Team Work Schedule'}</div>
-    </div>
-    <div style="background:#161616;border-radius:12px;padding:16px;border:1px solid #2a2a2a;">
+  return `<div style="background:#161616;border-radius:12px;padding:16px;border:1px solid #2a2a2a;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <button onclick="opCalPrevMonth()" ${canPrev?'':'disabled'} style="background:${canPrev?'#1a1a1a':'#111'};color:${canPrev?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;cursor:${canPrev?'pointer':'not-allowed'};font-size:.9rem;">‹</button>
-        <div style="font-weight:700;font-size:.95rem;color:#e5e5e5;">${monthLabel}</div>
-        <button onclick="opCalNextMonth()" ${canNext?'':'disabled'} style="background:${canNext?'#1a1a1a':'#111'};color:${canNext?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;cursor:${canNext?'pointer':'not-allowed'};font-size:.9rem;">›</button>
+        <button onclick="opCalPrevMonth()" ${canPrev?'':'disabled'} style="background:${canPrev?'#1a1a1a':'#111'};color:${canPrev?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 14px;cursor:${canPrev?'pointer':'not-allowed'};font-size:1rem;line-height:1;">‹</button>
+        <div style="font-weight:700;font-size:1rem;color:#e5e5e5;">${monthLabel}</div>
+        <button onclick="opCalNextMonth()" ${canNext?'':'disabled'} style="background:${canNext?'#1a1a1a':'#111'};color:${canNext?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 14px;cursor:${canNext?'pointer':'not-allowed'};font-size:1rem;line-height:1;">›</button>
       </div>
       <div class="month-dow-row" style="margin-bottom:4px;">${dowRow}</div>
       <div class="month-grid">${cellsHtml}</div>
-      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+      <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#f5b54a33;border-left:2px solid #f5b54a;"></div>${lang==='bm'?'Menunggu':'Pending'}</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#5aa9ff33;border-left:2px solid #5aa9ff;"></div>${lang==='bm'?'Berjalan':'In Progress'}</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#8fd06a33;border-left:2px solid #8fd06a;"></div>${lang==='bm'?'Selesai':'Done'}</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(139,92,246,.15);border-left:2px solid #8b5cf6;"></div>Manual</div>
       </div>
-    </div>
-  </div>`;
+    </div>`;
 }
 
 function opCalPrevMonth() {
   opCalMonth--;
   if(opCalMonth<0){ opCalMonth=11; opCalYear--; }
-  renderOperatorDashboard();
+  renderOpSchedulePage();
 }
 
 function opCalNextMonth() {
   opCalMonth++;
   if(opCalMonth>11){ opCalMonth=0; opCalYear++; }
-  renderOperatorDashboard();
+  renderOpSchedulePage();
 }
 
 function openOpCalDay(ds) {
