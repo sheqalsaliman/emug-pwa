@@ -849,6 +849,31 @@ async function dbLoad() {
   } catch(e) { console.error('[EMUG] dbLoad feedback exception:', e); }
   await dbLoadWorkSchedule();
   await dbLoadManualJobs();
+  // One-time cleanup of test/demo records (silently skips if none found)
+  cleanupTestData();
+}
+
+async function cleanupTestData() {
+  if(!db || localStorage.getItem('emug_cleanup_v1')) return;
+  const testPatterns = ['dvdv','fefe','wwww'];
+  try {
+    // complaints: delete by name pattern or specific test ref
+    for(const p of testPatterns) {
+      await db.from('complaints').delete().ilike('name', `%${p}%`);
+    }
+    await db.from('complaints').delete().eq('ref','EMUG-2026-0002');
+    // jobs: delete by description pattern
+    for(const p of testPatterns) {
+      await db.from('jobs').delete().ilike('job_description', `%${p}%`);
+      await db.from('jobs').delete().ilike('job_title', `%${p}%`);
+    }
+    // work_schedule: delete by description pattern
+    for(const p of testPatterns) {
+      await db.from('work_schedule').delete().ilike('job_description', `%${p}%`);
+    }
+    localStorage.setItem('emug_cleanup_v1','done');
+    console.log('[EMUG] Test data cleanup complete.');
+  } catch(e) { console.error('[EMUG] cleanupTestData:', e); }
 }
 
 // ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
@@ -1495,13 +1520,24 @@ function renderComplaintsList() {
     return mf&&ms;
   }).sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
 
-  if(!list.length) {
+  // Manual jobs from jobs table
+  const mjVisible = user.role==='operator'
+    ? manualJobs.filter(j=>j.is_pool||j.operator_id===user.username)
+    : manualJobs; // admin / staff sees all
+  const mjList = mjVisible.filter(j=>{
+    if(cpFilter!=='all'&&j.status!==cpFilter) return false;
+    return !q||(j.job_title||'').toLowerCase().includes(q)||(j.complaint_ref||'').toLowerCase().includes(q)||(j.job_description||'').toLowerCase().includes(q);
+  });
+
+  if(!list.length && !mjList.length) {
     setHTML('cp-list','<div class="empty-state"><div class="empty-state-icon">📋</div><p>'+t('noJobs')+'</p></div>');
     return;
   }
 
   const isAdmin = user.role==='admin';
-  setHTML('cp-list', list.map(c=>{
+
+  // Complaint cards (unchanged)
+  const complaintCards = list.map(c=>{
     const urgIcon = c.urgency==='Segera'?' 🚨':'';
     const assigned = !!c.assignedName;
     return `<div class="cp-card ${statusClass(c.status)}">
@@ -1532,7 +1568,44 @@ function renderComplaintsList() {
         <button class="cp-btn cp-btn-pri" onclick="openStatusModal('${c.id}')">🔄 ${t('updateStatus')}</button>
         ${c.coords?`<a class="cp-btn cp-btn-sec" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener" style="text-decoration:none;">🗺️ ${lang==='bm'?'Peta':'Map'}</a>`:''}
       </div>
-    </div>`;}).join(''));
+    </div>`;
+  }).join('');
+
+  // Manual job cards — purple left border + MANUAL badge
+  const manualCards = mjList.map(j=>{
+    const sClass = statusClass(j.status);
+    return `<div class="cp-card ${sClass}" style="border-left-color:#8b5cf6;">
+      <div class="cp-card-top">
+        <div class="cp-id-wrap">
+          <div class="cp-ref" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span>${j.complaint_ref}</span>
+            <span style="font-size:.64rem;background:#8b5cf6;color:#fff;border-radius:8px;padding:2px 7px;font-weight:700;letter-spacing:.3px;">MANUAL</span>
+            ${j.is_pool?`<span style="font-size:.64rem;background:#ede9fe;color:#6d28d9;border-radius:8px;padding:2px 7px;font-weight:700;">POOL</span>`:''}
+          </div>
+          <div class="cp-name">${j.job_title||j.job_description||'—'}</div>
+        </div>
+        ${statusBadge(j.status)}
+      </div>
+      <div class="cp-tags">
+        <span class="cp-tag"><span class="cp-tag-ic">🔧</span><span class="cp-tag-txt">${lang==='bm'?'Kerja Manual':'Manual Job'}</span></span>
+        ${j.job_description&&j.job_description!==j.job_title?`<span class="cp-tag"><span class="cp-tag-ic">💬</span><span class="cp-tag-txt">${j.job_description}</span></span>`:''}
+        ${j.job_location?`<span class="cp-tag"><span class="cp-tag-ic">📍</span><span class="cp-tag-txt">${j.job_location}</span></span>`:''}
+      </div>
+      <div class="cp-meta">
+        <div class="cp-meta-item"><span class="cp-meta-ic">📅</span>${fmtDateShort(j.job_date)}</div>
+        <div class="cp-meta-item"><span class="cp-meta-ic">🕐</span>${(j.job_time||'').slice(0,5)||'—'}</div>
+        ${j.operator_name
+          ? `<div class="cp-meta-item"><span class="cp-meta-ic">🧰</span>${j.operator_name}</div>`
+          : `<div class="cp-meta-item cp-warn"><span class="cp-meta-ic">⚠️</span>${lang==='bm'?'Menunggu operator':'Awaiting operator'}</div>`}
+        <div class="cp-meta-item"><span class="cp-meta-ic">👤</span>${lang==='bm'?'Oleh':'By'}: ${j.created_by||'Admin'}</div>
+      </div>
+      <div class="cp-actions">
+        <span style="font-size:.78rem;color:#8b5cf6;font-style:italic;">🗓️ ${lang==='bm'?'Diurus dari Jadual Kerja':'Managed from Work Schedule'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  setHTML('cp-list', complaintCards + manualCards);
 }
 
 // ─── STAT DRILL-DOWN MODAL ────────────────────────────────────────────────────
@@ -1555,6 +1628,22 @@ function openStatModal(filter) {
       <div style="font-size:.78rem;color:var(--gray-500);">📍 ${c.address.split(',').slice(-3).join(',').trim()}</div>
     </div>`).join('')
     : `<div class="empty-state"><div class="empty-state-icon">${iconMap[filter]||'📋'}</div><p>${t('noJobs')}</p></div>`);
+  openModal('modal-stats');
+}
+
+function openProbModal(prob) {
+  const list = complaints.filter(c=>c.problem===prob);
+  setTxt('sm-title', `🔧 ${prob} (${list.length})`);
+  setHTML('sm-body', list.length ? list.map(c=>`
+    <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);cursor:pointer;" onclick="closeModal('modal-stats')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-weight:700;font-size:.9rem;">${c.ref}</span>
+        ${statusBadge(c.status)}
+      </div>
+      <div style="font-size:.82rem;color:var(--gray-700);margin-bottom:2px;">👤 ${c.name} · 📅 ${fmtDateShort(c.prefDate)}</div>
+      <div style="font-size:.78rem;color:var(--gray-500);">📍 ${(c.address||'').split(',').slice(-3).join(',').trim()}</div>
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">🔧</div><p>${t('noJobs')}</p></div>`);
   openModal('modal-stats');
 }
 
@@ -1789,9 +1878,32 @@ function renderMonthView() {
   const prevDim  = new Date(schedYear, schedMonth, 0).getDate();
   const todayS   = new Date().toLocaleDateString('en-CA');
 
-  // group visible entries by date string
+  // ── group all visible entries by date string ───────────────────────────────
   const byDate = {};
-  myWorkSchedule().forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+  // 1) work_schedule entries
+  myWorkSchedule().forEach(e => {
+    (byDate[e.date] = byDate[e.date] || []).push({ ...e, _src:'schedule' });
+  });
+  // 2) complaint jobs — use schedDate or prefDate
+  const visComplaint = user.role==='admin' ? complaints
+    : complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
+  visComplaint.forEach(c=>{
+    const d = c.schedDate||c.prefDate;
+    if(!d) return;
+    const p = d.split('-').map(Number);
+    if(p[0]!==schedYear||p[1]-1!==schedMonth) return; // only current month
+    (byDate[d]=byDate[d]||[]).push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref });
+  });
+  // 3) manual jobs — use job_date
+  const visManual = user.role==='admin' ? manualJobs
+    : manualJobs.filter(j=>j.is_pool||j.operator_id===user.username);
+  visManual.forEach(j=>{
+    const d = j.job_date;
+    if(!d) return;
+    const p = d.split('-').map(Number);
+    if(p[0]!==schedYear||p[1]-1!==schedMonth) return;
+    (byDate[d]=byDate[d]||[]).push({ _src:'manual', date:d, time:j.job_time, description:j.job_title||j.job_description, status:j.status, id:j.id });
+  });
 
   const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
   let html = '';
@@ -1811,11 +1923,20 @@ function renderMonthView() {
     const list = (byDate[ds] || []).slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
     let chips = '';
     list.slice(0,2).forEach(e => {
-      const cls  = statusClass(e.status);                       // menunggu | berjalan | selesai
-      const tm   = (e.time||'').slice(0,5);
-      const name = (e.description || e.location || '').trim();
-      chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openSchedDetail('${e.id}')" title="${tm} ${name}">`
-            +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${name}</span></div>`;
+      const cls = statusClass(e.status);
+      const tm  = (e.time||'').slice(0,5);
+      const lbl = (e.description||e.location||e.ref||'').trim();
+      if(e._src==='schedule') {
+        chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openSchedDetail('${e.id}')" title="${tm} ${lbl}">`
+              +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
+      } else if(e._src==='complaint') {
+        const handler = user.role==='admin' ? `openJobModal('${e.id}')` : '';
+        chips += `<div class="job-chip chip-${cls}" style="opacity:.85;${handler?'cursor:pointer;':''}" onclick="event.stopPropagation();${handler}" title="${e.ref}: ${lbl}">`
+              +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${e.ref}</span></div>`;
+      } else { // manual
+        chips += `<div class="job-chip" style="background:rgba(139,92,246,.15);border-left:2px solid #8b5cf6;" onclick="event.stopPropagation();" title="MANUAL: ${lbl}">`
+              +  `<span class="jc-dot" style="background:#8b5cf6;"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
+      }
     });
     const more = list.length>2 ? `<div class="month-more">+${list.length-2} ${lang==='bm'?'lagi':'more'}</div>` : '';
 
@@ -1998,38 +2119,62 @@ async function deleteSchedEntry() {
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
 function renderStaff() {
-  const slist = USERS.filter(u=>u.role==='staff');
-  setHTML('sf-content', `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+  const slist = USERS; // Show every registered user (admin, operator, staff)
+  const isAdmin = user.role==='admin';
+
+  const addBtn = isAdmin
+    ? `<button class="btn btn-lime btn-sm" onclick="toast(lang==='bm'?'Fungsi tambah kakitangan akan datang.':'Add staff feature coming soon.','info')" style="margin-bottom:18px;">+ ${lang==='bm'?'Tambah Kakitangan':'Add Staff'}</button>`
+    : '';
+
+  const roleColors = { admin:'#1a237e', operator:'#2e7d32', staff:'#0277bd' };
+  const roleLabels = { admin: lang==='bm'?'Pentadbir':'Admin', operator: lang==='bm'?'Operator':'Operator', staff: lang==='bm'?'Kakitangan':'Staff' };
+
+  setHTML('sf-content', addBtn + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
     ${slist.map(su=>{
-      const sj = complaints.filter(c=>c.assignedTo===su.username);
-      const act = sj.filter(c=>c.status!=='Selesai').length;
-      const done= sj.filter(c=>c.status==='Selesai').length;
+      // Jobs: assigned (staff admin path) or accepted (operator path)
+      const assigned = complaints.filter(c=>c.assignedTo===su.username);
+      const accepted = complaints.filter(c=>c.acceptedBy===su.username);
+      const allJobIds = new Set([...assigned.map(c=>c.id), ...accepted.map(c=>c.id)]);
+      const allJobs  = complaints.filter(c=>allJobIds.has(c.id));
+      const active   = allJobs.filter(c=>c.status==='Sedang Berjalan').length;
+      const done     = allJobs.filter(c=>c.status==='Selesai').length;
+      const total    = allJobs.length;
+      const rColor   = roleColors[su.role]||'#666';
+      const rLabel   = roleLabels[su.role]||su.role;
+      const recentJobs = allJobs.slice(-3).reverse();
       return `<div class="card" style="margin:0;">
-        <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:20px;color:white;display:flex;align-items:center;gap:14px;">
-          <div style="width:54px;height:54px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
+        <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:18px 20px;color:white;display:flex;align-items:center;gap:14px;">
+          <div style="width:52px;height:52px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
             ${iniOf(su.name)}
           </div>
-          <div>
-            <div style="font-size:.98rem;font-weight:700;">${su.name}</div>
-            <div style="font-size:.72rem;opacity:.75;">ID: ${su.staffId}</div>
-            <div style="font-size:.72rem;opacity:.7;">📞 ${su.phone}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${su.name}</div>
+            <div style="font-size:.7rem;opacity:.7;margin-bottom:5px;">ID: ${su.staffId}</div>
+            <span style="font-size:.68rem;background:${rColor};color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;">${rLabel}</span>
           </div>
         </div>
         <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
         <div class="card-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;margin-bottom:14px;">
-            <div style="padding:10px;background:var(--info-lt);border-radius:var(--r);">
-              <div style="font-size:1.4rem;font-weight:900;color:var(--info);">${act}</div>
-              <div style="font-size:.7rem;color:var(--gray-600);">${lang==='bm'?'Aktif':'Active'}</div>
+          <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:10px;">
+            ${su.email?`📧 ${su.email}`:''}${su.phone&&su.email?' · ':''}${su.phone?`📞 ${su.phone}`:''}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:14px;">
+            <div style="padding:8px 4px;background:var(--gray-50);border-radius:var(--r);">
+              <div style="font-size:1.3rem;font-weight:900;color:var(--navy);">${total}</div>
+              <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Jumlah':'Total'}</div>
             </div>
-            <div style="padding:10px;background:var(--success-lt);border-radius:var(--r);">
-              <div style="font-size:1.4rem;font-weight:900;color:var(--success);">${done}</div>
-              <div style="font-size:.7rem;color:var(--gray-600);">${t('completed')}</div>
+            <div style="padding:8px 4px;background:var(--info-lt);border-radius:var(--r);">
+              <div style="font-size:1.3rem;font-weight:900;color:var(--info);">${active}</div>
+              <div style="font-size:.65rem;color:var(--gray-500);">${lang==='bm'?'Aktif':'Active'}</div>
+            </div>
+            <div style="padding:8px 4px;background:var(--success-lt);border-radius:var(--r);">
+              <div style="font-size:1.3rem;font-weight:900;color:var(--success);">${done}</div>
+              <div style="font-size:.65rem;color:var(--gray-500);">${t('completed')}</div>
             </div>
           </div>
-          ${sj.slice(0,3).reverse().map(c=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:.8rem;">
-              <span class="text-muted">${c.problem.split('/')[0].trim()}</span>
+          ${recentJobs.map(c=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:.78rem;">
+              <span style="color:var(--gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;">${c.ref}</span>
               ${statusBadge(c.status)}
             </div>`).join('')||`<div class="text-muted text-sm">${t('noJobs')}</div>`}
         </div>
@@ -2053,16 +2198,17 @@ function renderReports() {
     <div class="stat-card c-lime"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`);
 
   const mx1 = Math.max(pend,prog,done,1);
+  const barStyle = 'cursor:pointer;border-radius:6px;transition:background .15s;';
   setHTML('rp-status-chart',`
-    <div class="bar-chart-item"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Menunggu')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Sedang Berjalan')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Selesai')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
 
   const pc = {}; all.forEach(c=>{ pc[c.problem]=(pc[c.problem]||0)+1; });
   const mx2 = Math.max(...Object.values(pc),1);
   const cols = ['navy','lime','warning','success','info'];
   setHTML('rp-type-chart', Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`
-    <div class="bar-chart-item"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openProbModal('${k.replace(/'/g,'\\\'')}')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
 
   setHTML('rp-tbody', all.map(c=>`<tr>
     <td style="font-weight:700;font-size:.8rem;color:var(--navy);">${c.ref}</td>
@@ -2075,11 +2221,29 @@ function renderReports() {
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+function notifClick(id) {
+  const n = notifs.find(x=>x.id===id);
+  if(!n) return;
+  n.read = true;
+  renderNotifBadge(); renderNotifDD(); buildSidebar();
+  closeNotifDD();
+  // Smart navigation based on notification type and content
+  const titleLower = (n.title||'').toLowerCase();
+  const isManual   = titleLower.includes('manual');
+  if(isManual) {
+    navigate('schedule');
+  } else if(n.type==='complaint'||n.type==='assign'||n.type==='status') {
+    navigate('complaints');
+  } else {
+    navigate('notifications');
+  }
+}
+
 function renderNotifications() {
   const ns = myNotifs();
   const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
   setHTML('all-notif-list', ns.length ? ns.map(n=>`
-    <div class="notif-item ${n.read?'read':'unread'}" onclick="markRead(${n.id})">
+    <div class="notif-item ${n.read?'read':'unread'}" style="cursor:pointer;" onclick="notifClick(${n.id})">
       <div class="notif-dot"></div>
       <div>
         <div style="font-weight:${n.read?500:700};font-size:.9rem;">${icon[n.type]||'🔔'} ${n.title}</div>
@@ -2095,7 +2259,7 @@ function renderNotifDD() {
   const ns = myNotifs().slice(0,8);
   const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
   setHTML('notif-dd-list', ns.length ? ns.map(n=>`
-    <div class="notif-item ${n.read?'read':'unread'}" onclick="markRead(${n.id});navigate('notifications')">
+    <div class="notif-item ${n.read?'read':'unread'}" style="cursor:pointer;" onclick="notifClick(${n.id})">
       <div class="notif-dot"></div>
       <div>
         <div class="notif-text" style="font-weight:${n.read?400:600};">${icon[n.type]||'🔔'} ${n.title}</div>

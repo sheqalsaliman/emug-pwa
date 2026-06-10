@@ -2460,3 +2460,17 @@ nav.sidebar .nav-item.active {
   border-radius:10px; padding:2px 8px; font-weight:700;
   vertical-align:middle; line-height:1.5;
 }
+
+/* ── Clickable bar chart rows ─────────────────────────────────────────────── */
+.rp-bar-click:hover { background:rgba(118,185,0,.07); border-radius:6px; }
+
+/* ── Dark theme: notification hover ──────────────────────────────────────── */
+.dash-page .notif-item { border-bottom-color:#2a2a2a; }
+.dash-page .notif-item:hover { background:#1f1f1f; }
+.dash-page .notif-item.unread { background:rgba(118,185,0,.04); }
+.dash-page .notif-text { color:#cdd9e8; }
+.dash-page .notif-time  { color:#6b8bb0; }
+
+/* ── Dark theme: stat-drill modal body ───────────────────────────────────── */
+.dash-page #sm-body > div { border-bottom-color:#2a2a2a !important; }
+.dash-page #sm-body > div:hover { background:#1a1a1a; }
