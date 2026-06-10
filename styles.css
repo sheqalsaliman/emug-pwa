@@ -2188,60 +2188,60 @@ nav.sidebar .nav-item.active {
 }
 
 /* ==========================================================================
-   DASHBOARD DARK THEME — true black, scoped to all dash pages except profile
+   DASHBOARD DARK THEME — true black, scoped to ALL dash pages
    Palette: page #0d0d0d · card #161616 · elevated #1a1a1a · border #2a2a2a
             text #ffffff · secondary #9bb0cc · muted #6b8bb0 · link #5aa9ff
    ========================================================================== */
 /* ---- Page background ---- */
-.main-content:has(.dash-page:not(#dp-profile).active) { background:#0d0d0d; }
-.dash-page:not(#dp-profile) { background:#0d0d0d; }
+.main-content:has(.dash-page.active) { background:#0d0d0d; }
+.dash-page { background:#0d0d0d; }
 
 /* ---- Page header text ---- */
-.dash-page:not(#dp-profile) .page-title { color:#ffffff; }
-.dash-page:not(#dp-profile) .page-sub   { color:#9bb0cc; }
+.dash-page .page-title { color:#ffffff; }
+.dash-page .page-sub   { color:#9bb0cc; }
 #dp-dashboard .page-sub {
   color:#6b8bb0; text-transform:uppercase; letter-spacing:1px;
   font-size:.72rem; font-weight:600;
 }
-.dash-page:not(#dp-profile) #dp-d-date { color:#6b8bb0 !important; }
-.dash-page:not(#dp-profile) label,
-.dash-page:not(#dp-profile) .form-label { color:#9bb0cc; }
+.dash-page #dp-d-date { color:#6b8bb0 !important; }
+.dash-page label,
+.dash-page .form-label { color:#9bb0cc; }
 
 /* ---- STAT CARDS (elevated) ---- */
-.dash-page:not(#dp-profile) .stat-card {
+.dash-page .stat-card {
   background:#1a1a1a; border:1px solid #2a2a2a; border-radius:12px;
 }
 #dp-dashboard .stat-card::before { display:none; }
 #dp-dashboard .stat-card.c-danger { border-left:3px solid #e24b4a; }
-.dash-page:not(#dp-profile) .stat-value  { color:#ffffff; }
+.dash-page .stat-value  { color:#ffffff; }
 #dp-dashboard .stat-card.c-danger .stat-value { color:#ff7a7a; }
-.dash-page:not(#dp-profile) .stat-label  { color:#9bb0cc; }
-.dash-page:not(#dp-profile) .stat-action { color:#6b8bb0; }
+.dash-page .stat-label  { color:#9bb0cc; }
+.dash-page .stat-action { color:#6b8bb0; }
 
 /* Icon boxes — keep colored backgrounds */
-.dash-page:not(#dp-profile) .si-red   { background:#3a1f24; color:#ff7a7a; }
-.dash-page:not(#dp-profile) .si-warn  { background:#3a2e1a; color:#f5b54a; }
-.dash-page:not(#dp-profile) .si-blue  { background:#16304d; color:#5aa9ff; }
-.dash-page:not(#dp-profile) .si-green { background:#1e3320; color:#8fd06a; }
-.dash-page:not(#dp-profile) .si-navy  { background:#16304d; color:#5aa9ff; }
-.dash-page:not(#dp-profile) .si-lime  { background:#1e3320; color:#8fd06a; }
+.dash-page .si-red   { background:#3a1f24; color:#ff7a7a; }
+.dash-page .si-warn  { background:#3a2e1a; color:#f5b54a; }
+.dash-page .si-blue  { background:#16304d; color:#5aa9ff; }
+.dash-page .si-green { background:#1e3320; color:#8fd06a; }
+.dash-page .si-navy  { background:#16304d; color:#5aa9ff; }
+.dash-page .si-lime  { background:#1e3320; color:#8fd06a; }
 
 /* ---- CARDS / PANELS ---- */
-.dash-page:not(#dp-profile) .card {
+.dash-page .card {
   background:#161616; border:1px solid #2a2a2a; border-radius:12px;
 }
-.dash-page:not(#dp-profile) .card-header { border-bottom-color:#2a2a2a; }
-.dash-page:not(#dp-profile) .card-title  { color:#ffffff; }
-.dash-page:not(#dp-profile) .card-body   { color:#9bb0cc; }
+.dash-page .card-header { border-bottom-color:#2a2a2a; }
+.dash-page .card-title  { color:#ffffff; }
+.dash-page .card-body   { color:#9bb0cc; }
 
 /* ---- TABLES (generic across pages) ---- */
-.dash-page:not(#dp-profile) thead th {
+.dash-page thead th {
   background:#161616 !important; color:#6b8bb0 !important;
   border-bottom-color:#2a2a2a !important;
 }
-.dash-page:not(#dp-profile) tbody td        { border-bottom-color:#2a2a2a !important; color:#9bb0cc; }
-.dash-page:not(#dp-profile) tbody td strong { color:#ffffff; }
-.dash-page:not(#dp-profile) tbody tr:hover  { background:#1a1a1a !important; }
+.dash-page tbody td        { border-bottom-color:#2a2a2a !important; color:#9bb0cc; }
+.dash-page tbody td strong { color:#ffffff; }
+.dash-page tbody tr:hover  { background:#1a1a1a !important; }
 
 /* ---- Recent complaints table (JS inline styles → !important) ---- */
 #dp-dashboard #d-recent-list table thead tr { background:#161616 !important; }
@@ -2255,47 +2255,47 @@ nav.sidebar .nav-item.active {
 #dp-dashboard #d-recent-list td[style*="max-width:130px"] { color:#9bb0cc !important; }
 
 /* ---- Links / outline buttons ---- */
-.dash-page:not(#dp-profile) #d-view-all,
-.dash-page:not(#dp-profile) .btn-outline {
+.dash-page #d-view-all,
+.dash-page .btn-outline {
   color:#5aa9ff !important; border-color:#2a2a2a !important; background:transparent !important;
 }
-.dash-page:not(#dp-profile) #d-view-all:hover,
-.dash-page:not(#dp-profile) .btn-outline:hover { background:#1a1a1a !important; }
+.dash-page #d-view-all:hover,
+.dash-page .btn-outline:hover { background:#1a1a1a !important; }
 
 /* ---- SEARCH BAR ---- */
-.dash-page:not(#dp-profile) .search-bar { background:#1a1a1a; border-color:#2a2a2a; }
-.dash-page:not(#dp-profile) .search-bar input { color:#ffffff; }
-.dash-page:not(#dp-profile) .search-bar input::placeholder { color:#6b8bb0; }
-.dash-page:not(#dp-profile) .search-icon { color:#6b8bb0; }
+.dash-page .search-bar { background:#1a1a1a; border-color:#2a2a2a; }
+.dash-page .search-bar input { color:#ffffff; }
+.dash-page .search-bar input::placeholder { color:#6b8bb0; }
+.dash-page .search-icon { color:#6b8bb0; }
 
 /* ---- FILTER CHIPS ---- */
-.dash-page:not(#dp-profile) .chip { background:#1a1a1a; border-color:#2a2a2a; color:#9bb0cc; }
-.dash-page:not(#dp-profile) .chip.active,
-.dash-page:not(#dp-profile) .chip:hover { background:#16304d; border-color:#2a557f; color:#5aa9ff; }
+.dash-page .chip { background:#1a1a1a; border-color:#2a2a2a; color:#9bb0cc; }
+.dash-page .chip.active,
+.dash-page .chip:hover { background:#16304d; border-color:#2a557f; color:#5aa9ff; }
 
 /* ---- FORM INPUTS / SELECTS / DATE PICKERS / TEXTAREAS ---- */
-.dash-page:not(#dp-profile) .form-control {
+.dash-page .form-control {
   background:#1a1a1a; border-color:#2a2a2a; color:#ffffff;
 }
-.dash-page:not(#dp-profile) .form-control:focus {
+.dash-page .form-control:focus {
   background:#1a1a1a; border-color:#5aa9ff; box-shadow:0 0 0 3px rgba(90,169,255,.15);
 }
-.dash-page:not(#dp-profile) .form-control::placeholder { color:#6b8bb0; }
-.dash-page:not(#dp-profile) select.form-control {
+.dash-page .form-control::placeholder { color:#6b8bb0; }
+.dash-page select.form-control {
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%236b8bb0'/%3E%3C/svg%3E");
 }
-.dash-page:not(#dp-profile) input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.6); }
-.dash-page:not(#dp-profile) .input-icon-wrap .i-icon { color:#6b8bb0; }
+.dash-page input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.6); }
+.dash-page .input-icon-wrap .i-icon { color:#6b8bb0; }
 
 /* ---- STATUS PILLS (accent — unchanged) ---- */
-.dash-page:not(#dp-profile) .badge-menunggu { background:#3a2e1a !important; color:#f5b54a !important; }
-.dash-page:not(#dp-profile) .badge-berjalan { background:#16304d !important; color:#5aa9ff !important; border:1px solid #2a557f; }
-.dash-page:not(#dp-profile) .badge-selesai  { background:#1e3320 !important; color:#8fd06a !important; border:1px solid #356b3a; }
+.dash-page .badge-menunggu { background:#3a2e1a !important; color:#f5b54a !important; }
+.dash-page .badge-berjalan { background:#16304d !important; color:#5aa9ff !important; border:1px solid #2a557f; }
+.dash-page .badge-selesai  { background:#1e3320 !important; color:#8fd06a !important; border:1px solid #356b3a; }
 
 /* ---- PRIORITY DOTS (accent — unchanged) ---- */
-.dash-page:not(#dp-profile) .priority-high { background:#e24b4a !important; }
-.dash-page:not(#dp-profile) .priority-med  { background:#f5b54a !important; }
-.dash-page:not(#dp-profile) .priority-low  { background:#8fd06a !important; }
+.dash-page .priority-high { background:#e24b4a !important; }
+.dash-page .priority-med  { background:#f5b54a !important; }
+.dash-page .priority-low  { background:#8fd06a !important; }
 
 /* ---- TODAY'S SCHEDULE (JS inline styles) ---- */
 #dp-dashboard #d-today-sched > div { border-bottom-color:#2a2a2a !important; }
@@ -2310,5 +2310,16 @@ nav.sidebar .nav-item.active {
 #dp-dashboard #d-notif-preview > div > span:first-child { background:#5aa9ff !important; }
 
 /* ---- Empty states ---- */
-.dash-page:not(#dp-profile) .empty-state,
-.dash-page:not(#dp-profile) .empty-state p { color:#6b8bb0; }
+.dash-page .empty-state,
+.dash-page .empty-state p { color:#6b8bb0; }
+
+/* ---- PROFILE PAGE (JS inline styles → !important) ---- */
+#dp-profile #pr-content div[style*="font-size:1.2rem"] { color:#ffffff !important; } /* name */
+#dp-profile #pr-content .text-muted { color:#9bb0cc !important; }                    /* Phone/Email/Username labels */
+#dp-profile #pr-content strong { color:#ffffff; }                                   /* values */
+#dp-profile #pr-content div[style*="border-top"] { border-top-color:#2a2a2a !important; }
+/* role badge keeps existing .badge-admin / .badge-staff / .badge-operator styles */
+
+/* ---- FEEDBACK summary cards (if any remain light) ---- */
+.dash-page .feedback-summary-grid .card,
+.dash-page .fb-summary-card { background:#161616; border-color:#2a2a2a; }
