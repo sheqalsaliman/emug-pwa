@@ -1279,7 +1279,9 @@ function fillDemo(u,p) {
 async function doLogin() {
   const u = el('login-user').value.trim();
   const p = el('login-pass').value;
-  const found = USERS.find(x=>x.username===u && x.password===p);
+  // Check hardcoded users first, then dynamic staff loaded from Supabase
+  const found = USERS.find(x=>x.username===u && x.password===p)
+             || dynamicStaff.find(x=>x.username===u && x.password===p);
   if(!found) {
     el('login-error').classList.add('show');
     setTxt('login-error-msg', t('liError'));
@@ -1287,7 +1289,8 @@ async function doLogin() {
     return;
   }
   user = found;
-  localStorage.setItem('emug_session', JSON.stringify({ username: found.username, role: found.role }));
+  // Store name too so session restore can rebuild full user object for dynamic staff
+  localStorage.setItem('emug_session', JSON.stringify({ username: found.username, role: found.role, name: found.name, staffId: found.staffId||found.staff_id||'' }));
   el('login-error').classList.remove('show');
   // Always re-fetch fresh data from Supabase on every login
   showLoading(lang==='bm'?'Memuatkan data...':'Loading data...');
@@ -3260,13 +3263,23 @@ function renderOperatorDashboard() {
   // ── Operator Team Schedule Calendar (separate section below the card) ────
   const todayD = now();
   if(opCalYear === undefined || opCalMonth === undefined) {
-    opCalYear  = todayD.getFullYear();
-    opCalMonth = todayD.getMonth();
+    opCalYear  = new Date().getFullYear();
+    opCalMonth = new Date().getMonth();
   }
   var opCalWrap = el('op-cal-wrap');
+  console.log('[EMUG] renderOperatorDashboard: op-cal-wrap element =', opCalWrap, 'opCalYear=', opCalYear, 'opCalMonth=', opCalMonth);
   if(opCalWrap) {
-    opCalWrap.style.display = '';
-    opCalWrap.innerHTML = buildOpCalHTML();
+    try {
+      opCalWrap.style.display = '';
+      opCalWrap.innerHTML = buildOpCalHTML();
+      console.log('[EMUG] Operator calendar rendered OK');
+    } catch(calErr) {
+      console.error('[EMUG] buildOpCalHTML error:', calErr);
+      opCalWrap.style.display = '';
+      opCalWrap.innerHTML = '<div style="color:#ff7a7a;padding:12px;font-size:.8rem;">⚠️ Gagal memuatkan kalendar: ' + calErr.message + '</div>';
+    }
+  } else {
+    console.warn('[EMUG] #op-cal-wrap not found in DOM');
   }
 
   // Collapse to single-column and hide the notif card (operator doesn't need it here)
@@ -3284,13 +3297,15 @@ function renderOperatorDashboard() {
 // ─── OPERATOR CALENDAR ────────────────────────────────────────────────────────
 function buildOpCalHTML() {
   const pad = n => String(n).padStart(2,'0');
-  const todayS = new Date().toLocaleDateString('en-CA');
   const todayObj = new Date();
+  const todayS = todayObj.toLocaleDateString('en-CA');
   const minYear = todayObj.getFullYear(); const minMonth = todayObj.getMonth() - 12;
   const maxYear = todayObj.getFullYear(); const maxMonth = todayObj.getMonth() + 12;
 
-  // Clamp
-  let yr = opCalYear, mo = opCalMonth;
+  // Ensure yr/mo are always valid numbers (guard against undefined from now() misuse)
+  let yr = (typeof opCalYear  === 'number') ? opCalYear  : todayObj.getFullYear();
+  let mo = (typeof opCalMonth === 'number') ? opCalMonth : todayObj.getMonth();
+  opCalYear = yr; opCalMonth = mo; // write back if they were undefined
   const absMonth = yr*12+mo;
   const absMin   = minYear*12+minMonth;
   const absMax   = maxYear*12+maxMonth;
@@ -3973,10 +3988,17 @@ window.addEventListener('popstate', function() {
     const saved = localStorage.getItem('emug_session');
     if(saved) {
       const u = JSON.parse(saved);
-      const found = USERS.find(x=>x.username===u.username && x.role===u.role);
+      // Check hardcoded USERS first, then dynamic staff (loaded earlier in dbLoad)
+      let found = USERS.find(x=>x.username===u.username && x.role===u.role)
+               || dynamicStaff.find(x=>x.username===u.username && x.role===u.role);
+      // Fallback: reconstruct minimal user object from stored session data
+      // (covers edge case where dynamic staff record changed but session is still valid)
+      if(!found && u.username && u.role && u.name) {
+        found = { username:u.username, role:u.role, name:u.name, staffId:u.staffId||'', password:'' };
+      }
       if(found) { user=found; initApp(); return; }
     }
-  } catch(e){}
+  } catch(e){ console.error('[EMUG] Session restore error:', e); }
 
   // No valid session — route by URL
   if(isStaff) {
