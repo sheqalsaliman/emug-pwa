@@ -3415,16 +3415,17 @@ function openOpCalDay(ds) {
   // Gather all events for this day from all 3 sources
   const items = [];
   workSchedule.forEach(e => {
-    if((e.date||'')===ds) items.push({_src:'schedule', time:e.time, description:e.description||e.location, location:e.location, operator:e.staff_name||e.assignedTo||'', status:e.status||'Menunggu'});
+    if((e.date||'')===ds) items.push({_src:'schedule', time:e.time, description:e.description||e.location||'', location:e.location||'', operator:e.staffName||e.staffUsername||'', status:e.status||'Menunggu'});
   });
   complaints.forEach(c => {
     const d = c.schedDate||c.prefDate;
-    if(d===ds) items.push({_src:'complaint', time:c.prefTime, description:c.problem, location:c.address, operator:c.acceptedBy||c.assignedTo||'', status:c.status, ref:c.ref});
+    if(d===ds) items.push({_src:'complaint', time:c.prefTime, description:c.problem+(c.name?' — '+c.name:''), location:c.address||'', operator:c.acceptedByName||c.assignedName||c.acceptedBy||c.assignedTo||'', status:c.status, ref:c.ref});
   });
   manualJobs.forEach(j => {
     if((j.job_date||'')===ds) items.push({_src:'manual', time:j.job_time, description:j.job_title||j.job_description, location:j.job_location, operator:j.operator_name||j.operator_id||'', status:j.status});
   });
   items.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  console.log('[EMUG] openOpCalDay', ds, '→', items.length, 'items:', items);
 
   // Format date label
   const [y,m,d] = ds.split('-').map(Number);
@@ -3455,7 +3456,7 @@ function openOpCalDay(ds) {
       </div>`;
     });
   }
-  setHTML('sm-list', html);
+  setHTML('sm-body', html);   // modal body ID is 'sm-body', not 'sm-list'
   openModal('modal-stats');
 }
 
