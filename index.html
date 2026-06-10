@@ -909,8 +909,7 @@
             </div>
             <div class="schedule-tabs" style="display:flex;align-items:center;gap:8px;">
               <button class="btn btn-sm btn-lime" id="sc-add-btn" onclick="openSchedAddModal()" style="display:none;">+ Tambah Jadual</button>
-              <button class="schedule-tab active" id="sc-tab-day" onclick="switchSchedView('day')">Hari</button>
-              <button class="schedule-tab" id="sc-tab-week" onclick="switchSchedView('week')">Minggu</button>
+              <button class="cal-icon-btn" id="sc-cal-btn" onclick="openCalPicker()" title="Pilih tarikh">📅</button>
             </div>
           </div>
         </div>
@@ -922,7 +921,6 @@
           <button class="btn btn-sm btn-outline" onclick="goToday()" id="sc-today">Hari Ini</button>
         </div>
         <div id="sc-day-view"><div id="sc-day-content"></div></div>
-        <div id="sc-week-view" style="display:none;"><div class="week-grid" id="sc-week-grid"></div></div>
       </div>
 
       <!-- STAFF MANAGEMENT (admin only) -->
@@ -1033,6 +1031,13 @@
 <!-- ======================================================
      MODALS
      ====================================================== -->
+
+<!-- Calendar Month Picker (Schedule) -->
+<div class="modal-overlay" id="modal-cal-picker">
+  <div id="cal-picker">
+    <div id="cal-picker-content"></div>
+  </div>
+</div>
 
 <!-- Assign / Edit Job Modal -->
 <div class="modal-overlay" id="modal-job">
