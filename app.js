@@ -1865,6 +1865,7 @@ function confirmStatusUpdate() {
 
 // ─── SCHEDULE (FULL MONTH CALENDAR) ──────────────────────────────────────────
 let schedYear, schedMonth;   // currently-viewed month (0-based month)
+let opCalYear, opCalMonth;   // operator dashboard calendar state
 
 function switchSchedView() { renderSchedule(); }   // legacy no-op safety
 
@@ -3252,7 +3253,15 @@ function renderOperatorDashboard() {
     }).join('') : '')
     +'</div>';
 
-  setHTML('d-recent-list', newJobsHTML + myJobsHTML);
+  // ── Operator Team Schedule Calendar ─────────────────────────────────────
+  const todayD = now();
+  if(opCalYear === undefined || opCalMonth === undefined) {
+    opCalYear  = todayD.getFullYear();
+    opCalMonth = todayD.getMonth();
+  }
+  var opCalHTML = buildOpCalHTML();
+
+  setHTML('d-recent-list', newJobsHTML + myJobsHTML + opCalHTML);
 
   // Collapse to single-column and hide the notif card (operator doesn't need it here)
   var staffCard = el('d-staff-card');
@@ -3264,6 +3273,169 @@ function renderOperatorDashboard() {
     if(notifCol) notifCol.style.display = 'none';
   }
   setHTML('d-notif-preview','');
+}
+
+// ─── OPERATOR CALENDAR ────────────────────────────────────────────────────────
+function buildOpCalHTML() {
+  const pad = n => String(n).padStart(2,'0');
+  const todayS = new Date().toLocaleDateString('en-CA');
+  const todayObj = new Date();
+  const minYear = todayObj.getFullYear(); const minMonth = todayObj.getMonth() - 12;
+  const maxYear = todayObj.getFullYear(); const maxMonth = todayObj.getMonth() + 12;
+
+  // Clamp
+  let yr = opCalYear, mo = opCalMonth;
+  const absMonth = yr*12+mo;
+  const absMin   = minYear*12+minMonth;
+  const absMax   = maxYear*12+maxMonth;
+  const canPrev  = absMonth > absMin;
+  const canNext  = absMonth < absMax;
+
+  const monthLabel = T[lang].monthNames[mo] + ' ' + yr;
+  const dowRow = T[lang].dayNamesShort.map(d=>`<div class="month-dow">${d}</div>`).join('');
+
+  // Build byDate from all 3 sources for this month
+  const byDate = {};
+
+  // 1) work_schedule
+  workSchedule.filter(e => {
+    if(!e.date) return false;
+    const p = e.date.split('-').map(Number);
+    return p[0]===yr && p[1]-1===mo;
+  }).forEach(e => {
+    (byDate[e.date]=byDate[e.date]||[]).push({_src:'schedule', date:e.date, time:e.time, description:e.description||e.location, location:e.location, operator:e.staff_name||e.assignedTo, status:e.status||'Menunggu'});
+  });
+
+  // 2) complaints (pref_date / sched_date)
+  complaints.forEach(c => {
+    const d = c.schedDate||c.prefDate;
+    if(!d) return;
+    const p = d.split('-').map(Number);
+    if(p[0]!==yr||p[1]-1!==mo) return;
+    (byDate[d]=byDate[d]||[]).push({_src:'complaint', date:d, time:c.prefTime, description:c.problem, location:c.address, operator:c.acceptedBy||c.assignedTo||'', status:c.status, ref:c.ref});
+  });
+
+  // 3) manual jobs (job_date)
+  manualJobs.forEach(j => {
+    const d = j.job_date;
+    if(!d) return;
+    const p = d.split('-').map(Number);
+    if(p[0]!==yr||p[1]-1!==mo) return;
+    (byDate[d]=byDate[d]||[]).push({_src:'manual', date:d, time:j.job_time, description:j.job_title||j.job_description, location:j.job_location, operator:j.operator_name||j.operator_id||'', status:j.status});
+  });
+
+  const firstDow = new Date(yr, mo, 1).getDay();
+  const dim      = new Date(yr, mo+1, 0).getDate();
+  const prevDim  = new Date(yr, mo, 0).getDate();
+  const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
+
+  let cellsHtml = '';
+  for(let i=0;i<totalCells;i++) {
+    const dayNum = i - firstDow + 1;
+    let cy=yr, cm=mo, dn=dayNum, other=false;
+    if(dayNum<1)       { other=true; cm=mo-1; if(cm<0){cm=11;cy--;} dn=prevDim+dayNum; }
+    else if(dayNum>dim){ other=true; cm=mo+1; if(cm>11){cm=0;cy++;} dn=dayNum-dim; }
+    const ds = `${cy}-${pad(cm+1)}-${pad(dn)}`;
+    if(other) { cellsHtml+=`<div class="month-cell other"><div class="month-daynum">${dn}</div></div>`; continue; }
+
+    const isToday = ds===todayS;
+    const list = (byDate[ds]||[]).slice().sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    let chips = '';
+    list.slice(0,2).forEach(e => {
+      const cls = statusClass(e.status);
+      const tm  = (e.time||'').slice(0,5);
+      const lbl = (e.description||'').trim();
+      if(e._src==='manual') {
+        chips += `<div class="job-chip" style="background:rgba(139,92,246,.15);border-left:2px solid #8b5cf6;cursor:default;" title="MANUAL: ${lbl}"><span class="jc-dot" style="background:#8b5cf6;"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
+      } else {
+        chips += `<div class="job-chip chip-${cls}" title="${tm} ${lbl}"><span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
+      }
+    });
+    const more = list.length>2 ? `<div class="month-more">+${list.length-2} ${lang==='bm'?'lagi':'more'}</div>` : '';
+    cellsHtml += `<div class="month-cell${isToday?' today':''}" onclick="openOpCalDay('${ds}')" style="cursor:pointer;">`
+              +  `<div class="month-daynum">${dn}</div>${chips}${more}</div>`;
+  }
+
+  return `<div style="margin-top:32px;">
+    <div class="card-header" style="padding:0 0 14px 0;">
+      <div class="card-title">📅 ${lang==='bm'?'Jadual Kerja Pasukan':'Team Work Schedule'}</div>
+    </div>
+    <div style="background:#161616;border-radius:12px;padding:16px;border:1px solid #2a2a2a;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <button onclick="opCalPrevMonth()" ${canPrev?'':'disabled'} style="background:${canPrev?'#1a1a1a':'#111'};color:${canPrev?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;cursor:${canPrev?'pointer':'not-allowed'};font-size:.9rem;">‹</button>
+        <div style="font-weight:700;font-size:.95rem;color:#e5e5e5;">${monthLabel}</div>
+        <button onclick="opCalNextMonth()" ${canNext?'':'disabled'} style="background:${canNext?'#1a1a1a':'#111'};color:${canNext?'#e5e5e5':'#555'};border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;cursor:${canNext?'pointer':'not-allowed'};font-size:.9rem;">›</button>
+      </div>
+      <div class="month-dow-row" style="margin-bottom:4px;">${dowRow}</div>
+      <div class="month-grid">${cellsHtml}</div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#f5b54a33;border-left:2px solid #f5b54a;"></div>${lang==='bm'?'Menunggu':'Pending'}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#5aa9ff33;border-left:2px solid #5aa9ff;"></div>${lang==='bm'?'Berjalan':'In Progress'}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:#8fd06a33;border-left:2px solid #8fd06a;"></div>${lang==='bm'?'Selesai':'Done'}</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:#aaa;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(139,92,246,.15);border-left:2px solid #8b5cf6;"></div>Manual</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function opCalPrevMonth() {
+  opCalMonth--;
+  if(opCalMonth<0){ opCalMonth=11; opCalYear--; }
+  renderOperatorDashboard();
+}
+
+function opCalNextMonth() {
+  opCalMonth++;
+  if(opCalMonth>11){ opCalMonth=0; opCalYear++; }
+  renderOperatorDashboard();
+}
+
+function openOpCalDay(ds) {
+  // Gather all events for this day from all 3 sources
+  const items = [];
+  workSchedule.forEach(e => {
+    if((e.date||'')===ds) items.push({_src:'schedule', time:e.time, description:e.description||e.location, location:e.location, operator:e.staff_name||e.assignedTo||'', status:e.status||'Menunggu'});
+  });
+  complaints.forEach(c => {
+    const d = c.schedDate||c.prefDate;
+    if(d===ds) items.push({_src:'complaint', time:c.prefTime, description:c.problem, location:c.address, operator:c.acceptedBy||c.assignedTo||'', status:c.status, ref:c.ref});
+  });
+  manualJobs.forEach(j => {
+    if((j.job_date||'')===ds) items.push({_src:'manual', time:j.job_time, description:j.job_title||j.job_description, location:j.job_location, operator:j.operator_name||j.operator_id||'', status:j.status});
+  });
+  items.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+
+  // Format date label
+  const [y,m,d] = ds.split('-').map(Number);
+  const dateLabel = new Date(y,m-1,d).toLocaleDateString(lang==='bm'?'ms-MY':'en-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  setTxt('sm-title','📅 '+dateLabel);
+
+  let html = '';
+  if(!items.length) {
+    html = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>${lang==='bm'?'Tiada jadual kerja pada tarikh ini.':'No work scheduled for this date.'}</p></div>`;
+  } else {
+    items.forEach(e => {
+      const cls = statusClass(e.status);
+      const tm = (e.time||'').slice(0,5);
+      const srcBadge = e._src==='manual'
+        ? `<span style="font-size:.65rem;background:#8b5cf6;color:#fff;border-radius:8px;padding:1px 7px;font-weight:700;">MANUAL</span>`
+        : e._src==='complaint'
+          ? `<span style="font-size:.65rem;background:#334155;color:#94a3b8;border-radius:8px;padding:1px 7px;">${e.ref||'ADUAN'}</span>`
+          : `<span style="font-size:.65rem;background:#1e3a5f;color:#60a5fa;border-radius:8px;padding:1px 7px;">JADUAL</span>`;
+      const borderColor = cls==='selesai'?'#8fd06a':cls==='berjalan'?'#5aa9ff':'#f5b54a';
+      html += `<div style="background:#1a1a1a;border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid ${borderColor};">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="font-weight:700;color:#e5e5e5;font-size:.9rem;">${e.description||''}</div>
+          <div style="display:flex;gap:6px;align-items:center;">${srcBadge}${statusBadge(e.status)}</div>
+        </div>
+        ${tm?`<div style="font-size:.8rem;color:#94a3b8;margin-bottom:5px;">🕐 ${tm}</div>`:''}
+        ${e.location?`<div style="font-size:.8rem;color:#94a3b8;margin-bottom:5px;">📍 ${e.location}</div>`:''}
+        ${e.operator?`<div style="font-size:.8rem;color:#94a3b8;">👤 ${e.operator}</div>`:''}
+      </div>`;
+    });
+  }
+  setHTML('sm-list', html);
+  openModal('modal-stats');
 }
 
 // --- ACCEPT JOB (Operator) ---
