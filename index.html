@@ -1148,6 +1148,28 @@
 </div>
 
 <!-- ======================================================
+     STAFF DELETE CONFIRM MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-staff-del">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" style="color:#ff7a7a;">🗑️ <span id="sfdel-title">Padam Kakitangan</span></div>
+        <button class="modal-close" onclick="closeModal('modal-staff-del')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <p id="sfdel-msg" style="font-size:.92rem;line-height:1.6;margin:0;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-staff-del')">Batal</button>
+      <button class="btn btn-danger" id="sfdel-confirm" onclick="">✓ Padam</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      SCHEDULE ADD MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-sched-add">

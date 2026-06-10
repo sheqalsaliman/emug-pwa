@@ -407,6 +407,7 @@ let schedDetailId = null;
 let editJobId   = null;
 let statusJobId = null;
 let cpFilter    = 'all';
+let staffDeleteMode = false;
 let lastConfirmRef = null;
 let notifOpen = false;
 let userDDOpen = false;
@@ -1346,6 +1347,7 @@ function navigate(pg) {
   const dp = el(`dp-${pg}`); if(dp) dp.classList.add('active');
   const ni = el(`nav-${pg}`); if(ni) ni.classList.add('active');
   closeAllDDs();
+  if(pg !== 'staff') staffDeleteMode = false; // reset delete mode when leaving staff page
   renderPage(pg);
   el('main-content').scrollTop = 0;
 }
@@ -2118,31 +2120,94 @@ async function deleteSchedEntry() {
 }
 
 // ─── STAFF ────────────────────────────────────────────────────────────────────
+function getHiddenStaff() {
+  try { return JSON.parse(localStorage.getItem('emug_hidden_staff')||'[]'); } catch{ return []; }
+}
+function saveHiddenStaff(arr) {
+  localStorage.setItem('emug_hidden_staff', JSON.stringify(arr));
+}
+
+function toggleStaffDeleteMode() {
+  staffDeleteMode = !staffDeleteMode;
+  renderStaff();
+}
+
+function confirmDeleteStaff(username) {
+  const su = USERS.find(u=>u.username===username);
+  if(!su) return;
+  const msgEl = el('sfdel-msg');
+  const btnEl = el('sfdel-confirm');
+  if(msgEl) msgEl.textContent = (lang==='bm'
+    ? `Padam kakitangan ini? Tindakan ini tidak boleh dibuat alik.\n\n${su.name} (${su.staffId})`
+    : `Remove this staff member? This action cannot be undone.\n\n${su.name} (${su.staffId})`);
+  if(btnEl) {
+    // Replace with a fresh clone so no stale onclick leaks
+    const newBtn = btnEl.cloneNode(true);
+    newBtn.onclick = () => deleteStaff(username);
+    btnEl.parentNode.replaceChild(newBtn, btnEl);
+  }
+  openModal('modal-staff-del');
+}
+
+function deleteStaff(username) {
+  const hidden = getHiddenStaff();
+  if(!hidden.includes(username)) hidden.push(username);
+  saveHiddenStaff(hidden);
+  closeModal('modal-staff-del');
+  staffDeleteMode = false;
+  const su = USERS.find(u=>u.username===username);
+  toast((lang==='bm'?'Kakitangan dipadam: ':'Staff removed: ')+(su?.name||username), 'success');
+  renderStaff();
+}
+
 function renderStaff() {
-  const slist = USERS; // Show every registered user (admin, operator, staff)
+  const hidden  = getHiddenStaff();
+  const slist   = USERS.filter(u=>!hidden.includes(u.username));
   const isAdmin = user.role==='admin';
 
-  const addBtn = isAdmin
-    ? `<button class="btn btn-lime btn-sm" onclick="toast(lang==='bm'?'Fungsi tambah kakitangan akan datang.':'Add staff feature coming soon.','info')" style="margin-bottom:18px;">+ ${lang==='bm'?'Tambah Kakitangan':'Add Staff'}</button>`
-    : '';
+  // ── Action buttons row ─────────────────────────────────────────────────────
+  const addBtn = isAdmin ? `
+    <button class="btn btn-lime btn-sm sf-action-btn"
+      onclick="toast(lang==='bm'?\'Fungsi tambah kakitangan akan datang.\':\' Add staff feature coming soon.\',\'info\')"
+      style="display:inline-flex;align-items:center;gap:6px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      ${lang==='bm'?'Tambah Kakitangan':'Add Staff'}
+    </button>` : '';
+
+  const removeBtn = isAdmin ? `
+    <button class="btn sf-action-btn sf-remove-btn${staffDeleteMode?' active':''}"
+      onclick="toggleStaffDeleteMode()"
+      style="display:inline-flex;align-items:center;gap:6px;background:${staffDeleteMode?'#e24b4a':'#3a1f24'};color:${staffDeleteMode?'#fff':'#ff7a7a'};border:1px solid #e24b4a;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      ${staffDeleteMode?(lang==='bm'?'Batal Padam':'Cancel Remove'):(lang==='bm'?'Buang Kakitangan':'Remove Staff')}
+    </button>` : '';
+
+  const btnRow = isAdmin ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">${addBtn}${removeBtn}</div>` : '';
 
   const roleColors = { admin:'#1a237e', operator:'#2e7d32', staff:'#0277bd' };
   const roleLabels = { admin: lang==='bm'?'Pentadbir':'Admin', operator: lang==='bm'?'Operator':'Operator', staff: lang==='bm'?'Kakitangan':'Staff' };
 
-  setHTML('sf-content', addBtn + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+  setHTML('sf-content', btnRow + (slist.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
     ${slist.map(su=>{
-      // Jobs: assigned (staff admin path) or accepted (operator path)
-      const assigned = complaints.filter(c=>c.assignedTo===su.username);
-      const accepted = complaints.filter(c=>c.acceptedBy===su.username);
+      const assigned  = complaints.filter(c=>c.assignedTo===su.username);
+      const accepted  = complaints.filter(c=>c.acceptedBy===su.username);
       const allJobIds = new Set([...assigned.map(c=>c.id), ...accepted.map(c=>c.id)]);
-      const allJobs  = complaints.filter(c=>allJobIds.has(c.id));
-      const active   = allJobs.filter(c=>c.status==='Sedang Berjalan').length;
-      const done     = allJobs.filter(c=>c.status==='Selesai').length;
-      const total    = allJobs.length;
-      const rColor   = roleColors[su.role]||'#666';
-      const rLabel   = roleLabels[su.role]||su.role;
+      const allJobs   = complaints.filter(c=>allJobIds.has(c.id));
+      const active    = allJobs.filter(c=>c.status==='Sedang Berjalan').length;
+      const done      = allJobs.filter(c=>c.status==='Selesai').length;
+      const total     = allJobs.length;
+      const rColor    = roleColors[su.role]||'#666';
+      const rLabel    = roleLabels[su.role]||su.role;
       const recentJobs = allJobs.slice(-3).reverse();
-      return `<div class="card" style="margin:0;">
+
+      // Trash overlay — only shown when staffDeleteMode is active
+      const trashOverlay = (isAdmin && staffDeleteMode) ? `
+        <button class="sf-trash-btn" onclick="confirmDeleteStaff('${su.username}')" title="${lang==='bm'?'Padam kakitangan ini':'Remove this staff member'}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>` : '';
+
+      return `<div class="card sf-card${staffDeleteMode?' sf-delmode':''}" style="margin:0;position:relative;">
+        ${trashOverlay}
         <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));padding:18px 20px;color:white;display:flex;align-items:center;gap:14px;">
           <div style="width:52px;height:52px;background:var(--lime);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:var(--navy);border:3px solid rgba(255,255,255,.25);flex-shrink:0;">
             ${iniOf(su.name)}
@@ -2179,7 +2244,7 @@ function renderStaff() {
             </div>`).join('')||`<div class="text-muted text-sm">${t('noJobs')}</div>`}
         </div>
       </div>`;}).join('')}
-  </div>`);
+  </div>` : `<div class="empty-state"><div class="empty-state-icon">👷</div><p>${lang==='bm'?'Tiada kakitangan berdaftar.':'No staff registered.'}</p></div>`));
 }
 
 // ─── REPORTS ──────────────────────────────────────────────────────────────────

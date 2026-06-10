@@ -2474,3 +2474,31 @@ nav.sidebar .nav-item.active {
 /* ── Dark theme: stat-drill modal body ───────────────────────────────────── */
 .dash-page #sm-body > div { border-bottom-color:#2a2a2a !important; }
 .dash-page #sm-body > div:hover { background:#1a1a1a; }
+
+/* ── Staff page action buttons ───────────────────────────────────────────── */
+.sf-action-btn { font-size:.8rem; padding:7px 14px; border-radius:8px; font-weight:600; cursor:pointer; border:1px solid transparent; transition:all .18s; }
+.sf-remove-btn { background:#3a1f24; color:#ff7a7a; border-color:#e24b4a !important; }
+.sf-remove-btn:hover { background:#4a2530; }
+.sf-remove-btn.active { background:#e24b4a; color:#fff; }
+
+/* Staff card — delete mode */
+.sf-card { transition:box-shadow .2s, opacity .2s; }
+.sf-card.sf-delmode { box-shadow:0 0 0 2px #e24b4a44; opacity:.92; }
+.sf-card.sf-delmode:hover { opacity:1; }
+
+/* Trash button overlay on card */
+.sf-trash-btn {
+  position:absolute; top:10px; right:10px; z-index:10;
+  width:34px; height:34px; border-radius:8px;
+  background:#e24b4a; color:#fff; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 8px rgba(226,75,74,.5);
+  transition:background .15s, transform .15s;
+}
+.sf-trash-btn:hover { background:#c0392b; transform:scale(1.08); }
+
+/* Staff delete confirm modal */
+#modal-staff-del .modal-title { color:#ff7a7a; }
+#sfdel-msg { white-space:pre-line; color:#cdd9e8; font-size:.9rem; line-height:1.6; }
+#sfdel-confirm { background:#e24b4a; border-color:#e24b4a; color:#fff; }
+#sfdel-confirm:hover { background:#c0392b; }
