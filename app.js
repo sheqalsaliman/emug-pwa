@@ -448,6 +448,7 @@ let notifCounter = 10;
 let feedbacks = [];
 let feedbackCounter = 0;
 let workSchedule = [];
+let manualJobs = [];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const t = k => (T[lang]?.[k] ?? T.bm[k] ?? k);
@@ -847,6 +848,7 @@ async function dbLoad() {
     }
   } catch(e) { console.error('[EMUG] dbLoad feedback exception:', e); }
   await dbLoadWorkSchedule();
+  await dbLoadManualJobs();
 }
 
 // ─── DB WRITE HELPERS (fire-and-forget) ───────────────────────────────────────
@@ -951,6 +953,39 @@ async function dbInsertWorkSchedule(entry) {
     if(error) { console.error('dbInsertWorkSchedule error:', JSON.stringify(error, null, 2)); return null; }
     return data ? { ...entry, id: data.id } : null;
   } catch(e) { console.error('dbInsertWorkSchedule:', e); return null; }
+}
+
+// ─── MANUAL JOBS DB ───────────────────────────────────────────────────────────
+async function dbLoadManualJobs() {
+  try {
+    const { data, error } = await db.from('jobs')
+      .select('*').eq('job_type','manual').order('created_at', { ascending: false });
+    if(!error && data) {
+      manualJobs = data;
+      console.log('[EMUG] manual jobs loaded:', data.length);
+    }
+  } catch(e) { console.error('dbLoadManualJobs:', e); }
+}
+
+async function dbInsertManualJob(job) {
+  try {
+    const { data, error } = await db.from('jobs').insert(job).select().single();
+    if(error) { console.error('dbInsertManualJob:', error.message, JSON.stringify(error, null, 2)); return null; }
+    return data;
+  } catch(e) { console.error('dbInsertManualJob:', e); return null; }
+}
+
+async function dbAcceptManualJob(jobId, opUsername, opName) {
+  try {
+    const { error } = await db.from('jobs').update({
+      operator_id:   opUsername,
+      operator_name: opName,
+      is_pool:       false,
+      status:        'Sedang Berjalan',
+    }).eq('id', jobId);
+    if(error) console.error('dbAcceptManualJob:', error.message);
+    return !error;
+  } catch(e) { console.error('dbAcceptManualJob:', e); return false; }
 }
 
 async function dbUpdateWorkSchedule(entry) {
@@ -1802,26 +1837,42 @@ function openSchedAddModal() {
   el('sa-desc').value = '';
   setTxt('sa-title', `🗓️ ${t('addSchedule')}`);
   setTxt('sa-cancel', t('cancel'));
+  // Reset to Pool mode by default
+  const poolR = document.querySelector('input[name="sa-assign-type"][value="pool"]');
+  if(poolR) { poolR.checked = true; toggleAssignType(); }
   openModal('modal-sched-add');
 }
 
+function toggleAssignType() {
+  const isDirect = document.querySelector('input[name="sa-assign-type"]:checked')?.value === 'direct';
+  const wrap = el('sa-staff-wrap');
+  if(wrap) wrap.style.display = isDirect ? '' : 'none';
+}
+
 async function saveSchedEntry() {
+  const isPool = document.querySelector('input[name="sa-assign-type"]:checked')?.value !== 'direct';
   const staffSel = el('sa-staff');
-  const staffUsername = staffSel.value;
-  const staffName = staffSel.options[staffSel.selectedIndex]?.dataset.name || '';
+  const staffUsername = isPool ? '' : (staffSel.value || '');
+  const staffName     = isPool ? '' : (staffSel.options[staffSel.selectedIndex]?.dataset.name || '');
   // Read date as plain YYYY-MM-DD string — never pass through new Date() to avoid UTC shift
   const dateVal     = el('sa-date').value.slice(0,10);
   const time        = el('sa-time').value;
   const location    = el('sa-location').value.trim();
   const description = el('sa-desc').value.trim();
-  if(!staffUsername||!dateVal||!time||!location||!description) {
-    toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error');
-    return;
+  if(!dateVal||!time||!location||!description) {
+    toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error'); return;
   }
+  if(!isPool && !staffUsername) {
+    toast(lang==='bm'?'Sila pilih kakitangan untuk penugasan terus.':'Please select a staff member for direct assignment.', 'error'); return;
+  }
+
   if(schedEditId) {
+    // Edit existing schedule entry — keep original staff if editing a pool entry
     const existing = workSchedule.find(x=>x.id===schedEditId);
     if(!existing) return;
-    const updated = { ...existing, staffUsername, staffName, date: dateVal, time, location, description };
+    const updUsername = isPool ? (existing.staffUsername || '') : staffUsername;
+    const updName     = isPool ? (existing.staffName     || '') : staffName;
+    const updated = { ...existing, staffUsername: updUsername, staffName: updName, date: dateVal, time, location, description };
     const ok = await dbUpdateWorkSchedule(updated);
     if(ok) {
       Object.assign(existing, updated);
@@ -1833,16 +1884,55 @@ async function saveSchedEntry() {
       toast(lang==='bm'?'Gagal mengemaskini jadual.':'Failed to update schedule.', 'error');
     }
   } else {
-    const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
-    const saved = await dbInsertWorkSchedule(entry);
-    if(saved) {
-      workSchedule.push(saved);
-      closeModal('modal-sched-add');
-      toast(t('schedSaved'), 'success');
-      renderSchedule();
-    } else {
-      toast(lang==='bm'?'Gagal menyimpan jadual.':'Failed to save schedule.', 'error');
+    // New booking — always create a manual job record in the jobs table
+    const jobRef = 'MANUAL-' + Date.now();
+    const manualJobRow = {
+      job_type:        'manual',
+      job_title:       description,
+      job_date:        dateVal,
+      job_time:        time,
+      job_location:    location,
+      job_description: description,
+      created_by:      user.name,
+      is_pool:         isPool,
+      operator_id:     isPool ? null : staffUsername,
+      operator_name:   isPool ? null : staffName,
+      status:          'Menunggu',
+      complaint_ref:   jobRef,
+    };
+    const savedJob = await dbInsertManualJob(manualJobRow);
+    if(!savedJob) {
+      toast(lang==='bm'?'Gagal menyimpan kerja manual.':'Failed to save manual job.', 'error'); return;
     }
+    manualJobs.unshift(savedJob);
+
+    // If direct-assign, also create a work_schedule record so the job appears on their calendar
+    if(!isPool) {
+      const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
+      const saved = await dbInsertWorkSchedule(entry);
+      if(saved) workSchedule.push(saved);
+    }
+
+    // Notifications
+    if(isPool) {
+      addNotif('complaint',
+        lang==='bm'?'Kerja Manual Baru (Pool)':'New Manual Job (Pool)',
+        (lang==='bm'?'Kerja baru tersedia: ':'New job available: ') + description,
+        'operator');
+    } else {
+      addNotif('assign',
+        lang==='bm'?'Kerja Manual Ditugaskan':'Manual Job Assigned',
+        description + ' → ' + staffName,
+        'operator', staffUsername);
+      addNotif('assign',
+        lang==='bm'?'Kerja Manual Dibuat':'Manual Job Created',
+        staffName + ': ' + description,
+        'admin');
+    }
+
+    closeModal('modal-sched-add');
+    toast(t('schedSaved'), 'success');
+    renderSchedule();
   }
 }
 
@@ -2629,13 +2719,24 @@ function renderTrackGalleryGrid(arr, jobId, tab) {
 // --- OPERATOR DASHBOARD ---
 function renderOperatorDashboard() {
   el('dp-d-date').textContent = fmtDate(now());
-  var newJobs = availableJobs();
+  var newComplaintJobs = availableJobs();
+  // Manual jobs: pool (visible to all operators) OR directly assigned to me
+  var newManualJobs = manualJobs.filter(function(j) {
+    if(j.status !== 'Menunggu') return false;
+    if(j.is_pool) return true;
+    return j.operator_id === user.username;
+  });
+  var totalNewJobs = newComplaintJobs.length + newManualJobs.length;
   var myJobs  = complaints.filter(function(c){ return c.acceptedBy === user.username; });
   var active  = myJobs.filter(function(c){ return c.status === 'Sedang Berjalan'; });
   var done    = myJobs.filter(function(c){ return c.status === 'Selesai'; });
+  // Accepted manual jobs shown in My Jobs section
+  var myManualJobs = manualJobs.filter(function(j) {
+    return j.operator_id === user.username && j.status !== 'Menunggu';
+  });
 
   setHTML('d-stats',
-    '<div class="stat-card c-warn"><div class="stat-icon">📋</div><div class="stat-value">'+newJobs.length+'</div><div class="stat-label">'+t('opNewJobs')+'</div></div>'
+    '<div class="stat-card c-warn"><div class="stat-icon">📋</div><div class="stat-value">'+totalNewJobs+'</div><div class="stat-label">'+t('opNewJobs')+'</div></div>'
     +'<div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">'+active.length+'</div><div class="stat-label">'+t('inProgress')+'</div></div>'
     +'<div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">'+done.length+'</div><div class="stat-label">'+t('completed')+'</div></div>'
   );
@@ -2644,10 +2745,14 @@ function renderOperatorDashboard() {
   var newJobsHTML = '<div style="margin-bottom:28px;">'
     +'<div class="card-header" style="padding:0 0 12px 0;">'
     +'<div class="card-title">📋 '+t('opNewJobs')
-    +(newJobs.length?'<span style="margin-left:8px;background:var(--lime);color:var(--navy);border-radius:12px;padding:1px 9px;font-size:.72rem;font-weight:800;">'+newJobs.length+'</span>':'')
-    +'</div></div>'
-    +(newJobs.length ? newJobs.map(function(c){
-      // Location row
+    +(totalNewJobs?'<span style="margin-left:8px;background:var(--lime);color:var(--navy);border-radius:12px;padding:1px 9px;font-size:.72rem;font-weight:800;">'+totalNewJobs+'</span>':'')
+    +'</div></div>';
+
+  if(totalNewJobs === 0) {
+    newJobsHTML += '<div class="empty-state"><div class="empty-state-icon">🎉</div><p>'+t('opNoNewJobs')+'</p></div>';
+  } else {
+    // Complaint jobs (existing)
+    newJobsHTML += newComplaintJobs.map(function(c){
       var locRow = c.coords
         ? '<div style="margin-bottom:8px;"><a class="maps-btn" href="https://www.google.com/maps?q='+c.coords.lat+','+c.coords.lng+'" target="_blank" rel="noopener">📍 '+(lang==='bm'?'Buka Google Maps':'Open Google Maps')+'</a></div>'
         : '<div style="font-size:.82rem;color:var(--gray-600);margin-bottom:8px;">📍 '+c.address+'</div>';
@@ -2667,8 +2772,34 @@ function renderOperatorDashboard() {
         +'<div class="job-actions">'
         +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\''+c.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
         +'</div></div>';
-    }).join('') : '<div class="empty-state"><div class="empty-state-icon">🎉</div><p>'+t('opNoNewJobs')+'</p></div>')
-    +'</div>';
+    }).join('');
+
+    // Manual jobs — MANUAL badge (purple)
+    newJobsHTML += newManualJobs.map(function(j){
+      var poolBadge = j.is_pool
+        ? '<span style="font-size:.68rem;background:#ede9fe;color:#6d28d9;border-radius:10px;padding:2px 7px;font-weight:700;margin-left:4px;">POOL</span>'
+        : '<span style="font-size:.68rem;background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 7px;font-weight:700;margin-left:4px;">'+(lang==='bm'?'UNTUK SAYA':'FOR ME')+'</span>';
+      return '<div class="job-card op-new" style="border-left:3px solid #8b5cf6;">'
+        +'<div class="job-card-top"><div>'
+        +'<div class="job-ref" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
+        +'<span>'+j.complaint_ref+'</span>'
+        +'<span style="font-size:.68rem;background:#8b5cf6;color:#fff;border-radius:10px;padding:2px 8px;font-weight:700;">MANUAL</span>'
+        +poolBadge+'</div>'
+        +'<div class="job-name">'+(lang==='bm'?'Kerja Pentadbir':'Admin Assigned Job')+'</div>'
+        +'</div>'+statusBadge(j.status)+'</div>'
+        +'<div class="job-prob">🔧 '+j.job_title+'</div>'
+        +'<div style="font-size:.82rem;color:var(--gray-600);margin:4px 0 8px;">📍 '+j.job_location+'</div>'
+        +'<div class="job-meta" style="margin-bottom:10px;">'
+        +'<div class="job-meta-item">📅 '+fmtDateShort(j.job_date)+'</div>'
+        +'<div class="job-meta-item">🕐 '+(j.job_time||'').slice(0,5)+'</div>'
+        +'<div class="job-meta-item" style="color:var(--gray-500);">👤 '+j.created_by+'</div>'
+        +'</div>'
+        +'<div class="job-actions">'
+        +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\'mj-'+j.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
+        +'</div></div>';
+    }).join('');
+  }
+  newJobsHTML += '</div>';
 
   // ── "KERJA SAYA" section ──────────────────────────────────────────────────
   var myJobsHTML = '<div>'
@@ -2769,6 +2900,21 @@ function renderOperatorDashboard() {
         +actionsHTML
         +'</div>';
     }).join('') : '<div class="empty-state"><div class="empty-state-icon">🧰</div><p>'+t('opNoMyJobs')+'</p></div>')
+    // Accepted manual jobs appended to My Jobs section
+    +(myManualJobs.length ? myManualJobs.map(function(j){
+      return '<div class="job-card op-mine selesai" style="border-left:3px solid #8b5cf6;">'
+        +'<div class="job-card-top"><div>'
+        +'<div class="job-ref" style="display:flex;align-items:center;gap:4px;">'
+        +'<span>'+j.complaint_ref+'</span>'
+        +'<span style="font-size:.68rem;background:#8b5cf6;color:#fff;border-radius:10px;padding:2px 7px;font-weight:700;">MANUAL</span></div>'
+        +'<div class="job-name">'+(lang==='bm'?'Kerja Pentadbir':'Admin Assigned Job')+'</div>'
+        +'</div>'+statusBadge(j.status)+'</div>'
+        +'<div class="job-prob">🔧 '+j.job_title+'</div>'
+        +'<div style="font-size:.82rem;color:var(--gray-600);margin:4px 0 8px;">📍 '+j.job_location+'</div>'
+        +'<div class="job-meta"><div class="job-meta-item">📅 '+fmtDateShort(j.job_date)+'</div>'
+        +'<div class="job-meta-item">🕐 '+(j.job_time||'').slice(0,5)+'</div></div>'
+        +'</div>';
+    }).join('') : '')
     +'</div>';
 
   setHTML('d-recent-list', newJobsHTML + myJobsHTML);
@@ -2787,6 +2933,14 @@ function renderOperatorDashboard() {
 
 // --- ACCEPT JOB (Operator) ---
 function acceptJob(cid) {
+  // Manual job? IDs are prefixed with 'mj-'
+  if(typeof cid === 'string' && cid.startsWith('mj-')) {
+    var mjId = parseInt(cid.slice(3), 10);
+    var mj = manualJobs.find(function(j){ return j.id === mjId; });
+    if(mj) { acceptManualJob(mj); } else { toast(lang==='bm'?'Kerja tidak dijumpai.':'Job not found.','error'); }
+    return;
+  }
+  // Complaint job (existing logic)
   var c = complaints.find(function(x){ return x.id===cid; });
   if(!c) return;
   if(c.acceptedBy) {
@@ -2804,6 +2958,24 @@ function acceptJob(cid) {
     c.ref+' — '+(lang==='bm'?'Diterima oleh ':'Accepted by ')+user.name, 'admin');
   toast(lang==='bm'?'Kerja berjaya diterima! Sila muat naik gambar Sebelum, Semasa dan Selepas.':'Job accepted! Please upload Before, During and After photos.', 'success');
   renderDashboard();
+}
+
+async function acceptManualJob(mj) {
+  var ok = await dbAcceptManualJob(mj.id, user.username, user.name);
+  if(ok) {
+    mj.status        = 'Sedang Berjalan';
+    mj.operator_id   = user.username;
+    mj.operator_name = user.name;
+    mj.is_pool       = false;
+    addNotif('assign',
+      lang==='bm'?'Kerja Manual Diterima':'Manual Job Accepted',
+      mj.complaint_ref + ' — ' + (lang==='bm'?'Diterima oleh ':'Accepted by ') + user.name,
+      'admin');
+    toast(lang==='bm'?'Kerja berjaya diterima!':'Job accepted!', 'success');
+    renderDashboard();
+  } else {
+    toast(lang==='bm'?'Gagal menerima kerja.':'Failed to accept job.', 'error');
+  }
 }
 
 // --- MARK JOB COMPLETE (Operator) ---

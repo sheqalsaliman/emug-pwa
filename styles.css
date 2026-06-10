@@ -2446,3 +2446,17 @@ nav.sidebar .nav-item.active {
 .cp-btn-sec:hover { border-color:#3a4a5a; }
 .cp-btn-pri { background:#8fc63d; border-color:#8fc63d; color:#0d0d0d; }
 .cp-btn-pri:hover { filter:brightness(1.06); }
+
+/* ── Manual Job assign-type radio group (dark modal) ─────────────────────── */
+#sa-assign-type-wrap .form-label { color:#9bb0cc; }
+#sa-assign-type-wrap label { color:#cdd9e8; }
+#sa-assign-type-wrap label:hover { color:#ffffff; }
+#sa-assign-type-wrap label span { transition:color .15s; }
+
+/* Manual job chip on operator dashboard job cards */
+.manual-badge {
+  display:inline-block;
+  font-size:.68rem; background:#8b5cf6; color:#fff;
+  border-radius:10px; padding:2px 8px; font-weight:700;
+  vertical-align:middle; line-height:1.5;
+}

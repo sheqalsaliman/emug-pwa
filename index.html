@@ -1160,7 +1160,20 @@
       <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
     </div>
     <div class="modal-body">
-      <div class="form-group">
+      <div class="form-group" id="sa-assign-type-wrap">
+        <label class="form-label">Jenis Penugasan</label>
+        <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.9rem;color:var(--gray-700);">
+            <input type="radio" name="sa-assign-type" value="pool" checked onchange="toggleAssignType()" style="accent-color:#8b5cf6;width:16px;height:16px;">
+            <span>🌐 Pool <span style="font-size:.78rem;color:var(--gray-500);">(Semua Operator)</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.9rem;color:var(--gray-700);">
+            <input type="radio" name="sa-assign-type" value="direct" onchange="toggleAssignType()" style="accent-color:#8b5cf6;width:16px;height:16px;">
+            <span>👤 Assign Terus</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group" id="sa-staff-wrap" style="display:none;">
         <label class="form-label" id="sa-lbl-staff">Kakitangan</label>
         <select class="form-control" id="sa-staff"></select>
       </div>
