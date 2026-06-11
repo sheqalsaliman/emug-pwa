@@ -1747,16 +1747,37 @@ function openRpDrillModal(title, list) {
   openModal('modal-rp-drill');
 }
 
-function openRpStatModal(status) {
-  const iconMap = { Menunggu:'⏳', 'Sedang Berjalan':'🔄', Selesai:'✅' };
+async function openRpStatModal(status) {
+  const iconMap  = { Menunggu:'⏳', 'Sedang Berjalan':'🔄', Selesai:'✅' };
   const labelMap = { Menunggu:t('pending'), 'Sedang Berjalan':t('inProgress'), Selesai:t('completed') };
-  const list = myComplaints().filter(c=>c.status===status);
-  openRpDrillModal(`${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`, list);
+  setTxt('rp-drill-title', `${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status}`);
+  setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
+  openModal('modal-rp-drill');
+  try {
+    const { data, error } = await db.from('complaints').select('*').eq('status', status).order('submitted_at', { ascending: false });
+    if(error) throw error;
+    const list = (data||[]).map(rowToComplaint);
+    setTxt('rp-drill-title', `${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`);
+    openRpDrillModal(`${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`, list);
+  } catch(e) {
+    console.error('openRpStatModal:', e);
+    setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#f87171;">Ralat memuatkan data.</div>`);
+  }
 }
 
-function openRpProbModal(prob) {
-  const list = myComplaints().filter(c=>c.problem===prob);
-  openRpDrillModal(`🔧 Aduan - ${prob} (${list.length})`, list);
+async function openRpProbModal(prob) {
+  setTxt('rp-drill-title', `🔧 Aduan - ${prob}`);
+  setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
+  openModal('modal-rp-drill');
+  try {
+    const { data, error } = await db.from('complaints').select('*').eq('problem', prob).order('submitted_at', { ascending: false });
+    if(error) throw error;
+    const list = (data||[]).map(rowToComplaint);
+    openRpDrillModal(`🔧 Aduan - ${prob} (${list.length})`, list);
+  } catch(e) {
+    console.error('openRpProbModal:', e);
+    setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#f87171;">Ralat memuatkan data.</div>`);
+  }
 }
 
 // ─── JOB MODAL ────────────────────────────────────────────────────────────────
@@ -2446,15 +2467,26 @@ function renderReports() {
   const mx1 = Math.max(pend,prog,done,1);
   const barStyle = 'cursor:pointer;border-radius:6px;transition:background .15s;';
   setHTML('rp-status-chart',`
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Menunggu')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Sedang Berjalan')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Selesai')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" data-rp-status="Menunggu" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" data-rp-status="Sedang Berjalan" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" data-rp-status="Selesai" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
+
+  // Delegated listener — property assignment prevents duplicate handlers on re-render
+  el('rp-status-chart').onclick = function(e) {
+    const bar = e.target.closest('[data-rp-status]');
+    if(bar) openRpStatModal(bar.dataset.rpStatus);
+  };
 
   const pc = {}; all.forEach(c=>{ pc[c.problem]=(pc[c.problem]||0)+1; });
   const mx2 = Math.max(...Object.values(pc),1);
   const cols = ['navy','lime','warning','success','info'];
   setHTML('rp-type-chart', Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpProbModal('${k.replace(/'/g,'\\\'')}')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" data-rp-prob="${k.replace(/"/g,'&quot;')}" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
+
+  el('rp-type-chart').onclick = function(e) {
+    const bar = e.target.closest('[data-rp-prob]');
+    if(bar) openRpProbModal(bar.dataset.rpProb);
+  };
 
   setHTML('rp-tbody', all.map(c=>`<tr>
     <td style="font-weight:700;font-size:.8rem;color:var(--navy);">${c.ref}</td>
