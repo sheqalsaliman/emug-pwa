@@ -1560,22 +1560,6 @@ function renderDashboard() {
     </div>`).join('')
     : `<div class="empty-state"><div class="empty-state-icon">🔔</div><p>${t('noNotifs')}</p></div>`);
 
-  // Today's schedule
-  if(el('d-today-sched')) {
-    const todaySched = myWorkSchedule().filter(e=>e.date===new Date().toLocaleDateString('en-CA'))
-      .sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-    setHTML('d-today-sched', todaySched.length ? todaySched.map(e=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100);">
-        <span style="background:var(--navy);color:var(--white);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:8px;flex-shrink:0;white-space:nowrap;">${(e.time||'').slice(0,5)||'—'}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:.82rem;font-weight:600;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.description||''}</div>
-          <div style="font-size:.72rem;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">👷 ${e.staffName||''} · 📍 ${e.location||''}</div>
-        </div>
-        ${statusBadge(e.status)}
-      </div>`).join('')
-      : `<div class="empty-state" style="padding:20px 0;"><div class="empty-state-icon">🗓️</div><p style="font-size:.82rem;">Tiada jadual hari ini</p></div>`);
-  }
-
   // Staff overview (admin)
   const sc = el('d-staff-card');
   if(sc) sc.style.display = user.role==='admin'?'block':'none';
