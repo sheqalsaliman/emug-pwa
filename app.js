@@ -1729,6 +1729,36 @@ function openProbModal(prob) {
   openModal('modal-stats');
 }
 
+// ─── REPORT DRILL-DOWN MODAL ─────────────────────────────────────────────────
+function openRpDrillModal(title, list) {
+  setTxt('rp-drill-title', title);
+  setHTML('rp-drill-body', list.length ? list.map(c=>`
+    <div style="padding:12px 0;border-bottom:1px solid #2a2a2a;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-weight:700;font-size:.9rem;color:#fff;">${c.ref}</span>
+        ${statusBadge(c.status)}
+      </div>
+      <div style="font-size:.83rem;color:#e0e0e0;margin-bottom:3px;">👤 ${c.name}</div>
+      <div style="font-size:.82rem;color:#c0c0c0;margin-bottom:3px;">🔧 ${c.problem}${c.desc?` · <span style="color:#888;">${c.desc}</span>`:''}</div>
+      <div style="font-size:.78rem;color:#888;margin-bottom:3px;">📅 ${fmtDateShort(c.prefDate)} · 🕐 ${c.prefTime}</div>
+      <div style="font-size:.78rem;color:#888;">🧑‍🔧 ${c.assignedName||c.acceptedByName||(lang==='bm'?'Belum ditugaskan':'Not assigned')}</div>
+    </div>`).join('')
+    : `<div style="text-align:center;padding:36px 0;color:#666;font-size:.88rem;">Tiada rekod</div>`);
+  openModal('modal-rp-drill');
+}
+
+function openRpStatModal(status) {
+  const iconMap = { Menunggu:'⏳', 'Sedang Berjalan':'🔄', Selesai:'✅' };
+  const labelMap = { Menunggu:t('pending'), 'Sedang Berjalan':t('inProgress'), Selesai:t('completed') };
+  const list = myComplaints().filter(c=>c.status===status);
+  openRpDrillModal(`${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`, list);
+}
+
+function openRpProbModal(prob) {
+  const list = myComplaints().filter(c=>c.problem===prob);
+  openRpDrillModal(`🔧 Aduan - ${prob} (${list.length})`, list);
+}
+
 // ─── JOB MODAL ────────────────────────────────────────────────────────────────
 function openJobModal(cid) {
   editJobId = cid;
@@ -2416,15 +2446,15 @@ function renderReports() {
   const mx1 = Math.max(pend,prog,done,1);
   const barStyle = 'cursor:pointer;border-radius:6px;transition:background .15s;';
   setHTML('rp-status-chart',`
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Menunggu')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Sedang Berjalan')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openStatModal('Selesai')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Menunggu')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>⏳ ${t('pending')}</span><span>${pend}</span></div><div class="bar-track"><div class="bar-fill warning" style="width:${(pend/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Sedang Berjalan')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>🔄 ${t('inProgress')}</span><span>${prog}</span></div><div class="bar-track"><div class="bar-fill navy" style="width:${(prog/mx1*100).toFixed(0)}%"></div></div></div>
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpStatModal('Selesai')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>✅ ${t('completed')}</span><span>${done}</span></div><div class="bar-track"><div class="bar-fill success" style="width:${(done/mx1*100).toFixed(0)}%"></div></div></div>`);
 
   const pc = {}; all.forEach(c=>{ pc[c.problem]=(pc[c.problem]||0)+1; });
   const mx2 = Math.max(...Object.values(pc),1);
   const cols = ['navy','lime','warning','success','info'];
   setHTML('rp-type-chart', Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`
-    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openProbModal('${k.replace(/'/g,'\\\'')}')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
+    <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="openRpProbModal('${k.replace(/'/g,'\\\'')}')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
 
   setHTML('rp-tbody', all.map(c=>`<tr>
     <td style="font-weight:700;font-size:.8rem;color:var(--navy);">${c.ref}</td>
