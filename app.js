@@ -1019,6 +1019,26 @@ async function dbAcceptManualJob(jobId, opUsername, opName) {
   } catch(e) { console.error('dbAcceptManualJob:', e); return false; }
 }
 
+async function dbCreateJobFromComplaint(c) {
+  const job = {
+    complaint_ref:    c.ref,
+    operator_id:      c.acceptedBy,
+    operator_name:    c.acceptedByName,
+    accepted_at:      c.acceptedAt,
+    status:           'Sedang Berjalan',
+    job_type:         'complaint',
+    job_title:        c.problem || 'Aduan',
+    job_date:         c.prefDate || c.schedDate || c.acceptedAt?.slice(0,10) || new Date().toISOString().slice(0,10),
+    job_time:         c.prefTime || null,
+    job_location:     c.address || null,
+    job_description:  c.desc || null,
+    created_by:       c.acceptedBy,
+    is_pool:          false,
+  };
+  const { error } = await db.from('jobs').insert(job);
+  if(error){ console.error('dbCreateJobFromComplaint error', error); }
+}
+
 // ─── DYNAMIC STAFF DB ─────────────────────────────────────────────────────────
 async function dbLoadDynamicStaff() {
   try {
@@ -3473,6 +3493,7 @@ function acceptJob(cid) {
   c.updatedAt      = new Date().toISOString();
   if(!galleryData[cid]) galleryData[cid] = { before:[], during:[], after:[] };
   dbUpdateComplaint(c);
+  dbCreateJobFromComplaint(c);
   addNotif('assign', lang==='bm'?'Aduan Diterima Operator':'Job Accepted by Operator',
     c.ref+' — '+(lang==='bm'?'Diterima oleh ':'Accepted by ')+user.name, 'admin');
   toast(lang==='bm'?'Kerja berjaya diterima! Sila muat naik gambar Sebelum, Semasa dan Selepas.':'Job accepted! Please upload Before, During and After photos.', 'success');
