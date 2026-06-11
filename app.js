@@ -3274,7 +3274,7 @@ function renderOperatorDashboard() {
       } else {
         actionsHTML += '<span style="font-size:.78rem;color:var(--success);font-weight:700;">✅ '+(lang==='bm'?'Selesai':'Completed')+'</span>';
       }
-      actionsHTML += '<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;margin-left:4px;" onclick="operatorDeleteJob(\''+c.id+'\',\''+c.ref+'\',false)">🗑️ Padam</button>';
+      actionsHTML += '<button class="btn btn-sm" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;margin-left:4px;" onclick="opCancelJob(\''+c.ref+'\')">❌ Cancel Job</button>';
       actionsHTML += '</div>';
 
       return '<div class="job-card op-mine '+statusClass(c.status)+'">'
@@ -3313,7 +3313,7 @@ function renderOperatorDashboard() {
         +'<div class="job-meta"><div class="job-meta-item">📅 '+fmtDateShort(j.job_date)+'</div>'
         +'<div class="job-meta-item">🕐 '+(j.job_time||'').slice(0,5)+'</div></div>'
         +'<div class="job-actions" style="margin-top:8px;">'
-        +'<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;" onclick="operatorDeleteJob(\''+j.id+'\',\''+j.complaint_ref+'\',true)">🗑️ Padam</button>'
+        +'<button class="btn btn-sm" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;" onclick="opCancelJob(\''+j.complaint_ref+'\')">❌ Cancel Job</button>'
         +'</div>'
         +'</div>';
     }).join('') : '')
