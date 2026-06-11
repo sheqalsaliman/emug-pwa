@@ -1781,6 +1781,75 @@ async function handleReportTypeClick(el) {
   }
 }
 
+// ─── REPORT STAT CARD CLICK ──────────────────────────────────────────────────
+async function handleRpStatCard(filter) {
+  const iconMap  = { all:'📋', Menunggu:'⏳', 'Sedang Berjalan':'🔄', Selesai:'✅', urgent:'🚨', staff:'👷' };
+  const labelMap = { all:t('totalJobs'), Menunggu:t('pending'), 'Sedang Berjalan':t('inProgress'), Selesai:t('completed'), urgent:lang==='bm'?'Segera':'Urgent', staff:t('totalStaff') };
+  const icon  = iconMap[filter]  || '📋';
+  const label = labelMap[filter] || filter;
+
+  // Staff card — no Supabase query needed, show from USERS array
+  if(filter === 'staff') {
+    const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+    setTxt('rp-drill-title', `${icon} ${label} (${staffList.length})`);
+    setHTML('rp-drill-body', staffList.length ? staffList.map(u=>`
+      <div style="padding:12px 0;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${iniOf(u.name)}</div>
+        <div>
+          <div style="font-weight:700;font-size:.88rem;color:#fff;">${u.name}</div>
+          <div style="font-size:.76rem;color:#888;margin-top:2px;">🆔 ${u.staffId||u.staff_id||'—'} · ${u.role==='admin'?t('role_admin'):u.role==='operator'?t('role_operator'):t('role_staff')}</div>
+        </div>
+      </div>`).join('')
+      : `<div style="text-align:center;padding:36px 0;color:#666;font-size:.88rem;">Tiada rekod</div>`);
+    openModal('modal-rp-drill');
+    return;
+  }
+
+  setTxt('rp-drill-title', `${icon} ${label}`);
+  setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
+  openModal('modal-rp-drill');
+  try {
+    let query = db.from('complaints').select('*').order('submitted_at', { ascending: false });
+    if(filter === 'urgent')              query = query.eq('urgency', 'Segera');
+    else if(filter !== 'all')            query = query.eq('status', filter);
+    const { data, error } = await query;
+    if(error) throw error;
+    const list = (data||[]).map(rowToComplaint);
+    setTxt('rp-drill-title', `${icon} ${label} (${list.length})`);
+    openRpDrillModal(`${icon} ${label} (${list.length})`, list);
+  } catch(e) {
+    console.error('handleRpStatCard:', e);
+    setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#f87171;">Ralat memuatkan data.</div>`);
+  }
+}
+
+// ─── REPORT TABLE ROW CLICK ───────────────────────────────────────────────────
+function handleRpRowClick(cid) {
+  const c = complaints.find(x=>x.id===cid);
+  if(!c) return;
+  setTxt('rp-drill-title', `📋 ${c.ref}`);
+  setHTML('rp-drill-body', `
+    <div style="padding:4px 0 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <span style="font-weight:800;font-size:1rem;color:#fff;letter-spacing:.3px;">${c.ref}</span>
+        ${statusBadge(c.status)}
+      </div>
+      <div style="display:grid;gap:10px;">
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">👤 ${lang==='bm'?'Nama':'Name'}</span><span style="color:#e0e0e0;font-size:.82rem;font-weight:600;">${c.name}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">📞 ${lang==='bm'?'Telefon':'Phone'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.phone}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">📍 ${lang==='bm'?'Alamat':'Address'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.address}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">🔧 ${lang==='bm'?'Masalah':'Problem'}</span><span style="color:#e0e0e0;font-size:.82rem;font-weight:600;">${c.problem}</span></div>
+        ${c.desc?`<div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">💬 ${lang==='bm'?'Huraian':'Description'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.desc}</span></div>`:''}
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">🚨 ${lang==='bm'?'Keutamaan':'Urgency'}</span><span style="color:${c.urgency==='Segera'?'#f87171':'#888'};font-size:.82rem;font-weight:${c.urgency==='Segera'?'700':'400'};">${c.urgency==='Segera'?(lang==='bm'?'Segera':'Urgent'):(lang==='bm'?'Normal':'Normal')}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">📅 ${lang==='bm'?'Tarikh':'Date'}</span><span style="color:#e0e0e0;font-size:.82rem;">${fmtDate(c.prefDate)}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">🕐 ${lang==='bm'?'Masa':'Time'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.prefTime}</span></div>
+        <div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">🧑‍🔧 ${lang==='bm'?'Ditugaskan':'Assigned'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.assignedName||c.acceptedByName||(lang==='bm'?'Belum ditugaskan':'Not assigned')}</span></div>
+        ${c.acceptedByName?`<div style="display:flex;gap:8px;"><span style="color:#888;font-size:.8rem;width:110px;flex-shrink:0;">🤝 ${lang==='bm'?'Diterima':'Accepted'}</span><span style="color:#e0e0e0;font-size:.82rem;">${c.acceptedByName}</span></div>`:''}
+      </div>
+    </div>`);
+  openModal('modal-rp-drill');
+}
+
 // ─── JOB MODAL ────────────────────────────────────────────────────────────────
 function openJobModal(cid) {
   editJobId = cid;
@@ -2457,13 +2526,14 @@ function renderReports() {
   const prog  = all.filter(c=>c.status==='Sedang Berjalan').length;
   const done  = all.filter(c=>c.status==='Selesai').length;
   const urgent= all.filter(c=>c.urgency==='Segera').length;
+  const staffCount = USERS.filter(u=>u.role==='staff'||u.role==='operator').length;
   setHTML('rp-stats',`
-    <div class="stat-card c-navy"><div class="stat-icon">📋</div><div class="stat-value">${all.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
-    <div class="stat-card c-warn"><div class="stat-icon">⏳</div><div class="stat-value">${pend}</div><div class="stat-label">${t('pending')}</div></div>
-    <div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">${prog}</div><div class="stat-label">${t('inProgress')}</div></div>
-    <div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">${done}</div><div class="stat-label">${t('completed')}</div></div>
-    <div class="stat-card c-danger"><div class="stat-icon">🚨</div><div class="stat-value">${urgent}</div><div class="stat-label">${lang==='bm'?'Segera':'Urgent'}</div></div>
-    <div class="stat-card c-lime"><div class="stat-icon">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`);
+    <div class="stat-card c-navy" style="cursor:pointer;" onclick="handleRpStatCard('all')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">📋</div><div class="stat-value">${all.length}</div><div class="stat-label">${t('totalJobs')}</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="handleRpStatCard('Menunggu')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">⏳</div><div class="stat-value">${pend}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card c-info" style="cursor:pointer;" onclick="handleRpStatCard('Sedang Berjalan')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">🔄</div><div class="stat-value">${prog}</div><div class="stat-label">${t('inProgress')}</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="handleRpStatCard('Selesai')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">✅</div><div class="stat-value">${done}</div><div class="stat-label">${t('completed')}</div></div>
+    <div class="stat-card c-danger" style="cursor:pointer;" onclick="handleRpStatCard('urgent')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">🚨</div><div class="stat-value">${urgent}</div><div class="stat-label">${lang==='bm'?'Segera':'Urgent'}</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="handleRpStatCard('staff')" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="stat-icon">👷</div><div class="stat-value">${staffCount}</div><div class="stat-label">${t('totalStaff')}</div></div>`);
 
   const mx1 = Math.max(pend,prog,done,1);
   const barStyle = 'cursor:pointer;border-radius:6px;transition:background .15s;';
@@ -2478,7 +2548,7 @@ function renderReports() {
   setHTML('rp-type-chart', Object.entries(pc).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`
     <div class="bar-chart-item rp-bar-click" style="${barStyle}" onclick="handleReportTypeClick(this)" data-prob="${k.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" title="${lang==='bm'?'Klik untuk lihat senarai':'Click to view list'}"><div class="bar-chart-label"><span>${k}</span><span>${v}</span></div><div class="bar-track"><div class="bar-fill ${cols[i%cols.length]}" style="width:${(v/mx2*100).toFixed(0)}%"></div></div></div>`).join(''));
 
-  setHTML('rp-tbody', all.map(c=>`<tr>
+  setHTML('rp-tbody', all.map(c=>`<tr style="cursor:pointer;" onclick="handleRpRowClick('${c.id}')" title="${lang==='bm'?'Klik untuk butiran':'Click for details'}">
     <td style="font-weight:700;font-size:.8rem;color:var(--navy);">${c.ref}</td>
     <td>${c.name}</td>
     <td style="font-size:.82rem;">${c.problem}</td>
