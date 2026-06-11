@@ -3167,6 +3167,8 @@ function renderOperatorDashboard() {
         +'</div>'
         +'<div class="job-actions">'
         +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\''+c.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
+        +'<button class="btn btn-sm" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;" onclick="opCancelJob(\''+c.ref+'\')">❌ Cancel Job</button>'
+        +'<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;" onclick="opDeleteComplaint(\''+c.ref+'\')">🗑️ Delete</button>'
         +'</div></div>';
     }).join('');
 
@@ -3551,6 +3553,44 @@ async function acceptManualJob(mj) {
     renderDashboard();
   } else {
     toast(lang==='bm'?'Gagal menerima kerja.':'Failed to accept job.', 'error');
+  }
+}
+
+// --- OPERATOR CANCEL JOB (New Jobs section) ---
+async function opCancelJob(ref) {
+  if(!confirm('Cancel job ini? Aduan akan dikembalikan ke status Menunggu.')) return;
+  try {
+    const { error: e1 } = await db.from('complaints').update({
+      status: 'Menunggu',
+      assigned_to: null,
+      assigned_name: null,
+      accepted_by: null,
+      accepted_by_name: null,
+      accepted_at: null,
+    }).eq('ref', ref);
+    if(e1) { toast(lang==='bm'?'Gagal membatalkan job.':'Failed to cancel job.', 'error'); return; }
+    const { error: e2 } = await db.from('jobs').delete().eq('complaint_ref', ref);
+    if(e2) console.warn('opCancelJob jobs delete:', e2.message);
+    var c = complaints.find(function(x){ return x.ref === ref; });
+    if(c) {
+      c.status = 'Menunggu'; c.assignedTo = null; c.assignedName = null;
+      c.acceptedBy = null; c.acceptedByName = null; c.acceptedAt = null;
+    }
+    toast(lang==='bm'?'Job telah dibatalkan':'Job has been cancelled', 'success');
+    renderOperatorDashboard();
+  } catch(e) { console.error('opCancelJob:', e); toast('Error', 'error'); }
+}
+
+// --- OPERATOR DELETE COMPLAINT (New Jobs section) ---
+async function opDeleteComplaint(ref) {
+  if(!confirm('Padam aduan ini terus? Tindakan tidak boleh dibatalkan.')) return;
+  var ok = await dbDeleteComplaint(ref);
+  if(ok) {
+    complaints = complaints.filter(function(c){ return c.ref !== ref; });
+    toast(lang==='bm'?'Aduan berjaya dipadam':'Complaint deleted successfully', 'success');
+    renderOperatorDashboard();
+  } else {
+    toast(lang==='bm'?'Gagal memadam aduan.':'Failed to delete complaint.', 'error');
   }
 }
 
