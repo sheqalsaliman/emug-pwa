@@ -34,7 +34,15 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(git pull *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(git commit -m 'feat: operator dashboard team schedule calendar *)",
+      "Bash(git commit -m 'fix: operator dashboard calendar now renders in dedicated #op-cal-wrap section *)",
+      "Bash(git commit -m 'fix: operator session persistence + operator calendar crash *)",
+      "Bash(git commit -m 'fix: operator calendar position + popup content *)",
+      "Bash(git commit -m 'feat: Jadual Kerja nav + dedicated schedule page for operator *)",
+      "Bash(ls js/)",
+      "Bash(ls *.html)",
+      "Bash(git commit *)"
     ]
   }
 }

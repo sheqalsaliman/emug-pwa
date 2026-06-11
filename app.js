@@ -4008,7 +4008,7 @@ window.addEventListener('popstate', function() {
       if(!found && u.username && u.role && u.name) {
         found = { username:u.username, role:u.role, name:u.name, staffId:u.staffId||'', password:'' };
       }
-      if(found) { user=found; initApp(); return; }
+      if(found && isStaff) { user=found; initApp(); return; }
     }
   } catch(e){ console.error('[EMUG] Session restore error:', e); }
 
