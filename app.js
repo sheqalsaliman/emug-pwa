@@ -803,12 +803,21 @@ async function dbLoad() {
       complaints.sort(function(a, b) {
         return (b.submittedAt || '').localeCompare(a.submittedAt || '');
       });
-      complaints.forEach(function(c) {
-        if(!c.ref) return;
-        const m = c.ref.match(/(\d+)$/);
+      console.log('[EMUG] complaints loaded:', complaints.length);
+    }
+  } catch(e) { console.error('[EMUG] dbLoad complaints exception:', e); }
+
+  // Derive refCounter from ALL complaints (including soft-deleted) to avoid duplicate refs
+  try {
+    const { data: allRefs } = await db.from('complaints').select('ref');
+    if(allRefs) {
+      allRefs.forEach(function(row) {
+        if(!row.ref) return;
+        const m = row.ref.match(/(\d+)$/);
         if(m) { const n = parseInt(m[1]); if(n >= refCounter) refCounter = n + 1; }
       });
-      console.log('[EMUG] complaints loaded:', complaints.length);
+    }
+  } catch(e) { console.warn('[EMUG] refCounter init fallback:', e); }
     }
   } catch(e) { console.error('[EMUG] dbLoad complaints exception:', e); }
 
