@@ -428,7 +428,7 @@ let starRatings = { quality:0, timeliness:0, service:0 };
 let galleryData = {};
 // Booking calendar
 const BK_SLOTS = ['08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','13:00 - 14:00','14:00 - 15:00','15:00 - 16:00','16:00 - 17:00'];
-const BK_MAX_PER_SLOT = 3;
+const BK_MAX_PER_SLOT = 1;
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
