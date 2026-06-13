@@ -788,7 +788,7 @@ async function dbLoad() {
   // Load complaints
   try {
     console.log('[EMUG] dbLoad: fetching complaints...');
-    const { data, error } = await db.from('complaints').select('*');
+    const { data, error } = await db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false');
     console.log('[EMUG] complaints response → error:', error, '| rows:', data ? data.length : 'null');
     if(error) {
       console.error('[EMUG] dbLoad complaints error:', error.message, error);
@@ -897,12 +897,7 @@ async function dbUpdateComplaint(c) {
   } catch(e) { console.error('dbUpdateComplaint:', e); }
 }
 
-async function dbDeleteComplaint(ref) {
-  try {
-    const { error } = await db.from('complaints').delete().eq('ref', ref);
-    if(error) console.error('dbDeleteComplaint:', error.message);
-  } catch(e) { console.error('dbDeleteComplaint:', e); }
-}
+// soft-delete stub — superseded by the full implementation below
 
 async function dbSaveGallery(jobRef) {
   const gd = galleryData[jobRef] || { before:[], during:[], after:[] };
@@ -1040,10 +1035,11 @@ async function dbCreateJobFromComplaint(c) {
 }
 
 async function dbDeleteComplaint(ref) {
+  // Soft delete — sets is_deleted = true on both complaints and related jobs
   try {
-    const { error: e1 } = await db.from('jobs').delete().eq('complaint_ref', ref);
+    const { error: e1 } = await db.from('jobs').update({ is_deleted: true }).eq('complaint_ref', ref);
     if(e1) { console.error('dbDeleteComplaint jobs:', e1.message); return false; }
-    const { error: e2 } = await db.from('complaints').delete().eq('ref', ref);
+    const { error: e2 } = await db.from('complaints').update({ is_deleted: true }).eq('ref', ref);
     if(e2) { console.error('dbDeleteComplaint complaints:', e2.message); return false; }
     return true;
   } catch(e) { console.error('dbDeleteComplaint:', e); return false; }
@@ -1754,7 +1750,7 @@ async function handleReportBarClick(status) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    const { data, error } = await db.from('complaints').select('*').eq('status', status).order('submitted_at', { ascending: false });
+    const { data, error } = await db.from('complaints').select('*').eq('status', status).or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
     if(error) throw error;
     const list = (data||[]).map(rowToComplaint);
     setTxt('rp-drill-title', `${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`);
@@ -1771,7 +1767,7 @@ async function handleReportTypeClick(el) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    const { data, error } = await db.from('complaints').select('*').eq('problem', prob).order('submitted_at', { ascending: false });
+    const { data, error } = await db.from('complaints').select('*').eq('problem', prob).or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
     if(error) throw error;
     const list = (data||[]).map(rowToComplaint);
     openRpDrillModal(`🔧 Aduan - ${prob} (${list.length})`, list);
@@ -1809,7 +1805,7 @@ async function handleRpStatCard(filter) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    let query = db.from('complaints').select('*').order('submitted_at', { ascending: false });
+    let query = db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
     if(filter === 'urgent')              query = query.eq('urgency', 'Segera');
     else if(filter !== 'all')            query = query.eq('status', filter);
     const { data, error } = await query;
@@ -1988,13 +1984,15 @@ function saveJob() {
   buildSidebar();
 }
 
-function deleteComplaint() {
-  if(!confirm(t('confirmDelete'))) return;
+async function deleteComplaint() {
   const delRef = (complaints.find(x=>x.id===editJobId)||{}).ref;
+  if(!delRef) return;
+  if(!confirm('Padam aduan '+delRef+'? Tindakan ini tidak boleh dibatalkan.')) return;
+  const ok = await dbDeleteComplaint(delRef);
+  if(!ok) { toast(lang==='bm'?'Gagal memadam aduan.':'Failed to delete complaint.', 'error'); return; }
   complaints = complaints.filter(x=>x.id!==editJobId);
-  if(delRef) dbDeleteComplaint(delRef);
   closeModal('modal-job');
-  toast(t('deleted'), 'info');
+  toast('Aduan '+delRef+' telah dipadam', 'success');
   renderComplaints();
   renderDashboard();
   buildSidebar();
@@ -3689,11 +3687,11 @@ async function opCancelJob(ref) {
 
 // --- OPERATOR DELETE COMPLAINT (New Jobs section) ---
 async function opDeleteComplaint(ref) {
-  if(!confirm('Padam aduan ini terus? Tindakan tidak boleh dibatalkan.')) return;
+  if(!confirm('Padam aduan '+ref+'? Tindakan ini tidak boleh dibatalkan.')) return;
   var ok = await dbDeleteComplaint(ref);
   if(ok) {
     complaints = complaints.filter(function(c){ return c.ref !== ref; });
-    toast(lang==='bm'?'Aduan berjaya dipadam':'Complaint deleted successfully', 'success');
+    toast('Aduan '+ref+' telah dipadam', 'success');
     renderOperatorDashboard();
   } else {
     toast(lang==='bm'?'Gagal memadam aduan.':'Failed to delete complaint.', 'error');
@@ -3702,11 +3700,11 @@ async function opDeleteComplaint(ref) {
 
 // --- ADMIN DELETE COMPLAINT ---
 async function adminDeleteComplaint(ref) {
-  if(!confirm('Delete aduan '+ref+' dan semua job berkaitan? Tindakan ini tidak boleh dibatalkan.')) return;
+  if(!confirm('Padam aduan '+ref+'? Tindakan ini tidak boleh dibatalkan.')) return;
   var ok = await dbDeleteComplaint(ref);
   if(ok) {
     complaints = complaints.filter(function(c){ return c.ref !== ref; });
-    toast(lang==='bm'?'Aduan berjaya dipadam':'Complaint deleted successfully', 'success');
+    toast('Aduan '+ref+' telah dipadam', 'success');
     renderComplaintsList();
   } else {
     toast(lang==='bm'?'Gagal memadam aduan.':'Failed to delete complaint.', 'error');
