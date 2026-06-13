@@ -818,8 +818,6 @@ async function dbLoad() {
       });
     }
   } catch(e) { console.warn('[EMUG] refCounter init fallback:', e); }
-    }
-  } catch(e) { console.error('[EMUG] dbLoad complaints exception:', e); }
 
   // Load gallery (jobs table — optional, skip silently if missing)
   try {
