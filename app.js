@@ -209,6 +209,13 @@ const T = {
     scSub:'Lihat jadual kerja harian/mingguan',
     cpSub:'Semua aduan diterima',
     rpThRef:'No. Rujukan',rpThCust:'Pelanggan',rpThProb:'Masalah',rpThDate:'Tarikh',
+    sfSub:'Urus senarai kakitangan',
+    rpSub:'Statistik dan analisis kerja',
+    saLblAssignType:'Jenis Penugasan',saPoolLbl:'(Semua Operator)',saDirectLbl:'👤 Assign Terus',
+    saLblDate:'Tarikh',saLblTime:'Masa',saTimePlaceholder:'-- Pilih Masa --',
+    saLblLocation:'Lokasi',saLocPlaceholder:'Alamat / lokasi kerja',
+    saLblDesc:'Penerangan Kerja',saDescPlaceholder:'Penerangan tugas...',
+    saSave:'Simpan',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -385,6 +392,13 @@ const T = {
     scSub:'View daily/weekly work schedule',
     cpSub:'All complaints received',
     rpThRef:'Ref. No.',rpThCust:'Customer',rpThProb:'Problem',rpThDate:'Date',
+    sfSub:'Manage staff list',
+    rpSub:'Work statistics and analysis',
+    saLblAssignType:'Assignment Type',saPoolLbl:'(All Operators)',saDirectLbl:'👤 Direct Assign',
+    saLblDate:'Date',saLblTime:'Time',saTimePlaceholder:'-- Select Time --',
+    saLblLocation:'Location',saLocPlaceholder:'Work address / location',
+    saLblDesc:'Job Description',saDescPlaceholder:'Task description...',
+    saSave:'Save',
   }
 };
 
@@ -558,13 +572,25 @@ function applyAllText() {
   setTxt('cp-title',t('complaints')); setTxt('cp-sub',t('cpSub'));
   setTxt('sc-title',t('schedule')); setTxt('sc-sub',t('scSub'));
   setTxt('sc-tab-day',t('day')); setTxt('sc-tab-week',t('week')); setTxt('sc-today',t('today'));
-  setTxt('sf-title',t('staff')); setTxt('rp-title',t('reports'));
+  setTxt('sf-title',t('staff')); setTxt('sf-sub',t('sfSub'));
+  setTxt('rp-title',t('reports')); setTxt('rp-sub',t('rpSub'));
   setTxt('rp-status-lbl', lang==='bm'?'Status Kerja':'Job Status');
   setTxt('rp-type-lbl',   lang==='bm'?'Jenis Masalah':'Problem Type');
   setTxt('rp-all-lbl',    lang==='bm'?'Semua Rekod':'All Records');
   setTxt('rp-th-ref',t('rpThRef')); setTxt('rp-th-cust',t('rpThCust'));
   setTxt('rp-th-prob',t('rpThProb')); setTxt('rp-th-staff',t('staff'));
   setTxt('rp-th-date',t('rpThDate')); setTxt('nt-title',t('notifications'));
+  // Schedule add modal
+  setTxt('sa-lbl-assign-type',t('saLblAssignType'));
+  setTxt('sa-pool-lbl',t('saPoolLbl'));
+  setTxt('sa-direct-lbl',t('saDirectLbl'));
+  setTxt('sa-lbl-staff',t('staff'));
+  setTxt('sa-lbl-date',t('saLblDate')); setTxt('sa-lbl-time',t('saLblTime'));
+  setTxt('sa-time-placeholder',t('saTimePlaceholder'));
+  setTxt('sa-lbl-location',t('saLblLocation')); setTxt('sa-lbl-desc',t('saLblDesc'));
+  setTxt('sa-save',`💾 ${t('saSave')}`);
+  const saLoc = el('sa-location'); if(saLoc) saLoc.placeholder = t('saLocPlaceholder');
+  const saDesc = el('sa-desc'); if(saDesc) saDesc.placeholder = t('saDescPlaceholder');
   setTxt('nt-mark-all',t('markRead')); setTxt('pr-title',t('profile'));
   // Modal
   setTxt('mj-lbl-assign',t('assignTo')); setTxt('mj-lbl-status','Status');
