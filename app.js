@@ -206,6 +206,9 @@ const T = {
     navStaff:'Kakitangan',navReports:'Laporan',navNotif:'Pemberitahuan',
     navFeedback:'Pengurusan Ulasan',navProfile:'Profil Saya',
     btnLogout:'Log Keluar',roleAdmin:'Pentadbir',roleStaff:'Kakitangan',
+    scSub:'Lihat jadual kerja harian/mingguan',
+    cpSub:'Semua aduan diterima',
+    rpThRef:'No. Rujukan',rpThCust:'Pelanggan',rpThProb:'Masalah',rpThDate:'Tarikh',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -341,23 +344,6 @@ const T = {
     galleryCount:'photos',galleryAdded:'Photo added.',galleryDeleted:'Photo deleted.',
     galleryView:'View Gallery',
     // Admin feedback
-    fbRate:'Beri Penilaian',
-    // Operator role
-    role_operator:'Operator Lapangan',
-    opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
-    opSchedTitle:'Jadual Kerja',opSchedSub:'Jadual kerja pasukan',
-    opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
-    opAcceptJob:'Terima Kerja',opCompleteJob:'Kerja Selesai',
-    opNoNewJobs:'Tiada aduan baru pada masa ini.',opNoMyJobs:'Tiada kerja yang diterima lagi.',
-    opAccepted:'Diterima',opAcceptedBy:'Diterima Oleh',opAcceptedAt:'Masa Terima',
-    opCompletedAt:'Masa Selesai',opOperator:'Operator',
-    opCompleteWarn:'Sila muat naik sekurang-kurangnya 1 gambar setiap kategori (Sebelum, Semasa, Selepas) sebelum menandakan kerja selesai.',
-    opPhotosRequired:'Gambar Sebelum / Semasa / Selepas diperlukan',
-    // Customer complaint photos
-    custPhotos:'Gambar Aduan Pelanggan',noCustPhotos:'Tiada gambar dilampirkan.',
-    // Completion photos on track page
-    completionGallery:'Gambar Penyelesaian Kerja',noGalleryPhotos:'Gambar belum dimuat naik.',
-    trOperator:'Operator',trAccepted:'Kerja Diterima',trCompleted:'Kerja Diselesaikan',
     fbaTitle:'Feedback Management',fbaSub:'Review and manage customer feedback',
     fbaListTitle:'All Reviews',fbaPublish:'Publish',fbaUnpublish:'Unpublish',
     fbaPublished:'published',
@@ -396,6 +382,9 @@ const T = {
     navStaff:'Staff',navReports:'Reports',navNotif:'Notifications',
     navFeedback:'Feedback Management',navProfile:'My Profile',
     btnLogout:'Logout',roleAdmin:'Admin',roleStaff:'Staff',
+    scSub:'View daily/weekly work schedule',
+    cpSub:'All complaints received',
+    rpThRef:'Ref. No.',rpThCust:'Customer',rpThProb:'Problem',rpThDate:'Date',
   }
 };
 
@@ -509,6 +498,7 @@ function setLang(l) {
   const lbl = l==='bm'?'EN':'BM';
   document.querySelectorAll('#pub-lang-btn,#login-lang-btn,#app-lang-btn').forEach(b=>b.textContent=lbl);
   applyAllText();
+  if(user) { buildSidebar(); renderPage(page); }
 }
 
 function applyAllText() {
@@ -560,21 +550,21 @@ function applyAllText() {
   setTxt('ah-mark-all',t('markAllRead')); setTxt('ah-profile',t('profile')); setTxt('ah-logout',t('logout'));
   setTxt('sb-logout',t('logout'));
   // Dashboard page labels
-  setTxt('dp-d-title',t('dashboard')); setTxt('dp-d-sub','Selamat datang! Ini ringkasan sistem hari ini.');
+  setTxt('dp-d-title',t('dashboard')); setTxt('dp-d-sub',t('dashSub'));
   setTxt('d-recent-lbl',t('recentComplaints')); setTxt('d-view-all',t('viewAll'));
   setTxt('d-notif-lbl',t('notifications')); setTxt('d-staff-lbl',t('staffOverview'));
-  setTxt('d-th-name',t('staff')||'Nama'); setTxt('d-th-today',t('todayJobs'));
+  setTxt('d-th-name',t('staff')); setTxt('d-th-today',t('todayJobs'));
   setTxt('d-th-pend',t('pending')); setTxt('d-th-prog',t('inProgress')); setTxt('d-th-done',t('completed'));
-  setTxt('cp-title',t('complaints')); setTxt('cp-sub',t('noJobs').replace('Tiada','Semua').replace('No complaints found.','All complaints received'));
-  setTxt('sc-title',t('schedule')); setTxt('sc-sub','Lihat jadual kerja harian/mingguan');
+  setTxt('cp-title',t('complaints')); setTxt('cp-sub',t('cpSub'));
+  setTxt('sc-title',t('schedule')); setTxt('sc-sub',t('scSub'));
   setTxt('sc-tab-day',t('day')); setTxt('sc-tab-week',t('week')); setTxt('sc-today',t('today'));
   setTxt('sf-title',t('staff')); setTxt('rp-title',t('reports'));
   setTxt('rp-status-lbl', lang==='bm'?'Status Kerja':'Job Status');
   setTxt('rp-type-lbl',   lang==='bm'?'Jenis Masalah':'Problem Type');
   setTxt('rp-all-lbl',    lang==='bm'?'Semua Rekod':'All Records');
-  setTxt('rp-th-ref','No. Rujukan'); setTxt('rp-th-cust',t('recentComplaints').split(' ')[1]||'Pelanggan');
-  setTxt('rp-th-prob','Masalah'); setTxt('rp-th-staff',t('staff'));
-  setTxt('rp-th-date','Tarikh'); setTxt('nt-title',t('notifications'));
+  setTxt('rp-th-ref',t('rpThRef')); setTxt('rp-th-cust',t('rpThCust'));
+  setTxt('rp-th-prob',t('rpThProb')); setTxt('rp-th-staff',t('staff'));
+  setTxt('rp-th-date',t('rpThDate')); setTxt('nt-title',t('notifications'));
   setTxt('nt-mark-all',t('markRead')); setTxt('pr-title',t('profile'));
   // Modal
   setTxt('mj-lbl-assign',t('assignTo')); setTxt('mj-lbl-status','Status');
