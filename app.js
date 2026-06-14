@@ -569,8 +569,9 @@ function applyAllText() {
   setTxt('sc-title',t('schedule')); setTxt('sc-sub','Lihat jadual kerja harian/mingguan');
   setTxt('sc-tab-day',t('day')); setTxt('sc-tab-week',t('week')); setTxt('sc-today',t('today'));
   setTxt('sf-title',t('staff')); setTxt('rp-title',t('reports'));
-  setTxt('rp-status-lbl','Status Kerja'); setTxt('rp-type-lbl','Jenis Masalah');
-  setTxt('rp-all-lbl','Semua Rekod');
+  setTxt('rp-status-lbl', lang==='bm'?'Status Kerja':'Job Status');
+  setTxt('rp-type-lbl',   lang==='bm'?'Jenis Masalah':'Problem Type');
+  setTxt('rp-all-lbl',    lang==='bm'?'Semua Rekod':'All Records');
   setTxt('rp-th-ref','No. Rujukan'); setTxt('rp-th-cust',t('recentComplaints').split(' ')[1]||'Pelanggan');
   setTxt('rp-th-prob','Masalah'); setTxt('rp-th-staff',t('staff'));
   setTxt('rp-th-date','Tarikh'); setTxt('nt-title',t('notifications'));
@@ -1505,18 +1506,24 @@ function renderDashboard() {
   const prog  = mc.filter(c=>c.status==='Sedang Berjalan');
   const done  = mc.filter(c=>c.status==='Selesai');
 
+  const sa_viewAll   = lang==='bm'?'Lihat semua →':'View all →';
+  const sa_assign    = lang==='bm'?'Tugaskan →':'Assign →';
+  const sa_monitor   = lang==='bm'?'Pantau →':'Monitor →';
+  const sa_report    = lang==='bm'?'Lihat laporan →':'View report →';
+  const sa_schedule  = lang==='bm'?'Jadual hari ini →':'Today schedule →';
+  const sa_update    = lang==='bm'?'Kemaskini →':'Update →';
   const statsAdmin = `
-    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div><div class="stat-action">Lihat semua →</div></div>
-    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Tugaskan →</div></div>
-    <div class="stat-card c-info" style="cursor:pointer;" onclick="openStatModal('Sedang Berjalan')"><div class="stat-icon-box si-blue">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div><div class="stat-action">Pantau →</div></div>
-    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>
-    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
+    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('totalJobs')}</div><div class="stat-action">${sa_viewAll}</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">${sa_assign}</div></div>
+    <div class="stat-card c-info" style="cursor:pointer;" onclick="openStatModal('Sedang Berjalan')"><div class="stat-icon-box si-blue">🔄</div><div class="stat-value">${prog.length}</div><div class="stat-label">${t('inProgress')}</div><div class="stat-action">${sa_monitor}</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">${sa_report}</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">${sa_schedule}</div></div>
     <div class="stat-card c-navy"><div class="stat-icon-box si-navy">👷</div><div class="stat-value">${USERS.filter(u=>u.role==='staff').length}</div><div class="stat-label">${t('totalStaff')}</div></div>`;
   const statsStaff = `
-    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div><div class="stat-action">Lihat semua →</div></div>
-    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">Jadual hari ini →</div></div>
-    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">Kemaskini →</div></div>
-    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">Lihat laporan →</div></div>`;
+    <div class="stat-card c-danger" style="cursor:pointer;" onclick="openStatModal('all')"><div class="stat-icon-box si-red">📋</div><div class="stat-value">${mc.length}</div><div class="stat-label">${t('myComplaints')}</div><div class="stat-action">${sa_viewAll}</div></div>
+    <div class="stat-card c-lime" style="cursor:pointer;" onclick="openStatModal('today')"><div class="stat-icon-box si-lime">📅</div><div class="stat-value">${todayC.length}</div><div class="stat-label">${t('todayJobs')}</div><div class="stat-action">${sa_schedule}</div></div>
+    <div class="stat-card c-warn" style="cursor:pointer;" onclick="openStatModal('Menunggu')"><div class="stat-icon-box si-warn">⏳</div><div class="stat-value">${pend.length}</div><div class="stat-label">${t('pending')}</div><div class="stat-action">${sa_update}</div></div>
+    <div class="stat-card c-success" style="cursor:pointer;" onclick="openStatModal('Selesai')"><div class="stat-icon-box si-green">✅</div><div class="stat-value">${done.length}</div><div class="stat-label">${t('completed')}</div><div class="stat-action">${sa_report}</div></div>`;
   setHTML('d-stats', user.role==='admin' ? statsAdmin : statsStaff);
 
   // Recent
