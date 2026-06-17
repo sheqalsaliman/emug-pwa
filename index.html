@@ -487,6 +487,9 @@
                   <span class="bk-slots-date-lbl" id="bk-slots-date-label"></span>
                 </div>
                 <div class="bk-slots-grid" id="bk-slots-grid"></div>
+                <div id="bk-ops-note" style="margin-top:10px;font-size:.76rem;color:var(--gray-500);text-align:center;padding:6px 8px;background:var(--gray-50);border-radius:6px;line-height:1.5;">
+                  🕐 Waktu operasi: 8:00 pagi – 5:30 petang &nbsp;|&nbsp; Rehat: 12:30 – 1:30 tengah hari
+                </div>
               </div>
 
               <!-- Selected booking summary -->
@@ -1271,15 +1274,10 @@
           <label class="form-label" id="sa-lbl-time">Masa</label>
           <select class="form-control" id="sa-time">
             <option value="" id="sa-time-placeholder">-- Pilih Masa --</option>
-            <option value="08:00">08:00 – 09:00</option>
-            <option value="09:00">09:00 – 10:00</option>
-            <option value="10:00">10:00 – 11:00</option>
-            <option value="11:00">11:00 – 12:00</option>
-            <option value="12:00">12:00 – 13:00</option>
-            <option value="13:00">13:00 – 14:00</option>
-            <option value="14:00">14:00 – 15:00</option>
-            <option value="15:00">15:00 – 16:00</option>
-            <option value="16:00">16:00 – 17:00</option>
+            <option value="08:00 - 10:00">08:00 – 10:00</option>
+            <option value="10:00 - 12:30">10:00 – 12:30</option>
+            <option value="13:30 - 15:30">13:30 – 15:30</option>
+            <option value="15:30 - 17:30">15:30 – 17:30</option>
           </select>
         </div>
       </div>
@@ -1394,6 +1392,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

@@ -430,7 +430,7 @@ let starRatings = { quality:0, timeliness:0, service:0 };
 // Gallery data: { ref: { before:[{src,ts,who}], during:[...], after:[...] } }
 let galleryData = {};
 // Booking calendar
-const BK_SLOTS = ['08:00 - 09:00','09:00 - 10:00','10:00 - 11:00','11:00 - 12:00','13:00 - 14:00','14:00 - 15:00','15:00 - 16:00','16:00 - 17:00'];
+const BK_SLOTS = ['08:00 - 10:00','10:00 - 12:30','13:30 - 15:30','15:30 - 17:30'];
 const BK_MAX_PER_SLOT = 1;
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
 
