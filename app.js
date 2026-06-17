@@ -216,6 +216,11 @@ const T = {
     saLblLocation:'Lokasi',saLocPlaceholder:'Alamat / lokasi kerja',
     saLblDesc:'Penerangan Kerja',saDescPlaceholder:'Penerangan tugas...',
     saSave:'Simpan',
+    cfNamePh:'Nama penuh anda',
+    cfAddrPh:'No. rumah, jalan, taman, poskod, bandar...',
+    cfDescPh:'Terangkan masalah anda dengan lebih lanjut... (tidak wajib)',
+    cfProbPh:'-- Pilih Masalah --',
+    bkOpsNote:'🕐 Waktu operasi: 8:00 pagi – 5:30 petang &nbsp;|&nbsp; Rehat: 12:30 – 1:30 tengah hari',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -399,6 +404,11 @@ const T = {
     saLblLocation:'Location',saLocPlaceholder:'Work address / location',
     saLblDesc:'Job Description',saDescPlaceholder:'Task description...',
     saSave:'Save',
+    cfNamePh:'Your full name',
+    cfAddrPh:'House no, street, area, postcode, city...',
+    cfDescPh:'Describe your problem in more detail... (optional)',
+    cfProbPh:'-- Select Problem --',
+    bkOpsNote:'🕐 Operating hours: 8:00 AM – 5:30 PM &nbsp;|&nbsp; Break: 12:30 – 1:30 PM',
   }
 };
 
@@ -627,6 +637,15 @@ function applyAllText() {
   setTxt('bk-leg-ltd', t('bkLegLtd'));
   setTxt('bk-leg-full', t('bkLegFull'));
   setTxt('bk-back-lbl', t('bkSlotBack'));
+  // Form placeholders
+  const _cfn = el('cf-name');  if(_cfn)  _cfn.placeholder  = t('cfNamePh');
+  const _cfa = el('cf-addr');  if(_cfa)  _cfa.placeholder  = t('cfAddrPh');
+  const _cfd = el('cf-desc');  if(_cfd)  _cfd.placeholder  = t('cfDescPh');
+  // Dropdown placeholder options
+  setTxt('cf-prob-ph', t('cfProbPh'));
+  setTxt('cf-urgency-segera', lang==='bm' ? '🚨 Segera' : '🚨 Urgent');
+  // Booking ops note
+  const _bon = el('bk-ops-note'); if(_bon) _bon.innerHTML = t('bkOpsNote');
   if(el('bk-widget') && el('bk-widget').offsetParent !== null) renderBkCalendar();
   renderTestimonials();
   if(user) buildSidebar();

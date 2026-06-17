@@ -436,7 +436,7 @@
             <div class="form-group">
               <label class="form-label" id="cf-lbl-prob">Jenis Masalah <span class="req">*</span></label>
               <select class="form-control" id="cf-prob">
-                <option value="">-- Pilih Masalah --</option>
+                <option value="" id="cf-prob-ph">-- Pilih Masalah --</option>
                 <option value="Paip bocor">🔧 Paip bocor / Leaking pipe</option>
                 <option value="Saliran tersumbat">🚰 Saliran tersumbat / Blocked drain</option>
                 <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
@@ -450,7 +450,7 @@
               <label class="form-label" id="cf-lbl-urgency">Keutamaan</label>
               <select class="form-control" id="cf-urgency">
                 <option value="Normal">Normal</option>
-                <option value="Segera">🚨 Segera / Urgent</option>
+                <option value="Segera" id="cf-urgency-segera">🚨 Segera / Urgent</option>
               </select>
             </div>
           </div>
@@ -1392,6 +1392,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>
