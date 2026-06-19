@@ -1060,9 +1060,10 @@
     </div>
     <div class="modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;background:var(--gray-50);border-radius:var(--r);padding:14px;font-size:.85rem;">
-        <div><span class="text-muted">Pelanggan:</span><br><strong id="mj-cust-name"></strong></div>
-        <div><span class="text-muted">Telefon:</span><br><strong id="mj-cust-phone"></strong></div>
-        <div style="grid-column:1/-1;"><span class="text-muted">Masalah:</span><br><strong id="mj-prob"></strong></div>
+        <div><span class="text-muted" id="mj-lbl-cust">Pelanggan:</span><br><strong id="mj-cust-name"></strong></div>
+        <div><span class="text-muted" id="mj-lbl-phone">Telefon:</span><br><strong id="mj-cust-phone"></strong></div>
+        <div style="grid-column:1/-1;"><span class="text-muted" id="mj-lbl-addr">Alamat:</span><br><span id="mj-cust-addr" style="color:var(--gray-700);"></span></div>
+        <div style="grid-column:1/-1;"><span class="text-muted" id="mj-lbl-prob">Masalah:</span><br><strong id="mj-prob"></strong></div>
         <div style="grid-column:1/-1;"><span class="text-muted">Penerangan:</span><br><span id="mj-desc" style="color:var(--gray-700);"></span></div>
         <div><span class="text-muted">Tarikh Pilihan:</span><br><strong id="mj-date"></strong></div>
         <div><span class="text-muted">Masa Pilihan:</span><br><strong id="mj-time"></strong></div>
@@ -1392,6 +1393,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

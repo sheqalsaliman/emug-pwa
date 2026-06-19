@@ -1681,6 +1681,7 @@ function renderComplaintsList() {
       </div>
       <div class="cp-meta">
         <div class="cp-meta-item"><span class="cp-meta-ic">📞</span>${c.phone}</div>
+        ${c.address?`<div class="cp-meta-item" style="grid-column:1/-1;"><span class="cp-meta-ic">📍</span>${c.address}</div>`:''}
         <div class="cp-meta-item"><span class="cp-meta-ic">📅</span>${fmtDateShort(c.prefDate)}</div>
         <div class="cp-meta-item"><span class="cp-meta-ic">🕐</span>${c.prefTime}</div>
         ${assigned
@@ -1901,8 +1902,13 @@ function openJobModal(cid) {
   const c = complaints.find(x=>x.id===cid);
   if(!c) return;
   setTxt('mj-title', `📋 ${t('editComplaint')} — ${c.ref}`);
+  setTxt('mj-lbl-cust', lang==='bm'?'Pelanggan:':'Customer:');
+  setTxt('mj-lbl-phone', lang==='bm'?'Telefon:':'Phone:');
+  setTxt('mj-lbl-addr', lang==='bm'?'Alamat:':'Address:');
+  setTxt('mj-lbl-prob', lang==='bm'?'Masalah:':'Problem:');
   setTxt('mj-cust-name', c.name);
   setTxt('mj-cust-phone', c.phone);
+  setTxt('mj-cust-addr', c.address||'—');
   setTxt('mj-prob', c.problem + (c.urgency==='Segera'?' 🚨':''));
   setTxt('mj-desc', c.desc||'—');
   setTxt('mj-date', fmtDate(c.prefDate));
