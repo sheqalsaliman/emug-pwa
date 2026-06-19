@@ -455,6 +455,24 @@
             </div>
           </div>
 
+          <!-- Booking Type toggle -->
+          <div class="form-group" style="margin-top:4px;">
+            <label class="form-label" id="cf-lbl-bk-type">Jenis Tempahan</label>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <button type="button" id="cf-bkt-kerja"
+                onclick="setCfBookingType('kerja')"
+                style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid var(--lime);background:rgba(163,230,53,.12);color:var(--lime);font-size:.85rem;font-weight:700;cursor:pointer;">
+                🔧 <span id="cf-bkt-kerja-lbl">Pelaksanaan Kerja</span>
+              </button>
+              <button type="button" id="cf-bkt-site"
+                onclick="setCfBookingType('site_visit')"
+                style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid var(--gray-300);background:transparent;color:var(--gray-600);font-size:.85rem;font-weight:600;cursor:pointer;">
+                🔍 <span id="cf-bkt-site-lbl">Pemeriksaan Tapak</span>
+              </button>
+            </div>
+            <input type="hidden" id="cf-booking-type" value="kerja">
+          </div>
+
           <!-- Hidden inputs — updated by booking calendar JS -->
           <input type="hidden" id="cf-date" value="">
           <input type="hidden" id="cf-time" value="">
@@ -1393,6 +1411,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

@@ -216,6 +216,8 @@ const T = {
     saLblLocation:'Lokasi',saLocPlaceholder:'Alamat / lokasi kerja',
     saLblDesc:'Penerangan Kerja',saDescPlaceholder:'Penerangan tugas...',
     saSave:'Simpan',
+    cfLblBkType:'Jenis Tempahan',cfBktKerja:'Pelaksanaan Kerja',cfBktSite:'Pemeriksaan Tapak',
+    bkTypeBadgeKerja:'🔧 KERJA',bkTypeBadgeSite:'🔍 SITE VISIT',
     cfNamePh:'Nama penuh anda',
     cfAddrPh:'No. rumah, jalan, taman, poskod, bandar...',
     cfDescPh:'Terangkan masalah anda dengan lebih lanjut... (tidak wajib)',
@@ -404,6 +406,8 @@ const T = {
     saLblLocation:'Location',saLocPlaceholder:'Work address / location',
     saLblDesc:'Job Description',saDescPlaceholder:'Task description...',
     saSave:'Save',
+    cfLblBkType:'Booking Type',cfBktKerja:'Job Execution',cfBktSite:'Site Inspection',
+    bkTypeBadgeKerja:'🔧 JOB',bkTypeBadgeSite:'🔍 SITE VISIT',
     cfNamePh:'Your full name',
     cfAddrPh:'House no, street, area, postcode, city...',
     cfDescPh:'Describe your problem in more detail... (optional)',
@@ -637,6 +641,10 @@ function applyAllText() {
   setTxt('bk-leg-ltd', t('bkLegLtd'));
   setTxt('bk-leg-full', t('bkLegFull'));
   setTxt('bk-back-lbl', t('bkSlotBack'));
+  // Booking type toggle
+  setTxt('cf-lbl-bk-type', t('cfLblBkType'));
+  setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
+  setTxt('cf-bkt-site-lbl', t('cfBktSite'));
   // Form placeholders
   const _cfn = el('cf-name');  if(_cfn)  _cfn.placeholder  = t('cfNamePh');
   const _cfa = el('cf-addr');  if(_cfa)  _cfa.placeholder  = t('cfAddrPh');
@@ -719,6 +727,7 @@ function rowToComplaint(row) {
     photosB:        row.photos_before  || [],  // Supabase: photos_before → JS: photosB
     photosD:        row.photos_during  || [],  // Supabase: photos_during → JS: photosD
     photosA:        row.photos_after   || [],  // Supabase: photos_after  → JS: photosA
+    bookingType:    row.booking_type   || null, // Supabase: booking_type → JS: bookingType
   };
 }
 
@@ -752,6 +761,7 @@ function complaintToRow(c) {
     photos_before:    c.photosB      || [],    // JS: photosB → Supabase: photos_before
     photos_during:    c.photosD      || [],    // JS: photosD → Supabase: photos_during
     photos_after:     c.photosA      || [],    // JS: photosA → Supabase: photos_after
+    booking_type:     c.bookingType  || null,  // JS: bookingType → Supabase: booking_type
   };
 }
 
@@ -1183,6 +1193,20 @@ function initComplaintForm() {
   initBookingCalendar();
 }
 
+function setCfBookingType(val) {
+  el('cf-booking-type').value = val;
+  const kerja = el('cf-bkt-kerja');
+  const site  = el('cf-bkt-site');
+  if(!kerja || !site) return;
+  if(val === 'kerja') {
+    kerja.style.border = '2px solid var(--lime)'; kerja.style.background = 'rgba(163,230,53,.12)'; kerja.style.color = 'var(--lime)';
+    site.style.border  = '2px solid var(--gray-300)'; site.style.background = 'transparent'; site.style.color = 'var(--gray-600)';
+  } else {
+    site.style.border  = '2px solid #8b5cf6'; site.style.background = 'rgba(139,92,246,.12)'; site.style.color = '#a78bfa';
+    kerja.style.border = '2px solid var(--gray-300)'; kerja.style.background = 'transparent'; kerja.style.color = 'var(--gray-600)';
+  }
+}
+
 async function submitComplaint() {
   const name    = el('cf-name').value.trim();
   const phone   = el('cf-phone').value.trim();
@@ -1191,7 +1215,8 @@ async function submitComplaint() {
   const date    = el('cf-date').value;
   const time    = el('cf-time').value;
   const desc    = el('cf-desc').value.trim();
-  const urgency = el('cf-urgency').value;
+  const urgency     = el('cf-urgency').value;
+  const bookingType = el('cf-booking-type')?.value || 'kerja';
 
   if(!name||!phone||!address||!problem||!date||!time) {
     if(!date||!time) toast(t('bkPleaseSlot'),'error');
@@ -1207,7 +1232,7 @@ async function submitComplaint() {
 
   const c = {
     id: ref,
-    ref, name, phone, address, problem, desc, urgency,
+    ref, name, phone, address, problem, desc, urgency, bookingType,
     prefDate:date, prefTime:time||'—',
     status:'Menunggu', assignedTo:'', assignedName:'',
     schedDate:'', adminNotes:'', techNotes:'',
@@ -1676,6 +1701,8 @@ function renderComplaintsList() {
       </div>
       <div class="cp-tags">
         <span class="cp-tag"><span class="cp-tag-ic">🔧</span><span class="cp-tag-txt">${c.problem}</span></span>
+        ${c.bookingType==='kerja'?`<span class="cp-tag" style="background:rgba(59,130,246,.12);border-color:#3b82f6;color:#3b82f6;font-weight:700;">${t('bkTypeBadgeKerja')}</span>`:''}
+        ${c.bookingType==='site_visit'?`<span class="cp-tag" style="background:rgba(139,92,246,.12);border-color:#8b5cf6;color:#8b5cf6;font-weight:700;">${t('bkTypeBadgeSite')}</span>`:''}
         ${c.desc?`<span class="cp-tag"><span class="cp-tag-ic">💬</span><span class="cp-tag-txt">${c.desc}</span></span>`:''}
         ${c.media&&c.media.length?`<span class="cp-tag"><span class="cp-tag-ic">📷</span><span class="cp-tag-txt">${c.media.length}</span></span>`:''}
       </div>
@@ -1909,7 +1936,12 @@ function openJobModal(cid) {
   setTxt('mj-cust-name', c.name);
   setTxt('mj-cust-phone', c.phone);
   setTxt('mj-cust-addr', c.address||'—');
-  setTxt('mj-prob', c.problem + (c.urgency==='Segera'?' 🚨':''));
+  const bkBadge = c.bookingType==='kerja'
+    ? `<span style="font-size:.7rem;background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid #3b82f6;border-radius:8px;padding:2px 8px;font-weight:700;margin-left:6px;">${t('bkTypeBadgeKerja')}</span>`
+    : c.bookingType==='site_visit'
+    ? `<span style="font-size:.7rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:8px;padding:2px 8px;font-weight:700;margin-left:6px;">${t('bkTypeBadgeSite')}</span>`
+    : '';
+  setHTML('mj-prob', c.problem + (c.urgency==='Segera'?' 🚨':'') + bkBadge);
   setTxt('mj-desc', c.desc||'—');
   setTxt('mj-date', fmtDate(c.prefDate));
   setTxt('mj-time', c.prefTime);
