@@ -1787,15 +1787,35 @@ function openStatModal(filter) {
   else if(filter==='today') list = mc.filter(c=>(c.schedDate||c.prefDate)===now());
   else                      list = mc.filter(c=>c.status===filter);
   setTxt('sm-title', `${iconMap[filter]||'📋'} ${labelMap[filter]||filter} (${list.length})`);
-  setHTML('sm-body', list.length ? list.map(c=>`
-    <div style="padding:12px 0;border-bottom:1px solid var(--gray-100);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <span style="font-weight:700;font-size:.9rem;">${c.ref}</span>
-        ${statusBadge(c.status)}
+  setHTML('sm-body', list.length ? list.map(c=>{
+    const bkBadge = c.bookingType==='kerja'
+      ? `<span style="font-size:.68rem;background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid #3b82f6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('bkTypeBadgeKerja')}</span>`
+      : c.bookingType==='site_visit'
+      ? `<span style="font-size:.68rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('bkTypeBadgeSite')}</span>`
+      : '';
+    const urgBadge = c.urgency==='Segera'
+      ? `<span style="font-size:.68rem;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid #ef4444;border-radius:6px;padding:2px 7px;font-weight:700;">🚨 ${lang==='bm'?'Segera':'Urgent'}</span>`
+      : '';
+    const row = (icon, val, bold=false) => val
+      ? `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;font-size:.8rem;">
+           <span style="flex-shrink:0;width:18px;">${icon}</span>
+           <span style="${bold?'font-weight:700;':''}color:var(--gray-700);">${val}</span>
+         </div>` : '';
+    return `<div style="padding:14px 0;border-bottom:1px solid var(--gray-100);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <span style="font-weight:800;font-size:.92rem;color:var(--navy);">${c.ref}</span>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+          ${bkBadge}${urgBadge}${statusBadge(c.status)}
+        </div>
       </div>
-      <div style="font-size:.82rem;color:var(--gray-700);margin-bottom:2px;">🔧 ${c.problem}${c.desc?` · <span style="color:var(--gray-500);">${c.desc}</span>`:''}</div>
-      <div style="font-size:.78rem;color:var(--gray-500);">📍 ${c.address.split(',').slice(-3).join(',').trim()}</div>
-    </div>`).join('')
+      ${row('👤', c.name, true)}
+      ${row('📞', c.phone)}
+      ${row('📍', c.address)}
+      ${row('🔧', c.problem + (c.desc ? ` — ${c.desc}` : ''))}
+      ${row('🕐', c.prefTime)}
+      ${row('👷', c.assignedName || c.acceptedByName || `<span style="color:var(--gray-400);font-style:italic;">${lang==='bm'?'Belum ditugaskan':'Not yet assigned'}</span>`)}
+    </div>`;
+  }).join('')
     : `<div class="empty-state"><div class="empty-state-icon">${iconMap[filter]||'📋'}</div><p>${t('noJobs')}</p></div>`);
   openModal('modal-stats');
 }
