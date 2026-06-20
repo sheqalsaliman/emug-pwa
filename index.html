@@ -1077,14 +1077,76 @@
       <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
     </div>
     <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;background:var(--gray-50);border-radius:var(--r);padding:14px;font-size:.85rem;">
-        <div><span class="text-muted" id="mj-lbl-cust">Pelanggan:</span><br><strong id="mj-cust-name"></strong></div>
-        <div><span class="text-muted" id="mj-lbl-phone">Telefon:</span><br><strong id="mj-cust-phone"></strong></div>
-        <div style="grid-column:1/-1;"><span class="text-muted" id="mj-lbl-addr">Alamat:</span><br><span id="mj-cust-addr" style="color:var(--gray-700);"></span></div>
-        <div style="grid-column:1/-1;"><span class="text-muted" id="mj-lbl-prob">Masalah:</span><br><strong id="mj-prob"></strong></div>
-        <div style="grid-column:1/-1;"><span class="text-muted">Penerangan:</span><br><span id="mj-desc" style="color:var(--gray-700);"></span></div>
-        <div><span class="text-muted">Tarikh Pilihan:</span><br><strong id="mj-date"></strong></div>
-        <div><span class="text-muted">Masa Pilihan:</span><br><strong id="mj-time"></strong></div>
+      <!-- Editable customer fields -->
+      <div style="background:var(--gray-50);border-radius:var(--r);padding:14px;margin-bottom:14px;">
+        <div class="form-row" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-cust">Pelanggan</label>
+            <input type="text" class="form-control" id="mj-edit-name">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-phone">Telefon</label>
+            <input type="tel" class="form-control" id="mj-edit-phone">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" id="mj-lbl-addr">Alamat</label>
+          <textarea class="form-control" id="mj-edit-addr" rows="2"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" id="mj-lbl-bk-type-edit">Jenis Tempahan</label>
+          <div style="display:flex;gap:10px;">
+            <button type="button" id="mj-bkt-kerja" onclick="setMjBookingType('kerja')"
+              style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--lime);background:rgba(163,230,53,.12);color:var(--lime);font-size:.82rem;font-weight:700;cursor:pointer;">
+              🔧 <span id="mj-bkt-kerja-lbl">Pelaksanaan Kerja</span>
+            </button>
+            <button type="button" id="mj-bkt-site" onclick="setMjBookingType('site_visit')"
+              style="flex:1;padding:8px;border-radius:8px;border:2px solid var(--gray-300);background:transparent;color:var(--gray-600);font-size:.82rem;font-weight:600;cursor:pointer;">
+              🔍 <span id="mj-bkt-site-lbl">Pemeriksaan Tapak</span>
+            </button>
+          </div>
+          <input type="hidden" id="mj-booking-type" value="kerja">
+        </div>
+        <div class="form-row" style="margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-prob">Jenis Masalah</label>
+            <select class="form-control" id="mj-edit-prob">
+              <option value="Paip bocor">🔧 Paip bocor / Leaking pipe</option>
+              <option value="Saliran tersumbat">🚰 Saliran tersumbat / Blocked drain</option>
+              <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
+              <option value="Tangki najis">🛢️ Tangki najis / Septic tank</option>
+              <option value="Pemasangan baru">⚙️ Pemasangan baru / New installation</option>
+              <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
+              <option value="Lain-lain">📝 Lain-lain / Others</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-urgency-edit">Keutamaan</label>
+            <select class="form-control" id="mj-edit-urgency">
+              <option value="Normal">Normal</option>
+              <option value="Segera" id="mj-urgency-segera">🚨 Segera / Urgent</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label" id="mj-lbl-desc-edit">Penerangan</label>
+          <textarea class="form-control" id="mj-edit-desc" rows="2"></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:0;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-pref-date">Tarikh Pilihan</label>
+            <input type="date" class="form-control" id="mj-edit-pref-date">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" id="mj-lbl-pref-time">Masa Pilihan</label>
+            <select class="form-control" id="mj-edit-pref-time">
+              <option value="08:00 - 10:00">08:00 – 10:00</option>
+              <option value="10:00 - 12:30">10:00 – 12:30</option>
+              <option value="13:30 - 15:30">13:30 – 15:30</option>
+              <option value="15:30 - 17:30">15:30 – 17:30</option>
+            </select>
+          </div>
+        </div>
       </div>
       <!-- Section 1: Customer complaint photos (amber) -->
       <div id="mj-cust-photos" style="margin-bottom:14px;border-radius:var(--r);overflow:hidden;border:1px solid #fed7aa;"></div>
@@ -1411,6 +1473,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>

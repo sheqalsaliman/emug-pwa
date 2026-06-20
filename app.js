@@ -1193,6 +1193,20 @@ function initComplaintForm() {
   initBookingCalendar();
 }
 
+function setMjBookingType(val) {
+  el('mj-booking-type').value = val;
+  const kerja = el('mj-bkt-kerja');
+  const site  = el('mj-bkt-site');
+  if(!kerja || !site) return;
+  if(val === 'kerja') {
+    kerja.style.border = '2px solid var(--lime)'; kerja.style.background = 'rgba(163,230,53,.12)'; kerja.style.color = 'var(--lime)'; kerja.style.fontWeight = '700';
+    site.style.border  = '2px solid var(--gray-300)'; site.style.background = 'transparent'; site.style.color = 'var(--gray-600)'; site.style.fontWeight = '600';
+  } else {
+    site.style.border  = '2px solid #8b5cf6'; site.style.background = 'rgba(139,92,246,.12)'; site.style.color = '#a78bfa'; site.style.fontWeight = '700';
+    kerja.style.border = '2px solid var(--gray-300)'; kerja.style.background = 'transparent'; kerja.style.color = 'var(--gray-600)'; kerja.style.fontWeight = '600';
+  }
+}
+
 function setCfBookingType(val) {
   el('cf-booking-type').value = val;
   const kerja = el('cf-bkt-kerja');
@@ -1929,22 +1943,29 @@ function openJobModal(cid) {
   const c = complaints.find(x=>x.id===cid);
   if(!c) return;
   setTxt('mj-title', `📋 ${t('editComplaint')} — ${c.ref}`);
-  setTxt('mj-lbl-cust', lang==='bm'?'Pelanggan:':'Customer:');
-  setTxt('mj-lbl-phone', lang==='bm'?'Telefon:':'Phone:');
-  setTxt('mj-lbl-addr', lang==='bm'?'Alamat:':'Address:');
-  setTxt('mj-lbl-prob', lang==='bm'?'Masalah:':'Problem:');
-  setTxt('mj-cust-name', c.name);
-  setTxt('mj-cust-phone', c.phone);
-  setTxt('mj-cust-addr', c.address||'—');
-  const bkBadge = c.bookingType==='kerja'
-    ? `<span style="font-size:.7rem;background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid #3b82f6;border-radius:8px;padding:2px 8px;font-weight:700;margin-left:6px;">${t('bkTypeBadgeKerja')}</span>`
-    : c.bookingType==='site_visit'
-    ? `<span style="font-size:.7rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:8px;padding:2px 8px;font-weight:700;margin-left:6px;">${t('bkTypeBadgeSite')}</span>`
-    : '';
-  setHTML('mj-prob', c.problem + (c.urgency==='Segera'?' 🚨':'') + bkBadge);
-  setTxt('mj-desc', c.desc||'—');
-  setTxt('mj-date', fmtDate(c.prefDate));
-  setTxt('mj-time', c.prefTime);
+  // Labels (translated)
+  setTxt('mj-lbl-cust',       lang==='bm'?'Pelanggan':'Customer');
+  setTxt('mj-lbl-phone',      lang==='bm'?'Telefon':'Phone');
+  setTxt('mj-lbl-addr',       lang==='bm'?'Alamat':'Address');
+  setTxt('mj-lbl-bk-type-edit', t('cfLblBkType'));
+  setTxt('mj-bkt-kerja-lbl', t('cfBktKerja'));
+  setTxt('mj-bkt-site-lbl',  t('cfBktSite'));
+  setTxt('mj-lbl-prob',       lang==='bm'?'Jenis Masalah':'Problem Type');
+  setTxt('mj-lbl-urgency-edit', lang==='bm'?'Keutamaan':'Priority');
+  setTxt('mj-lbl-desc-edit',  lang==='bm'?'Penerangan':'Description');
+  setTxt('mj-lbl-pref-date',  lang==='bm'?'Tarikh Pilihan':'Preferred Date');
+  setTxt('mj-lbl-pref-time',  lang==='bm'?'Masa Pilihan':'Preferred Time');
+  setTxt('mj-urgency-segera', lang==='bm'?'🚨 Segera':'🚨 Urgent');
+  // Populate editable fields
+  el('mj-edit-name').value      = c.name;
+  el('mj-edit-phone').value     = c.phone;
+  el('mj-edit-addr').value      = c.address||'';
+  el('mj-edit-prob').value      = c.problem;
+  el('mj-edit-urgency').value   = c.urgency||'Normal';
+  el('mj-edit-desc').value      = c.desc||'';
+  el('mj-edit-pref-date').value = c.prefDate||'';
+  el('mj-edit-pref-time').value = c.prefTime||'';
+  setMjBookingType(c.bookingType||'kerja');
   // Build assign dropdown dynamically
   const assignEl = el('mj-assign');
   if(assignEl) {
@@ -2053,11 +2074,22 @@ function saveJob() {
   const c = complaints.find(x=>x.id===editJobId);
   if(!c) return;
   const prevAssign = c.assignedTo;
-  c.assignedTo   = el('mj-assign').value;
-  c.status       = el('mj-status').value;
-  c.schedDate    = el('mj-sched-date').value;
-  c.adminNotes   = el('mj-notes').value;
-  c.updatedAt    = new Date().toISOString();
+  // Customer fields
+  c.name        = el('mj-edit-name').value.trim()    || c.name;
+  c.phone       = el('mj-edit-phone').value.trim()   || c.phone;
+  c.address     = el('mj-edit-addr').value.trim()    || c.address;
+  c.problem     = el('mj-edit-prob').value           || c.problem;
+  c.urgency     = el('mj-edit-urgency').value        || c.urgency;
+  c.desc        = el('mj-edit-desc').value.trim();
+  c.prefDate    = el('mj-edit-pref-date').value      || c.prefDate;
+  c.prefTime    = el('mj-edit-pref-time').value      || c.prefTime;
+  c.bookingType = el('mj-booking-type').value        || c.bookingType;
+  // Admin fields
+  c.assignedTo  = el('mj-assign').value;
+  c.status      = el('mj-status').value;
+  c.schedDate   = el('mj-sched-date').value;
+  c.adminNotes  = el('mj-notes').value;
+  c.updatedAt   = new Date().toISOString();
   const au = USERS.find(u=>u.username===c.assignedTo);
   c.assignedName = au ? au.name : '';
 
@@ -2066,8 +2098,9 @@ function saveJob() {
   }
   dbUpdateComplaint(c);
   closeModal('modal-job');
-  toast(t('saved'), 'success');
+  toast(lang==='bm'?'Aduan berjaya dikemaskini':'Complaint updated successfully', 'success');
   renderComplaints();
+  renderDashboard();
   buildSidebar();
 }
 
