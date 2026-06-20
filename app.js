@@ -1986,12 +1986,17 @@ function openJobModal(cid) {
   el('mj-edit-pref-date').value = c.prefDate||'';
   el('mj-edit-pref-time').value = c.prefTime||'';
   setMjBookingType(c.bookingType||'kerja');
-  // Build assign dropdown dynamically
+  // Build assign dropdown — merge hardcoded USERS + Supabase dynamicStaff
   const assignEl = el('mj-assign');
   if(assignEl) {
-    const allStaff = USERS.filter(u=>u.role==='staff'||u.role==='operator');
+    const hardcodedOps = USERS.filter(u=>u.role==='staff'||u.role==='operator')
+      .map(u=>({ username: u.username, name: u.name, role: u.role }));
+    const dynamicOps = dynamicStaff.filter(u=>u.role==='staff'||u.role==='operator')
+      .filter(u=>!hardcodedOps.find(h=>h.username===u.username)) // deduplicate
+      .map(u=>({ username: u.username, name: u.name, role: u.role }));
+    const allOps = [...hardcodedOps, ...dynamicOps];
     assignEl.innerHTML = `<option value="">-- ${t('unassigned')} --</option>`
-      + allStaff.map(u=>`<option value="${u.username}">${u.name} (${u.role==='operator'?t('role_operator'):t('role_staff')})</option>`).join('');
+      + allOps.map(u=>`<option value="${u.username}">${u.name} (${u.role==='operator'?t('role_operator'):t('role_staff')})</option>`).join('');
     assignEl.value = c.assignedTo||'';
   }
   el('mj-status').value    = c.status;
@@ -2110,7 +2115,7 @@ function saveJob() {
   c.schedDate   = el('mj-sched-date').value;
   c.adminNotes  = el('mj-notes').value;
   c.updatedAt   = new Date().toISOString();
-  const au = USERS.find(u=>u.username===c.assignedTo);
+  const au = USERS.find(u=>u.username===c.assignedTo) || dynamicStaff.find(u=>u.username===c.assignedTo);
   c.assignedName = au ? au.name : '';
 
   if(c.assignedTo && c.assignedTo!==prevAssign) {
