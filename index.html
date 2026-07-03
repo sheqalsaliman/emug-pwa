@@ -453,13 +453,15 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label" id="cf-lbl-prob">Jenis Masalah <span class="req">*</span></label>
-              <select class="form-control" id="cf-prob">
+              <select class="form-control" id="cf-prob" onchange="onProblemTypeChange()">
                 <option value="" id="cf-prob-ph">-- Pilih Masalah --</option>
                 <option value="Paip bocor">🔧 Paip bocor / Leaking pipe</option>
                 <option value="Saliran tersumbat">🚰 Saliran tersumbat / Blocked drain</option>
                 <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
                 <option value="Tangki najis">🛢️ Tangki najis / Septic tank</option>
                 <option value="Pemasangan baru">⚙️ Pemasangan baru / New installation</option>
+                <option value="Penyelenggaraan bangunan">🏢 Penyelenggaraan bangunan / Building maintenance</option>
+                <option value="Kerja besi &amp; kimpalan">🔩 Kerja besi &amp; kimpalan / Metal &amp; welding works</option>
                 <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
                 <option value="Lain-lain">📝 Lain-lain / Others</option>
               </select>
@@ -1116,6 +1118,8 @@
               <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
               <option value="Tangki najis">🛢️ Tangki najis / Septic tank</option>
               <option value="Pemasangan baru">⚙️ Pemasangan baru / New installation</option>
+              <option value="Penyelenggaraan bangunan">🏢 Penyelenggaraan bangunan / Building maintenance</option>
+              <option value="Kerja besi &amp; kimpalan">🔩 Kerja besi &amp; kimpalan / Metal &amp; welding works</option>
               <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
               <option value="Lain-lain">📝 Lain-lain / Others</option>
             </select>
@@ -1473,6 +1477,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>

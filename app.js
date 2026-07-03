@@ -445,7 +445,20 @@ let starRatings = { quality:0, timeliness:0, service:0 };
 let galleryData = {};
 // Booking calendar
 const BK_SLOTS = ['08:00 - 10:00','10:00 - 12:30','13:30 - 15:30','15:30 - 17:30'];
-const BK_MAX_PER_SLOT = 1;
+const BK_MAX_PER_SLOT = 1; // max 1 booking per team per slot
+// Problem category → team. GENERAL bookings block every team in the slot.
+const PROBLEM_TEAM_MAP = {
+  'Paip bocor': 'TEAM_E',                // Perpaipan
+  'Saliran tersumbat': 'TEAM_B',         // Water Jetting
+  'Tandas tersumbat': 'TEAM_B',          // Water Jetting
+  'Tangki najis': 'TEAM_B',              // Water Jetting
+  'Pemasangan baru': 'TEAM_E',           // Perpaipan
+  'Penyelenggaraan bangunan': 'TEAM_A',  // Building maintenance
+  'Kerja besi & kimpalan': 'TEAM_C',     // Metal & welding
+  'Pemeriksaan am': 'GENERAL',
+  'Lain-lain': 'GENERAL'
+};
+function problemTeam(problem) { return PROBLEM_TEAM_MAP[problem] || 'GENERAL'; }
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
@@ -1237,7 +1250,7 @@ async function submitComplaint() {
     else toast(lang==='bm'?'Sila isi semua maklumat wajib (*)':'Please fill all required fields (*).','error');
     return;
   }
-  if(complaints.filter(x=>x.prefDate===date&&x.prefTime===time).length >= BK_MAX_PER_SLOT) {
+  if(isBkSlotFull(date, time, problemTeam(problem))) {
     toast(t('bkFull'),'error',5000); return;
   }
 
@@ -4159,25 +4172,58 @@ if('serviceWorker' in navigator) {
 }());
 
 // ─── BOOKING CALENDAR ────────────────────────────────────────────────────────
-function getBkCounts(dateStr) {
-  var counts = {};
-  BK_SLOTS.forEach(function(s){ counts[s] = 0; });
+// Teams already booked in a given date+slot (complaints array excludes deleted)
+function getSlotTeams(dateStr, slot) {
+  var teams = [];
   complaints.forEach(function(c){
-    if(c.prefDate === dateStr && counts[c.prefTime] !== undefined) counts[c.prefTime]++;
+    if(c.prefDate === dateStr && c.prefTime === slot) teams.push(problemTeam(c.problem));
   });
-  return counts;
+  return teams;
+}
+
+// Team of the problem type the customer is currently filling in.
+// No selection yet → treat as GENERAL (strictest).
+function currentBkTeam() {
+  var sel = el('cf-prob');
+  var p = sel ? sel.value : '';
+  return p ? problemTeam(p) : 'GENERAL';
+}
+
+// A slot is full for `team` when:
+//  - team is GENERAL: any existing booking blocks it (first come first serve)
+//  - fixed team: an existing booking of the same team OR a GENERAL booking blocks it
+function isBkSlotFull(dateStr, slot, team) {
+  var teams = getSlotTeams(dateStr, slot);
+  if(teams.length === 0) return false;
+  if(team === 'GENERAL') return true;
+  return teams.indexOf(team) !== -1 || teams.indexOf('GENERAL') !== -1;
 }
 
 function getBkDayAvailability(dateStr) {
   var d = new Date(dateStr + 'T00:00:00');
   if(d.getDay() === 0) return 'closed'; // Sunday
-  var counts = getBkCounts(dateStr);
-  var totalSlots = BK_SLOTS.length * BK_MAX_PER_SLOT;
-  var booked = BK_SLOTS.reduce(function(acc, s){ return acc + counts[s]; }, 0);
-  var full = BK_SLOTS.every(function(s){ return counts[s] >= BK_MAX_PER_SLOT; });
-  if(full) return 'full';
-  if(booked >= totalSlots * 0.6) return 'limited';
+  var team = currentBkTeam();
+  var fullCount = BK_SLOTS.reduce(function(acc, s){
+    return acc + (isBkSlotFull(dateStr, s, team) ? 1 : 0);
+  }, 0);
+  if(fullCount >= BK_SLOTS.length) return 'full';
+  if(fullCount >= BK_SLOTS.length * 0.6) return 'limited';
   return 'available';
+}
+
+// Refresh slot availability when the customer changes Problem Type
+function onProblemTypeChange() {
+  renderBkCalendar();
+  if(bookingDate) {
+    if(bookingSlot && isBkSlotFull(bookingDate, bookingSlot, currentBkTeam())) {
+      bookingSlot = null;
+      el('cf-time').value = '';
+      var s = el('bk-summary');
+      if(s) s.style.display = 'none';
+    }
+    renderBkSlots(bookingDate);
+    renderBkSummary();
+  }
 }
 
 function initBookingCalendar() {
@@ -4265,7 +4311,7 @@ function selectBkDate(dateStr) {
 }
 
 function renderBkSlots(dateStr) {
-  var counts  = getBkCounts(dateStr);
+  var team    = currentBkTeam();
   var d       = new Date(dateStr + 'T00:00:00');
   var months  = t('monthNames');
   var dayNamesL = t('dayNames');
@@ -4276,9 +4322,8 @@ function renderBkSlots(dateStr) {
   if(!grid) return;
   var html = '';
   BK_SLOTS.forEach(function(slot) {
-    var cnt  = counts[slot];
-    var rem  = BK_MAX_PER_SLOT - cnt;
-    var full = rem <= 0;
+    var full = isBkSlotFull(dateStr, slot, team);
+    var rem  = full ? 0 : BK_MAX_PER_SLOT;
     var isSel = slot === bookingSlot;
     var cls = 'bk-slot' + (full ? ' bk-slot-full' : '') + (isSel ? ' bk-slot-selected' : '');
     var sublbl = full ? t('bkSlotFull') : rem + ' ' + t('bkSlotAvail');
@@ -4292,7 +4337,7 @@ function renderBkSlots(dateStr) {
 }
 
 function selectBkSlot(slot) {
-  if(complaints.filter(function(x){ return x.prefDate===bookingDate && x.prefTime===slot; }).length >= BK_MAX_PER_SLOT) {
+  if(isBkSlotFull(bookingDate, slot, currentBkTeam())) {
     toast(t('bkFull'), 'error', 4000); return;
   }
   bookingSlot = slot;

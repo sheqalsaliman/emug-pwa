@@ -42,7 +42,8 @@
       "Bash(git commit -m 'feat: Jadual Kerja nav + dedicated schedule page for operator *)",
       "Bash(ls js/)",
       "Bash(ls *.html)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(node -e \"const o = {a:'first', b:'only', a:'second'}; console.log\\(o.a\\);\")"
     ]
   }
 }
