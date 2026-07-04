@@ -181,6 +181,8 @@ const T = {
     bkSummaryLbl:'Tempahan Dipilih',bkSummaryDate:'Tarikh',bkSummaryTime:'Masa',
     bkPleaseDate:'Sila pilih tarikh dahulu.',bkPleaseSlot:'Sila pilih tarikh dan masa tempahan.',
     bkFull:'Slot ini telah penuh. Sila pilih slot lain.',
+    bkNeedProb:'Sila pilih jenis masalah dahulu untuk lihat slot tempahan',
+    bkJustBooked:'Maaf, slot ini baru sahaja ditempah. Sila pilih slot lain.',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -386,6 +388,8 @@ const T = {
     bkSummaryLbl:'Selected Booking',bkSummaryDate:'Date',bkSummaryTime:'Time',
     bkPleaseDate:'Please select a date first.',bkPleaseSlot:'Please select a booking date and time.',
     bkFull:'This slot is full. Please choose another slot.',
+    bkNeedProb:'Please select a problem type first to view booking slots',
+    bkJustBooked:'Sorry, this slot was just booked. Please choose another slot.',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -654,6 +658,7 @@ function applyAllText() {
   setTxt('bk-leg-ltd', t('bkLegLtd'));
   setTxt('bk-leg-full', t('bkLegFull'));
   setTxt('bk-back-lbl', t('bkSlotBack'));
+  setTxt('bk-need-prob-lbl', t('bkNeedProb'));
   // Booking type toggle
   setTxt('cf-lbl-bk-type', t('cfLblBkType'));
   setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
@@ -1252,6 +1257,20 @@ async function submitComplaint() {
   }
   if(isBkSlotFull(date, time, problemTeam(problem))) {
     toast(t('bkFull'),'error',5000); return;
+  }
+
+  // Double-booking protection: re-check with FRESH data right before insert,
+  // in case the slot was taken while the customer was filling the form.
+  await refreshBkComplaints();
+  if(isBkSlotFull(date, time, problemTeam(problem))) {
+    toast(t('bkJustBooked'),'error',6000);
+    bookingSlot = null;
+    el('cf-time').value = '';
+    var bs = el('bk-summary');
+    if(bs) bs.style.display = 'none';
+    renderBkCalendar();
+    if(bookingDate) renderBkSlots(bookingDate);
+    return;
   }
 
   const year = new Date().getFullYear();
@@ -4211,19 +4230,43 @@ function getBkDayAvailability(dateStr) {
   return 'available';
 }
 
-// Refresh slot availability when the customer changes Problem Type
-function onProblemTypeChange() {
-  renderBkCalendar();
-  if(bookingDate) {
-    if(bookingSlot && isBkSlotFull(bookingDate, bookingSlot, currentBkTeam())) {
-      bookingSlot = null;
-      el('cf-time').value = '';
-      var s = el('bk-summary');
-      if(s) s.style.display = 'none';
+// Fetch fresh (non-deleted) complaints from Supabase so slot availability
+// never relies on stale cached data. Silently keeps old data on failure.
+async function refreshBkComplaints() {
+  try {
+    const { data, error } = await db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false');
+    if(!error && data) {
+      complaints = data.map(rowToComplaint);
+      complaints.sort(function(a, b) {
+        return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+      });
     }
-    renderBkSlots(bookingDate);
-    renderBkSummary();
+  } catch(e) {
+    console.error('[EMUG] refreshBkComplaints failed:', e);
   }
+}
+
+// Show/hide the booking widget depending on whether a problem type is chosen
+function updateBkVisibility() {
+  var hasProb = !!(el('cf-prob') && el('cf-prob').value);
+  var ph = el('bk-need-prob');
+  var w  = el('bk-widget');
+  if(ph) ph.style.display = hasProb ? 'none' : '';
+  if(w)  w.style.display  = hasProb ? '' : 'none';
+  return hasProb;
+}
+
+// Refresh slot availability when the customer changes Problem Type
+async function onProblemTypeChange() {
+  // Category changed → previous slot choice no longer valid; reset it
+  bookingSlot = null;
+  el('cf-time').value = '';
+  var s = el('bk-summary');
+  if(s) s.style.display = 'none';
+  if(!updateBkVisibility()) return;
+  await refreshBkComplaints();
+  renderBkCalendar();
+  if(bookingDate) renderBkSlots(bookingDate);
 }
 
 function initBookingCalendar() {
@@ -4240,6 +4283,7 @@ function initBookingCalendar() {
   if(slotsWrap) slotsWrap.style.display = 'none';
   if(calWrap)   calWrap.style.display   = '';
   if(summary)   summary.style.display   = 'none';
+  updateBkVisibility();
   renderBkCalendar();
 }
 
@@ -4298,11 +4342,12 @@ function renderBkCalendar() {
   gridEl.innerHTML = html;
 }
 
-function selectBkDate(dateStr) {
+async function selectBkDate(dateStr) {
   bookingDate = dateStr;
   bookingSlot = null;
   el('cf-date').value = dateStr;
   el('cf-time').value = '';
+  await refreshBkComplaints();
   renderBkCalendar();
   renderBkSlots(dateStr);
   el('bk-cal-wrap').style.display = 'none';

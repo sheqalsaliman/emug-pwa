@@ -482,7 +482,10 @@
           <!-- BOOKING CALENDAR WIDGET -->
           <div class="form-group" style="margin-top:4px;">
             <label class="form-label" id="cf-lbl-booking">📅 Tarikh &amp; Masa Tempahan <span class="req">*</span></label>
-            <div class="bk-widget" id="bk-widget">
+            <div id="bk-need-prob" style="padding:16px 12px;background:var(--gray-50);border:1px dashed var(--gray-300);border-radius:8px;text-align:center;font-size:.83rem;color:var(--gray-500);line-height:1.5;">
+              ⚠️ <span id="bk-need-prob-lbl">Sila pilih jenis masalah dahulu untuk lihat slot tempahan</span>
+            </div>
+            <div class="bk-widget" id="bk-widget" style="display:none;">
 
               <!-- Calendar panel -->
               <div id="bk-cal-wrap">
@@ -1477,6 +1480,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=27"></script>
 </body>
 </html>
