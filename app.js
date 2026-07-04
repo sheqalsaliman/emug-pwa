@@ -229,7 +229,6 @@ const T = {
     cfAddrPh:'No. rumah, jalan, taman, poskod, bandar...',
     cfDescPh:'Terangkan masalah anda dengan lebih lanjut... (tidak wajib)',
     cfProbPh:'-- Pilih Masalah --',
-    bkOpsNote:'🕐 Waktu operasi: 8:00 pagi – 5:30 petang &nbsp;|&nbsp; Rehat: 12:30 – 1:30 tengah hari',
   },
   en: {
     tagline:"Johor's Plumbing & Sewerage Expert",
@@ -426,7 +425,6 @@ const T = {
     cfAddrPh:'House no, street, area, postcode, city...',
     cfDescPh:'Describe your problem in more detail... (optional)',
     cfProbPh:'-- Select Problem --',
-    bkOpsNote:'🕐 Operating hours: 8:00 AM – 5:30 PM &nbsp;|&nbsp; Break: 12:30 – 1:30 PM',
   }
 };
 
@@ -693,8 +691,6 @@ function applyAllText() {
   // Dropdown placeholder options
   setTxt('cf-prob-ph', t('cfProbPh'));
   setTxt('cf-urgency-segera', lang==='bm' ? '🚨 Segera' : '🚨 Urgent');
-  // Booking ops note
-  const _bon = el('bk-ops-note'); if(_bon) _bon.innerHTML = t('bkOpsNote');
   if(el('bk-widget') && el('bk-widget').offsetParent !== null) renderBkCalendar();
   renderTestimonials();
   if(user) buildSidebar();
