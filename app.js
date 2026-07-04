@@ -184,6 +184,10 @@ const T = {
     bkNeedProb:'Sila pilih jenis masalah dahulu untuk lihat slot tempahan',
     bkJustBooked:'Maaf, slot ini baru sahaja ditempah. Sila pilih slot lain.',
     bkChecking:'Menyemak slot tersedia...',
+    bkOps1:'Waktu operasi: 8:30 AM – 5:30 PM | Rehat: 12:30 – 1:30 PM (Jumaat: 12:30 – 2:30 PM)',
+    bkOps2:'Sabtu: Pejabat pentadbiran tutup, namun pasukan operasi beroperasi seperti biasa.',
+    bkOps3:'Kami memohon maaf sekiranya berlaku sedikit kelewatan ketibaan pasukan disebabkan perjalanan antara lokasi kerja atau kerja terdahulu yang mengambil masa lebih lama.',
+    bkOps4:'Slot tempahan anda mungkin tertakluk kepada perubahan atas faktor operasi seperti cuti pasukan atau kerja terdahulu yang memerlukan masa yang lebih panjang. Kami akan menghubungi anda terlebih dahulu sekiranya perubahan diperlukan.',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -392,6 +396,10 @@ const T = {
     bkNeedProb:'Please select a problem type first to view booking slots',
     bkJustBooked:'Sorry, this slot was just booked. Please choose another slot.',
     bkChecking:'Checking available slots...',
+    bkOps1:'Operating hours: 8:30 AM – 5:30 PM | Break: 12:30 – 1:30 PM (Friday: 12:30 – 2:30 PM)',
+    bkOps2:'Saturday: Administrative office closed, but operation teams work as usual.',
+    bkOps3:'We apologize in advance for any slight delay in team arrival due to travel time between job sites or previous jobs taking longer than expected.',
+    bkOps4:'Your booking slot may be subject to change due to operational factors such as team leave or prior jobs requiring extended time. We will contact you in advance if any changes are necessary.',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -450,7 +458,14 @@ let starRatings = { quality:0, timeliness:0, service:0 };
 // Gallery data: { ref: { before:[{src,ts,who}], during:[...], after:[...] } }
 let galleryData = {};
 // Booking calendar
-const BK_SLOTS = ['08:00 - 10:00','10:00 - 12:30','13:30 - 15:30','15:30 - 17:30'];
+// Standard slots (Mon–Thu, Sat) — break 12:30–13:30
+const BK_SLOTS_STD = ['08:30 - 10:30','10:30 - 12:30','13:30 - 15:30','15:30 - 17:30'];
+// Friday slots — long break 12:30–14:30, 3 slots only
+const BK_SLOTS_FRI = ['08:30 - 10:30','10:30 - 12:30','14:30 - 17:30'];
+function bkSlotsFor(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  return d.getDay() === 5 ? BK_SLOTS_FRI : BK_SLOTS_STD;
+}
 const BK_MAX_PER_SLOT = 1; // max 1 booking per team per slot
 // Problem category → team. GENERAL bookings block every team in the slot.
 const PROBLEM_TEAM_MAP = {
@@ -663,6 +678,10 @@ function applyAllText() {
   setTxt('bk-leg-full', t('bkLegFull'));
   setTxt('bk-back-lbl', t('bkSlotBack'));
   setTxt('bk-need-prob-lbl', t('bkNeedProb'));
+  setTxt('bk-ops-note-1', t('bkOps1'));
+  setTxt('bk-ops-note-2', t('bkOps2'));
+  setTxt('bk-ops-note-3', t('bkOps3'));
+  setTxt('bk-ops-note-4', t('bkOps4'));
   // Booking type toggle
   setTxt('cf-lbl-bk-type', t('cfLblBkType'));
   setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
@@ -4228,11 +4247,12 @@ function getBkDayAvailability(dateStr) {
   var d = new Date(dateStr + 'T00:00:00');
   if(d.getDay() === 0) return 'closed'; // Sunday
   var team = currentBkTeam();
-  var fullCount = BK_SLOTS.reduce(function(acc, s){
+  var daySlots = bkSlotsFor(dateStr);
+  var fullCount = daySlots.reduce(function(acc, s){
     return acc + (isBkSlotFull(dateStr, s, team) ? 1 : 0);
   }, 0);
-  if(fullCount >= BK_SLOTS.length) return 'full';
-  if(fullCount >= BK_SLOTS.length * 0.6) return 'limited';
+  if(fullCount >= daySlots.length) return 'full';
+  if(fullCount >= daySlots.length * 0.6) return 'limited';
   return 'available';
 }
 
@@ -4270,7 +4290,8 @@ function renderBkSlotsLoading() {
   var grid = el('bk-slots-grid');
   if(grid) {
     var html = '<div class="bk-slots-loading-note">⏳ ' + t('bkChecking') + '</div>';
-    BK_SLOTS.forEach(function(){
+    var skelSlots = bookingDate ? bkSlotsFor(bookingDate) : BK_SLOTS_STD;
+    skelSlots.forEach(function(){
       html += '<div class="bk-slot bk-slot-skel">'
         + '<span class="bk-skel-bar" style="width:70%;"></span>'
         + '<span class="bk-skel-bar" style="width:45%;"></span>'
@@ -4414,7 +4435,7 @@ function renderBkSlots(dateStr) {
   var grid = el('bk-slots-grid');
   if(!grid) return;
   var html = '';
-  BK_SLOTS.forEach(function(slot) {
+  bkSlotsFor(dateStr).forEach(function(slot) {
     var full = isBkSlotFull(dateStr, slot, team);
     var rem  = full ? 0 : BK_MAX_PER_SLOT;
     var isSel = slot === bookingSlot;
