@@ -183,6 +183,7 @@ const T = {
     bkFull:'Slot ini telah penuh. Sila pilih slot lain.',
     bkNeedProb:'Sila pilih jenis masalah dahulu untuk lihat slot tempahan',
     bkJustBooked:'Maaf, slot ini baru sahaja ditempah. Sila pilih slot lain.',
+    bkChecking:'Menyemak slot tersedia...',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -390,6 +391,7 @@ const T = {
     bkFull:'This slot is full. Please choose another slot.',
     bkNeedProb:'Please select a problem type first to view booking slots',
     bkJustBooked:'Sorry, this slot was just booked. Please choose another slot.',
+    bkChecking:'Checking available slots...',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -464,6 +466,8 @@ const PROBLEM_TEAM_MAP = {
 };
 function problemTeam(problem) { return PROBLEM_TEAM_MAP[problem] || 'GENERAL'; }
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
+let bkLoading = false;   // true while fetching fresh availability from Supabase
+let bkBookings = null;   // lightweight booking rows for availability (null = fall back to complaints)
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const USERS = [
@@ -4191,10 +4195,12 @@ if('serviceWorker' in navigator) {
 }());
 
 // ─── BOOKING CALENDAR ────────────────────────────────────────────────────────
-// Teams already booked in a given date+slot (complaints array excludes deleted)
+// Teams already booked in a given date+slot. Uses fresh lightweight rows
+// (bkBookings) when available, falling back to the cached complaints array.
 function getSlotTeams(dateStr, slot) {
   var teams = [];
-  complaints.forEach(function(c){
+  var src = bkBookings || complaints;
+  src.forEach(function(c){
     if(c.prefDate === dateStr && c.prefTime === slot) teams.push(problemTeam(c.problem));
   });
   return teams;
@@ -4230,15 +4236,17 @@ function getBkDayAvailability(dateStr) {
   return 'available';
 }
 
-// Fetch fresh (non-deleted) complaints from Supabase so slot availability
-// never relies on stale cached data. Silently keeps old data on failure.
+// Fetch fresh (non-deleted) booking rows from Supabase so slot availability
+// never relies on stale cached data. Minimal columns only to keep the payload
+// small. Silently keeps old data on failure.
 async function refreshBkComplaints() {
   try {
-    const { data, error } = await db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false');
+    const { data, error } = await db.from('complaints')
+      .select('pref_date, pref_time, problem, status, is_deleted')
+      .or('is_deleted.is.null,is_deleted.eq.false');
     if(!error && data) {
-      complaints = data.map(rowToComplaint);
-      complaints.sort(function(a, b) {
-        return (b.submittedAt || '').localeCompare(a.submittedAt || '');
+      bkBookings = data.map(function(r){
+        return { prefDate: r.pref_date || '', prefTime: r.pref_time || '', problem: r.problem || '' };
       });
     }
   } catch(e) {
@@ -4256,6 +4264,32 @@ function updateBkVisibility() {
   return hasProb;
 }
 
+// Skeleton shown in the slot grid while fresh availability is being fetched.
+// Also disables the "Change Date" button to prevent spam clicks mid-fetch.
+function renderBkSlotsLoading() {
+  var grid = el('bk-slots-grid');
+  if(grid) {
+    var html = '<div class="bk-slots-loading-note">⏳ ' + t('bkChecking') + '</div>';
+    BK_SLOTS.forEach(function(){
+      html += '<div class="bk-slot bk-slot-skel">'
+        + '<span class="bk-skel-bar" style="width:70%;"></span>'
+        + '<span class="bk-skel-bar" style="width:45%;"></span>'
+        + '</div>';
+    });
+    grid.innerHTML = html;
+  }
+  setBkBackDisabled(true);
+}
+
+function setBkBackDisabled(disabled) {
+  var btn = document.querySelector('.bk-slots-back-btn');
+  if(btn) {
+    btn.disabled = disabled;
+    btn.style.opacity = disabled ? '.5' : '';
+    btn.style.pointerEvents = disabled ? 'none' : '';
+  }
+}
+
 // Refresh slot availability when the customer changes Problem Type
 async function onProblemTypeChange() {
   // Category changed → previous slot choice no longer valid; reset it
@@ -4264,7 +4298,12 @@ async function onProblemTypeChange() {
   var s = el('bk-summary');
   if(s) s.style.display = 'none';
   if(!updateBkVisibility()) return;
+  if(bkLoading) return;
+  bkLoading = true;
+  if(bookingDate) renderBkSlotsLoading();
   await refreshBkComplaints();
+  bkLoading = false;
+  setBkBackDisabled(false);
   renderBkCalendar();
   if(bookingDate) renderBkSlots(bookingDate);
 }
@@ -4343,16 +4382,25 @@ function renderBkCalendar() {
 }
 
 async function selectBkDate(dateStr) {
+  if(bkLoading) return;
   bookingDate = dateStr;
   bookingSlot = null;
   el('cf-date').value = dateStr;
   el('cf-time').value = '';
-  await refreshBkComplaints();
-  renderBkCalendar();
-  renderBkSlots(dateStr);
   el('bk-cal-wrap').style.display = 'none';
   el('bk-slots-wrap').style.display = '';
   el('bk-summary').style.display = 'none';
+  // Show skeleton immediately, then swap in real availability once fetched
+  var d = new Date(dateStr + 'T00:00:00');
+  var dateLbl = el('bk-slots-date-label');
+  if(dateLbl) dateLbl.textContent = t('dayNames')[d.getDay()] + ', ' + d.getDate() + ' ' + t('monthNames')[d.getMonth()] + ' ' + d.getFullYear();
+  renderBkSlotsLoading();
+  bkLoading = true;
+  await refreshBkComplaints();
+  bkLoading = false;
+  setBkBackDisabled(false);
+  renderBkCalendar();
+  renderBkSlots(dateStr);
 }
 
 function renderBkSlots(dateStr) {
@@ -4382,6 +4430,7 @@ function renderBkSlots(dateStr) {
 }
 
 function selectBkSlot(slot) {
+  if(bkLoading) return;
   if(isBkSlotFull(bookingDate, slot, currentBkTeam())) {
     toast(t('bkFull'), 'error', 4000); return;
   }
@@ -4408,6 +4457,7 @@ function renderBkSummary() {
 }
 
 function bookingBackToCalendar() {
+  if(bkLoading) return;
   el('bk-slots-wrap').style.display = 'none';
   el('bk-cal-wrap').style.display   = '';
   renderBkCalendar();

@@ -2146,6 +2146,34 @@ tbody tr:hover { background:var(--gray-50); }
 }
 .bk-slot-full .bk-slot-avail { color: var(--danger); }
 
+/* Loading skeleton while checking slot availability */
+.bk-slots-loading-note {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: .78rem;
+  color: var(--gray-500);
+  padding: 2px 0 4px;
+}
+.bk-slot-skel {
+  pointer-events: none;
+  cursor: default;
+  gap: 8px;
+  justify-content: center;
+  min-height: 46px;
+}
+.bk-skel-bar {
+  display: block;
+  height: 11px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: bkShimmer 1.2s linear infinite;
+}
+@keyframes bkShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Summary */
 .bk-summary { border-top: 1px solid var(--gray-200); }
 .bk-summary-inner {
