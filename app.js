@@ -188,6 +188,15 @@ const T = {
     bkOps2:'Sabtu: Pejabat pentadbiran tutup, namun pasukan operasi beroperasi seperti biasa.',
     bkOps3:'Kami memohon maaf sekiranya berlaku sedikit kelewatan ketibaan pasukan disebabkan perjalanan antara lokasi kerja atau kerja terdahulu yang mengambil masa lebih lama.',
     bkOps4:'Slot tempahan anda mungkin tertakluk kepada perubahan atas faktor operasi seperti cuti pasukan atau kerja terdahulu yang memerlukan masa yang lebih panjang. Kami akan menghubungi anda terlebih dahulu sekiranya perubahan diperlukan.',
+    mileFree:'Lokasi anda dalam kawasan liputan percuma ({km} km dari pejabat)',
+    mileCharge:'Caj perjalanan site visit: RM {amt} ({km} km dari pejabat, RM2.00/km termasuk perjalanan pergi-balik)',
+    mileNote:'Caj perjalanan adalah anggaran berdasarkan jarak jalan raya dan akan disahkan oleh pihak kami.',
+    milePin:'Pin lokasi anda untuk anggaran caj perjalanan',
+    mileCalc:'Mengira jarak dari pejabat...',
+    mileEst:'anggaran',
+    mileDist:'Jarak',
+    mileChargeLbl:'Caj perjalanan',
+    mileFreeZone:'Free zone',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -399,6 +408,15 @@ const T = {
     bkOps2:'Saturday: Administrative office closed, but operation teams work as usual.',
     bkOps3:'We apologize in advance for any slight delay in team arrival due to travel time between job sites or previous jobs taking longer than expected.',
     bkOps4:'Your booking slot may be subject to change due to operational factors such as team leave or prior jobs requiring extended time. We will contact you in advance if any changes are necessary.',
+    mileFree:'Your location is within our free coverage area ({km} km from office)',
+    mileCharge:'Site visit travel charge: RM {amt} ({km} km from office, RM2.00/km including return trip)',
+    mileNote:'Travel charge is an estimate based on road distance and will be confirmed by our team.',
+    milePin:'Pin your location for travel charge estimate',
+    mileCalc:'Calculating distance from office...',
+    mileEst:'estimate',
+    mileDist:'Distance',
+    mileChargeLbl:'Travel charge',
+    mileFreeZone:'Free zone',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -478,6 +496,13 @@ const PROBLEM_TEAM_MAP = {
   'Lain-lain': 'GENERAL'
 };
 function problemTeam(problem) { return PROBLEM_TEAM_MAP[problem] || 'GENERAL'; }
+
+// Mileage charge — site-visit bookings only
+const OFFICE_COORDS = { lat: 1.4613238124884376, lng: 103.91106449286333 }; // Office E Man Utama, Pasir Gudang
+const MILEAGE_FREE_RADIUS_KM = 10;
+const MILEAGE_RATE_PER_KM = 2.00; // RM per km — rate already covers the return trip
+let mileageKm = null, mileageCharge = null, mileageIsEstimate = false;
+let mileageCalcSeq = 0; // guards against out-of-order OSRM responses
 let bkYear = 0, bkMonth = 0, bookingDate = null, bookingSlot = null;
 let bkLoading = false;   // true while fetching fresh availability from Supabase
 let bkBookings = null;   // lightweight booking rows for availability (null = fall back to complaints)
@@ -765,6 +790,8 @@ function rowToComplaint(row) {
     photosD:        row.photos_during  || [],  // Supabase: photos_during → JS: photosD
     photosA:        row.photos_after   || [],  // Supabase: photos_after  → JS: photosA
     bookingType:    row.booking_type   || null, // Supabase: booking_type → JS: bookingType
+    mileageKm:      row.mileage_km     != null ? row.mileage_km     : null,
+    mileageCharge:  row.mileage_charge != null ? row.mileage_charge : null,
   };
 }
 
@@ -799,6 +826,8 @@ function complaintToRow(c) {
     photos_during:    c.photosD      || [],    // JS: photosD → Supabase: photos_during
     photos_after:     c.photosA      || [],    // JS: photosA → Supabase: photos_after
     booking_type:     c.bookingType  || null,  // JS: bookingType → Supabase: booking_type
+    mileage_km:       c.mileageKm     != null ? c.mileageKm     : null,
+    mileage_charge:   c.mileageCharge != null ? c.mileageCharge : null,
   };
 }
 
@@ -1227,6 +1256,8 @@ function initComplaintForm() {
   const locBtn = el('cf-loc-btn-txt');
   if(locBtn) locBtn.textContent = lang==='bm'?'Pin Lokasi Saya':'Pin My Location';
   bookingDate = null; bookingSlot = null;
+  mileageKm = null; mileageCharge = null; mileageIsEstimate = false;
+  updateMileageEstimate();
   initBookingCalendar();
 }
 
@@ -1256,6 +1287,7 @@ function setCfBookingType(val) {
     site.style.border  = '2px solid #8b5cf6'; site.style.background = 'rgba(139,92,246,.12)'; site.style.color = '#a78bfa';
     kerja.style.border = '2px solid var(--gray-300)'; kerja.style.background = 'transparent'; kerja.style.color = 'var(--gray-600)';
   }
+  updateMileageEstimate();
 }
 
 async function submitComplaint() {
@@ -1302,6 +1334,8 @@ async function submitComplaint() {
     status:'Menunggu', assignedTo:'', assignedName:'',
     schedDate:'', adminNotes:'', techNotes:'',
     coords: (pinnedLat&&pinnedLng)?{lat:pinnedLat,lng:pinnedLng}:null,
+    mileageKm:     (bookingType==='site_visit' && mileageKm!=null) ? mileageKm : null,
+    mileageCharge: (bookingType==='site_visit' && mileageKm!=null) ? mileageCharge : null,
     media: uploadedFiles.slice(),
     submittedAt: new Date().toISOString(),
     updatedAt:   new Date().toISOString(),
@@ -1776,6 +1810,7 @@ function renderComplaintsList() {
         ${c.address?`<div class="cp-meta-item" style="grid-column:1/-1;"><span class="cp-meta-ic">📍</span>${c.address}</div>`:''}
         <div class="cp-meta-item"><span class="cp-meta-ic">📅</span>${fmtDateShort(c.prefDate)}</div>
         <div class="cp-meta-item"><span class="cp-meta-ic">🕐</span>${c.prefTime}</div>
+        ${c.bookingType==='site_visit'&&c.mileageKm!=null?`<div class="cp-meta-item" style="grid-column:1/-1;"><span class="cp-meta-ic">🚗</span>${t('mileDist')}: ${Number(c.mileageKm).toFixed(1)} km | ${t('mileChargeLbl')}: ${c.mileageCharge>0?'RM '+Number(c.mileageCharge).toFixed(2):t('mileFreeZone')}</div>`:''}
         ${assigned
           ? `<div class="cp-meta-item"><span class="cp-meta-ic">🧑‍🔧</span>${lang==='bm'?'Ditugaskan':'Assigned'}: ${c.assignedName}</div>`
           : `<div class="cp-meta-item cp-warn"><span class="cp-meta-ic">⚠️</span>${t('notAssigned')}</div>`}
@@ -1864,6 +1899,7 @@ function openStatModal(filter) {
       ${row('📍', c.address)}
       ${row('🔧', c.problem + (c.desc ? ` — ${c.desc}` : ''))}
       ${row('🕐', c.prefTime)}
+      ${c.bookingType==='site_visit'&&c.mileageKm!=null?row('🚗', t('mileDist')+': '+Number(c.mileageKm).toFixed(1)+' km | '+t('mileChargeLbl')+': '+(c.mileageCharge>0?'RM '+Number(c.mileageCharge).toFixed(2):t('mileFreeZone'))):''}
       ${row('👷', c.assignedName || c.acceptedByName || `<span style="color:var(--gray-400);font-style:italic;">${lang==='bm'?'Belum ditugaskan':'Not yet assigned'}</span>`)}
     </div>`;
   }).join('')
@@ -2943,6 +2979,70 @@ function renderMediaPreviews() {
   }).join('');
 }
 
+// --- MILEAGE CHARGE (SITE VISIT) ---
+function haversineKm(lat1, lng1, lat2, lng2) {
+  var R = 6371, toRad = function(x){ return x * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2)
+        + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function mileBox(bg, border, color, inner) {
+  return '<div style="margin-top:8px;background:' + bg + ';border:1px solid ' + border
+    + ';border-radius:8px;padding:9px 12px;font-size:.8rem;color:' + color + ';line-height:1.5;">'
+    + inner + '</div>';
+}
+
+// Road distance via OSRM; haversine × 1.3 as fallback estimate.
+// Only active for site_visit bookings with a pinned location.
+async function updateMileageEstimate() {
+  var box = el('cf-mileage-box');
+  mileageKm = null; mileageCharge = null; mileageIsEstimate = false;
+  if(!box) return;
+  var isSiteVisit = (el('cf-booking-type') ? el('cf-booking-type').value : 'kerja') === 'site_visit';
+  if(!isSiteVisit) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  if(!(pinnedLat && pinnedLng)) {
+    box.innerHTML = mileBox('#fffbeb', '#fcd34d', '#92400e', '📍 ' + t('milePin'));
+    return;
+  }
+  var seq = ++mileageCalcSeq;
+  box.innerHTML = mileBox('var(--gray-50)', 'var(--gray-200)', 'var(--gray-500)', '⏳ ' + t('mileCalc'));
+  var km = null, est = false;
+  try {
+    var ctl = new AbortController();
+    var tm = setTimeout(function(){ ctl.abort(); }, 8000);
+    var res = await fetch('https://router.project-osrm.org/route/v1/driving/'
+      + OFFICE_COORDS.lng + ',' + OFFICE_COORDS.lat + ';' + pinnedLng + ',' + pinnedLat
+      + '?overview=false', { signal: ctl.signal });
+    clearTimeout(tm);
+    var j = await res.json();
+    if(j && j.routes && j.routes[0] && typeof j.routes[0].distance === 'number') km = j.routes[0].distance / 1000;
+  } catch(e) {
+    console.warn('[EMUG] OSRM route failed, using haversine estimate:', e);
+  }
+  if(seq !== mileageCalcSeq) return; // superseded by a newer pin/toggle
+  if(km === null) {
+    km = haversineKm(OFFICE_COORDS.lat, OFFICE_COORDS.lng, pinnedLat, pinnedLng) * 1.3;
+    est = true;
+  }
+  km = Math.round(km * 10) / 10;
+  mileageKm = km;
+  mileageIsEstimate = est;
+  mileageCharge = km <= MILEAGE_FREE_RADIUS_KM ? 0 : Math.round(km * MILEAGE_RATE_PER_KM * 100) / 100;
+  var kmTxt = km.toFixed(1);
+  var estTag = est ? ' (' + t('mileEst') + ')' : '';
+  if(mileageCharge === 0) {
+    box.innerHTML = mileBox('#f0fdf4', '#86efac', '#166534',
+      '✅ ' + t('mileFree').replace('{km}', kmTxt) + estTag);
+  } else {
+    box.innerHTML = mileBox('#eff6ff', '#93c5fd', '#1e40af',
+      '🚗 ' + t('mileCharge').replace('{amt}', mileageCharge.toFixed(2)).replace('{km}', kmTxt) + estTag
+      + '<div style="margin-top:4px;font-size:.72rem;color:var(--gray-500);">' + t('mileNote') + '</div>');
+  }
+}
+
 // --- GPS LOCATION PIN ---
 function pinLocation() {
   if(!navigator.geolocation) {
@@ -2967,6 +3067,7 @@ function pinLocation() {
           +'<a href="https://www.google.com/maps?q='+pinnedLat+','+pinnedLng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
           +'</div>';
       }
+      updateMileageEstimate();
     },
     err => {
       if(btn) btn.disabled = false;
