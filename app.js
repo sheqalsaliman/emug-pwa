@@ -197,6 +197,12 @@ const T = {
     mileDist:'Jarak',
     mileChargeLbl:'Caj perjalanan',
     mileFreeZone:'Free zone',
+    mapBtn:'Pilih di Peta',
+    mapTitle:'🗺️ Pilih Lokasi di Peta',
+    mapConfirm:'✅ Sahkan Lokasi',
+    mapCancel:'Batal',
+    mapHint:'Klik pada peta atau seret penanda untuk pilih lokasi.',
+    mapLoadFail:'Peta gagal dimuatkan. Sila semak sambungan internet.',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -417,6 +423,12 @@ const T = {
     mileDist:'Distance',
     mileChargeLbl:'Travel charge',
     mileFreeZone:'Free zone',
+    mapBtn:'Choose on Map',
+    mapTitle:'🗺️ Choose Location on Map',
+    mapConfirm:'✅ Confirm Location',
+    mapCancel:'Cancel',
+    mapHint:'Tap the map or drag the marker to pick a location.',
+    mapLoadFail:'Map failed to load. Please check your connection.',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -705,6 +717,10 @@ function applyAllText() {
   setTxt('bk-ops-note-2', t('bkOps2'));
   setTxt('bk-ops-note-3', t('bkOps3'));
   setTxt('bk-ops-note-4', t('bkOps4'));
+  setTxt('cf-map-btn-txt', t('mapBtn'));
+  setTxt('mp-title', t('mapTitle'));
+  setTxt('mp-confirm', t('mapConfirm'));
+  setTxt('mp-cancel', t('mapCancel'));
   // Booking type toggle
   setTxt('cf-lbl-bk-type', t('cfLblBkType'));
   setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
@@ -3043,6 +3059,94 @@ async function updateMileageEstimate() {
   }
 }
 
+// Shared confirmation UI for a set pin — used by GPS pin and map picker
+function showPinnedResult() {
+  const btnTxt = el('cf-loc-btn-txt');
+  if(btnTxt) btnTxt.textContent = lang==='bm'?'Lokasi Dipin ✓':'Location Pinned ✓';
+  const result = el('cf-location-result');
+  if(result) {
+    result.style.display = 'block';
+    result.innerHTML = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<span style="font-size:.85rem;color:#166534;">📍 '+pinnedLat.toFixed(6)+', '+pinnedLng.toFixed(6)+'</span>'
+      +'<a href="https://www.google.com/maps?q='+pinnedLat+','+pinnedLng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
+      +'</div>';
+  }
+}
+
+// --- MAP LOCATION PICKER (Leaflet) ---
+let mpMap = null, mpMarker = null, mpLat = null, mpLng = null;
+
+function openMapPicker() {
+  if(typeof L === 'undefined') { toast(t('mapLoadFail'), 'error'); return; }
+  openModal('modal-map');
+  const hasPin = !!(pinnedLat && pinnedLng);
+  const startLat = hasPin ? pinnedLat : OFFICE_COORDS.lat;
+  const startLng = hasPin ? pinnedLng : OFFICE_COORDS.lng;
+  const zoom = hasPin ? 16 : 12;
+  if(!mpMap) {
+    mpMap = L.map('mp-map').setView([startLat, startLng], zoom);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mpMap);
+    mpMap.on('click', e => setMpMarker(e.latlng.lat, e.latlng.lng));
+  } else {
+    mpMap.setView([startLat, startLng], zoom);
+  }
+  if(hasPin) { setMpMarker(startLat, startLng); }
+  else {
+    mpLat = null; mpLng = null;
+    if(mpMarker) { mpMarker.remove(); mpMarker = null; }
+    updateMpCoordsLbl();
+  }
+  // Leaflet needs a size recalc after the modal becomes visible
+  setTimeout(() => { if(mpMap) mpMap.invalidateSize(); }, 200);
+}
+
+function setMpMarker(lat, lng) {
+  mpLat = lat; mpLng = lng;
+  if(!mpMarker) {
+    mpMarker = L.marker([lat, lng], { draggable: true }).addTo(mpMap);
+    mpMarker.on('dragend', () => {
+      const p = mpMarker.getLatLng();
+      mpLat = p.lat; mpLng = p.lng;
+      updateMpCoordsLbl();
+    });
+  } else {
+    mpMarker.setLatLng([lat, lng]);
+  }
+  updateMpCoordsLbl();
+}
+
+function updateMpCoordsLbl() {
+  const lbl = el('mp-coords');
+  if(!lbl) return;
+  lbl.textContent = (mpLat != null) ? '📍 ' + mpLat.toFixed(6) + ', ' + mpLng.toFixed(6) : t('mapHint');
+}
+
+function confirmMapLocation() {
+  if(mpLat == null) { toast(t('mapHint'), 'error'); return; }
+  pinnedLat = mpLat;
+  pinnedLng = mpLng;
+  closeModal('modal-map');
+  showPinnedResult();
+  updateMileageEstimate();
+  reverseGeocodeFill(mpLat, mpLng);
+}
+
+// Best-effort: auto-fill the address field from the picked coords if empty
+async function reverseGeocodeFill(lat, lng) {
+  const addr = el('cf-addr');
+  if(!addr || addr.value.trim()) return;
+  try {
+    const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng);
+    const j = await res.json();
+    if(j && j.display_name && !addr.value.trim()) addr.value = j.display_name;
+  } catch(e) {
+    console.warn('[EMUG] reverse geocode skipped:', e);
+  }
+}
+
 // --- GPS LOCATION PIN ---
 function pinLocation() {
   if(!navigator.geolocation) {
@@ -3059,14 +3163,7 @@ function pinLocation() {
       pinnedLat = pos.coords.latitude;
       pinnedLng = pos.coords.longitude;
       if(btn) btn.disabled = false;
-      if(btnTxt) btnTxt.textContent = lang==='bm'?'Lokasi Dipin ✓':'Location Pinned ✓';
-      if(result) {
-        result.style.display = 'block';
-        result.innerHTML = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-          +'<span style="font-size:.85rem;color:#166534;">📍 '+pinnedLat.toFixed(6)+', '+pinnedLng.toFixed(6)+'</span>'
-          +'<a href="https://www.google.com/maps?q='+pinnedLat+','+pinnedLng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
-          +'</div>';
-      }
+      showPinnedResult();
       updateMileageEstimate();
     },
     err => {

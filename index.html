@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#1a237e">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 
@@ -444,6 +445,9 @@
             <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <button type="button" class="location-btn" id="cf-location-btn" onclick="pinLocation()">
                 📍 <span id="cf-loc-btn-txt">Pin Lokasi Saya</span>
+              </button>
+              <button type="button" class="location-btn" id="cf-map-btn" onclick="openMapPicker()">
+                🗺️ <span id="cf-map-btn-txt">Pilih di Peta</span>
               </button>
               <span style="font-size:.74rem;color:var(--gray-500);" id="cf-loc-hint">atau taip alamat di atas</span>
             </div>
@@ -1484,6 +1488,27 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=31"></script>
+<!-- Map Location Picker Modal -->
+<div class="modal-overlay" id="modal-map">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="mp-title">🗺️ Pilih Lokasi di Peta</div>
+        <button class="modal-close" onclick="closeModal('modal-map')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="mp-map" style="height:400px;width:100%;"></div>
+      <div id="mp-coords" style="padding:10px 16px;font-size:.8rem;color:var(--gray-600);line-height:1.4;">—</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-map')" id="mp-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="confirmMapLocation()" id="mp-confirm">✅ Sahkan Lokasi</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js?v=32"></script>
 </body>
 </html>
