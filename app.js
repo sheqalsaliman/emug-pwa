@@ -112,6 +112,9 @@ const T = {
     updateStatus:'Kemaskini Status',techNote:'Nota Juruteknik',
     noScheduleToday:'Tiada jadual untuk hari ini.',
     addSchedule:'Tambah Jadual',schedSaved:'Jadual berjaya disimpan.',
+    saLblName:'Nama',saLblPhone:'Phone',saLblAddr:'Alamat / Lokasi',
+    saLblProb:'Jenis Masalah',saLblUrgency:'Keutamaan',saProbPh:'-- Pilih Masalah --',
+    saTimePh:'-- Pilih Masa --',saNeedProb:'Sila pilih jenis masalah.',
     monthNames:['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'],
     dayNames:['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'],
     dayNamesShort:['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'],
@@ -242,8 +245,7 @@ const T = {
     sfSub:'Urus senarai kakitangan',
     rpSub:'Statistik dan analisis kerja',
     saLblAssignType:'Jenis Penugasan',saPoolLbl:'(Semua Operator)',saDirectLbl:'👤 Assign Terus',
-    saLblDate:'Tarikh',saLblTime:'Masa',saTimePlaceholder:'-- Pilih Masa --',
-    saLblLocation:'Lokasi',saLocPlaceholder:'Alamat / lokasi kerja',
+    saLblDate:'Tarikh',saLblTime:'Masa',
     saLblDesc:'Penerangan Kerja',saDescPlaceholder:'Penerangan tugas...',
     saSave:'Simpan',
     cfLblBkType:'Jenis Tempahan',cfBktKerja:'Pelaksanaan Kerja',cfBktSite:'Pemeriksaan Tapak',
@@ -329,6 +331,9 @@ const T = {
     updateStatus:'Update Status',techNote:'Technician Note',
     noScheduleToday:'No schedule for today.',
     addSchedule:'Add Schedule',schedSaved:'Schedule saved.',
+    saLblName:'Name',saLblPhone:'Phone',saLblAddr:'Address / Location',
+    saLblProb:'Problem Type',saLblUrgency:'Priority',saProbPh:'-- Select Problem --',
+    saTimePh:'-- Select Time --',saNeedProb:'Please select a problem type.',
     monthNames:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dayNames:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
     dayNamesShort:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
@@ -461,8 +466,7 @@ const T = {
     sfSub:'Manage staff list',
     rpSub:'Work statistics and analysis',
     saLblAssignType:'Assignment Type',saPoolLbl:'(All Operators)',saDirectLbl:'👤 Direct Assign',
-    saLblDate:'Date',saLblTime:'Time',saTimePlaceholder:'-- Select Time --',
-    saLblLocation:'Location',saLocPlaceholder:'Work address / location',
+    saLblDate:'Date',saLblTime:'Time',
     saLblDesc:'Job Description',saDescPlaceholder:'Task description...',
     saSave:'Save',
     cfLblBkType:'Booking Type',cfBktKerja:'Job Execution',cfBktSite:'Site Inspection',
@@ -521,6 +525,8 @@ const PROBLEM_TEAM_MAP = {
   'Penyelenggaraan bangunan': 'TEAM_A',  // Building maintenance
   'Kerja besi & kimpalan': 'TEAM_C',     // Metal & welding
   'Pemeriksaan am': 'GENERAL',
+  'Kerja Dalaman': 'GENERAL',           // Internal work — admin assigns team manually
+  'Penyelenggaraan Berjadual': 'GENERAL', // Scheduled maintenance — admin assigns team manually
   'Lain-lain': 'GENERAL'
 };
 function problemTeam(problem) { return PROBLEM_TEAM_MAP[problem] || 'GENERAL'; }
@@ -687,11 +693,13 @@ function applyAllText() {
   setTxt('sa-direct-lbl',t('saDirectLbl'));
   setTxt('sa-lbl-staff',t('staff'));
   setTxt('sa-lbl-date',t('saLblDate')); setTxt('sa-lbl-time',t('saLblTime'));
-  setTxt('sa-time-placeholder',t('saTimePlaceholder'));
-  setTxt('sa-lbl-location',t('saLblLocation')); setTxt('sa-lbl-desc',t('saLblDesc'));
+  setTxt('sa-lbl-addr',t('saLblAddr')); setTxt('sa-lbl-desc',t('saLblDesc'));
+  setTxt('sa-lbl-name',t('saLblName')); setTxt('sa-lbl-phone',t('saLblPhone'));
+  setTxt('sa-lbl-prob',t('saLblProb')); setTxt('sa-lbl-urgency',t('saLblUrgency'));
+  setTxt('sa-prob-ph',t('saProbPh'));
   setTxt('sa-save',`💾 ${t('saSave')}`);
-  const saLoc = el('sa-location'); if(saLoc) saLoc.placeholder = t('saLocPlaceholder');
   const saDesc = el('sa-desc'); if(saDesc) saDesc.placeholder = t('saDescPlaceholder');
+  populateSaTimeOptions(el('sa-date')?.value, el('sa-time')?.value);
   setTxt('nt-mark-all',t('markRead')); setTxt('pr-title',t('profile'));
   // Modal
   setTxt('mj-lbl-assign',t('assignTo')); setTxt('mj-lbl-status','Status');
@@ -831,6 +839,7 @@ function rowToComplaint(row) {
     bookingType:    row.booking_type   || null, // Supabase: booking_type → JS: bookingType
     mileageKm:      row.mileage_km     != null ? row.mileage_km     : null,
     mileageCharge:  row.mileage_charge != null ? row.mileage_charge : null,
+    source:         row.source         || 'customer', // 'customer' or 'manual' (created via + Tambah Jadual)
   };
 }
 
@@ -867,6 +876,7 @@ function complaintToRow(c) {
     booking_type:     c.bookingType  || null,  // JS: bookingType → Supabase: booking_type
     mileage_km:       c.mileageKm     != null ? c.mileageKm     : null,
     mileage_charge:   c.mileageCharge != null ? c.mileageCharge : null,
+    source:           c.source        || 'customer',
   };
 }
 
@@ -1144,7 +1154,9 @@ async function dbInsertWorkSchedule(entry) {
 async function dbLoadManualJobs() {
   try {
     const { data, error } = await db.from('jobs')
-      .select('*').eq('job_type','manual').order('created_at', { ascending: false });
+      .select('*').eq('job_type','manual')
+      .or('is_deleted.is.null,is_deleted.eq.false')
+      .order('created_at', { ascending: false });
     if(!error && data) {
       manualJobs = data;
       console.log('[EMUG] manual jobs loaded:', data.length);
@@ -1371,6 +1383,7 @@ async function submitComplaint() {
   const c = {
     id: ref,
     ref, name, phone, address, problem, desc, urgency, bookingType,
+    source: 'customer',
     prefDate:date, prefTime:time||'—',
     status:'Menunggu', assignedTo:'', assignedName:'',
     schedDate:'', adminNotes:'', techNotes:'',
@@ -1811,11 +1824,15 @@ function renderComplaintsList() {
     return mf&&ms;
   }).sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
 
-  // Manual jobs from jobs table
+  // Manual jobs from jobs table — excludes ones already linked to a real complaint
+  // (source='manual' complaints created via the current "+ Tambah Jadual" flow),
+  // since those already render as full complaint cards above and would otherwise
+  // show up twice.
   const mjVisible = user.role==='operator'
     ? manualJobs.filter(j=>j.is_pool||j.operator_id===user.username)
     : manualJobs; // admin / staff sees all
   const mjList = mjVisible.filter(j=>{
+    if(complaints.some(c=>c.ref===j.complaint_ref)) return false;
     if(cpFilter!=='all'&&j.status!==cpFilter) return false;
     return !q||(j.job_title||'').toLowerCase().includes(q)||(j.complaint_ref||'').toLowerCase().includes(q)||(j.job_description||'').toLowerCase().includes(q);
   });
@@ -1831,11 +1848,16 @@ function renderComplaintsList() {
   const complaintCards = list.map(c=>{
     const urgIcon = c.urgency==='Segera'?' 🚨':'';
     const assigned = !!c.assignedName;
+    const isManual = c.source==='manual';
+    const nameDisp = c.name || (lang==='bm'?'Kerja Dalaman':'Internal Work');
     return `<div class="cp-card ${statusClass(c.status)}">
       <div class="cp-card-top">
         <div class="cp-id-wrap">
-          <div class="cp-ref">${c.ref}${urgIcon}</div>
-          <div class="cp-name">${c.name}</div>
+          <div class="cp-ref" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span>${c.ref}${urgIcon}</span>
+            ${isManual?`<span style="font-size:.64rem;background:#8b5cf6;color:#fff;border-radius:8px;padding:2px 7px;font-weight:700;letter-spacing:.3px;">MANUAL</span>`:''}
+          </div>
+          <div class="cp-name">${nameDisp}</div>
         </div>
         ${statusBadge(c.status)}
       </div>
@@ -1847,7 +1869,7 @@ function renderComplaintsList() {
         ${c.media&&c.media.length?`<span class="cp-tag"><span class="cp-tag-ic">📷</span><span class="cp-tag-txt">${c.media.length}</span></span>`:''}
       </div>
       <div class="cp-meta">
-        <div class="cp-meta-item"><span class="cp-meta-ic">📞</span>${c.phone}</div>
+        <div class="cp-meta-item"><span class="cp-meta-ic">📞</span>${c.phone||'-'}</div>
         ${c.address?`<div class="cp-meta-item" style="grid-column:1/-1;"><span class="cp-meta-ic">📍</span>${c.address}</div>`:''}
         <div class="cp-meta-item"><span class="cp-meta-ic">📅</span>${fmtDateShort(c.prefDate)}</div>
         <div class="cp-meta-item"><span class="cp-meta-ic">🕐</span>${c.prefTime}</div>
@@ -2306,8 +2328,8 @@ let shareComplaint = null;
 function buildShareText(c) {
   const priority = c.urgency === 'Segera' ? 'Segera 🚨' : 'Normal';
   return `🔔 *ADUAN BARU* — #${c.ref}
-👤 Nama: ${c.name}
-📞 Phone: ${c.phone}
+👤 Nama: ${c.name || '-'}
+📞 Phone: ${c.phone || '-'}
 📍 Alamat: ${c.address || '-'}
 🔧 Jenis Kerosakan: ${c.problem}
 ⚡ Priority: ${priority}
@@ -2631,15 +2653,35 @@ function renderMonthView() {
 }
 
 // ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────
+// Populates the sa-time <select> with the slot set for the given date
+// (Friday special vs standard), re-selecting keepValue if it's still valid.
+function populateSaTimeOptions(dateStr, keepValue) {
+  const sel = el('sa-time');
+  if(!sel) return;
+  const slots = dateStr ? bkSlotsFor(dateStr) : BK_SLOTS_STD;
+  const opts = slots.map(s=>`<option value="${s}">${s.replace(' - ',' – ')}</option>`).join('');
+  sel.innerHTML = `<option value="">${t('saTimePh')}</option>${opts}`;
+  if(keepValue && slots.indexOf(keepValue)!==-1) sel.value = keepValue;
+}
+
+function onSaDateChange() {
+  populateSaTimeOptions(el('sa-date').value, el('sa-time').value);
+}
+
 function openSchedAddModal() {
   schedEditId = null;
   const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
   const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
   el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
   el('sa-date').value = schedDate.toLocaleDateString('en-CA');
-  el('sa-time').value = '';
-  el('sa-location').value = '';
+  populateSaTimeOptions(el('sa-date').value);
+  el('sa-addr').value = '';
   el('sa-desc').value = '';
+  el('sa-name').value = '';
+  el('sa-phone').value = '';
+  el('sa-prob').value = '';
+  el('sa-urgency').value = 'Normal';
+  el('sa-new-fields-wrap').style.display = '';
   setTxt('sa-title', `🗓️ ${t('addSchedule')}`);
   setTxt('sa-cancel', t('cancel'));
   // Reset to Pool mode by default
@@ -2662,9 +2704,9 @@ async function saveSchedEntry() {
   // Read date as plain YYYY-MM-DD string — never pass through new Date() to avoid UTC shift
   const dateVal     = el('sa-date').value.slice(0,10);
   const time        = el('sa-time').value;
-  const location    = el('sa-location').value.trim();
+  const location    = el('sa-addr').value.trim();
   const description = el('sa-desc').value.trim();
-  if(!dateVal||!time||!location||!description) {
+  if(!dateVal||!time||!description) {
     toast(lang==='bm'?'Sila isi semua maklumat.':'Please fill in all fields.', 'error'); return;
   }
   if(!isPool && !staffUsername) {
@@ -2672,7 +2714,7 @@ async function saveSchedEntry() {
   }
 
   if(schedEditId) {
-    // Edit existing schedule entry — keep original staff if editing a pool entry
+    // Edit existing lightweight schedule entry — staff/date/time/location/description only
     const existing = workSchedule.find(x=>x.id===schedEditId);
     if(!existing) return;
     const updUsername = isPool ? (existing.staffUsername || '') : staffUsername;
@@ -2688,56 +2730,98 @@ async function saveSchedEntry() {
     } else {
       toast(lang==='bm'?'Gagal mengemaskini jadual.':'Failed to update schedule.', 'error');
     }
-  } else {
-    // New booking — always create a manual job record in the jobs table
-    const jobRef = 'MANUAL-' + Date.now();
-    const manualJobRow = {
-      job_type:        'manual',
-      job_title:       description,
-      job_date:        dateVal,
-      job_time:        time,
-      job_location:    location,
-      job_description: description,
-      created_by:      user.name,
-      is_pool:         isPool,
-      operator_id:     isPool ? null : staffUsername,
-      operator_name:   isPool ? null : staffName,
-      status:          'Menunggu',
-      complaint_ref:   jobRef,
-    };
-    const savedJob = await dbInsertManualJob(manualJobRow);
-    if(!savedJob) {
-      toast(lang==='bm'?'Gagal menyimpan kerja manual.':'Failed to save manual job.', 'error'); return;
-    }
-    manualJobs.unshift(savedJob);
-
-    // Always also create a work_schedule record so the job appears — and is
-    // clickable — on the calendar, regardless of pool vs direct assignment.
-    const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
-    const saved = await dbInsertWorkSchedule(entry);
-    if(saved) workSchedule.push(saved);
-
-    // Notifications
-    if(isPool) {
-      addNotif('complaint',
-        lang==='bm'?'Kerja Manual Baru (Pool)':'New Manual Job (Pool)',
-        (lang==='bm'?'Kerja baru tersedia: ':'New job available: ') + description,
-        'operator');
-    } else {
-      addNotif('assign',
-        lang==='bm'?'Kerja Manual Ditugaskan':'Manual Job Assigned',
-        description + ' → ' + staffName,
-        'operator', staffUsername);
-      addNotif('assign',
-        lang==='bm'?'Kerja Manual Dibuat':'Manual Job Created',
-        staffName + ': ' + description,
-        'admin');
-    }
-
-    closeModal('modal-sched-add');
-    toast(t('schedSaved'), 'success');
-    renderSchedule();
+    return;
   }
+
+  // New entry — Problem Type is required; this becomes a full complaint
+  // record (source:'manual') so it gets every feature a customer complaint has
+  // (edit, gallery, status, share, delete) in the Complaint List.
+  const problem = el('sa-prob').value;
+  if(!problem) { toast(t('saNeedProb'), 'error'); return; }
+  const urgency = el('sa-urgency').value || 'Normal';
+  const name  = el('sa-name').value.trim();
+  const phone = el('sa-phone').value.trim();
+
+  // Slot availability / double-booking check — consistent with the customer flow
+  if(isBkSlotFull(dateVal, time, problemTeam(problem))) {
+    toast(t('bkFull'), 'error', 5000); return;
+  }
+  await refreshBkComplaints();
+  if(isBkSlotFull(dateVal, time, problemTeam(problem))) {
+    toast(t('bkJustBooked'), 'error', 6000); return;
+  }
+
+  const year = new Date().getFullYear();
+  const ref  = `EMUG-${year}-${String(refCounter).padStart(4,'0')}`;
+  const c = {
+    id: ref, ref,
+    name, phone, address: location,
+    problem, desc: description, urgency, bookingType: 'kerja', source: 'manual',
+    prefDate: dateVal, prefTime: time,
+    status: 'Menunggu',
+    assignedTo:   isPool ? '' : staffUsername,
+    assignedName: isPool ? '' : staffName,
+    schedDate: '', adminNotes: '', techNotes: '',
+    coords: null, mileageKm: null, mileageCharge: null,
+    media: [],
+    submittedAt: new Date().toISOString(),
+    updatedAt:   new Date().toISOString(),
+  };
+
+  const { error } = await db.from('complaints').insert([complaintToRow(c)]).select();
+  if(error) {
+    console.error('[EMUG] saveSchedEntry complaint insert error:', error.message, error);
+    toast((lang==='bm'?'Gagal menyimpan aduan: ':'Failed to save: ') + error.message, 'error', 7000);
+    return;
+  }
+  refCounter++;
+  complaints.push(c);
+
+  // Manual job record (jobs table) — links to the new real complaint ref so
+  // the existing operator accept/pool/direct-assign workflow applies unchanged.
+  const manualJobRow = {
+    job_type:        'manual',
+    job_title:       problem,
+    job_date:        dateVal,
+    job_time:        time,
+    job_location:    location || null,
+    job_description: description,
+    created_by:      user.name,
+    is_pool:         isPool,
+    operator_id:     isPool ? null : staffUsername,
+    operator_name:   isPool ? null : staffName,
+    status:          'Menunggu',
+    complaint_ref:   ref,
+  };
+  const savedJob = await dbInsertManualJob(manualJobRow);
+  if(savedJob) manualJobs.unshift(savedJob);
+
+  // Work-schedule calendar entry so it shows — and is clickable — on the calendar
+  const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
+  const saved = await dbInsertWorkSchedule(entry);
+  if(saved) workSchedule.push(saved);
+
+  // Notifications
+  if(isPool) {
+    addNotif('complaint',
+      lang==='bm'?'Kerja Manual Baru (Pool)':'New Manual Job (Pool)',
+      (lang==='bm'?'Kerja baru tersedia: ':'New job available: ') + description,
+      'operator');
+  } else {
+    addNotif('assign',
+      lang==='bm'?'Kerja Manual Ditugaskan':'Manual Job Assigned',
+      description + ' → ' + staffName,
+      'operator', staffUsername);
+    addNotif('assign',
+      lang==='bm'?'Kerja Manual Dibuat':'Manual Job Created',
+      staffName + ': ' + description,
+      'admin');
+  }
+
+  closeModal('modal-sched-add');
+  toast(t('schedSaved'), 'success');
+  renderSchedule();
+  if(page==='complaints') renderComplaintsList();
 }
 
 // ─── SCHEDULE DETAIL / EDIT / DELETE ─────────────────────────────────────────
@@ -2774,9 +2858,12 @@ function editSchedEntry() {
   el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
   el('sa-staff').value   = e.staffUsername || '';
   el('sa-date').value    = e.date;
-  el('sa-time').value    = e.time;
-  el('sa-location').value = e.location;
+  populateSaTimeOptions(e.date, e.time);
+  el('sa-addr').value    = e.location;
   el('sa-desc').value    = e.description;
+  // This lightweight schedule entry has no linked complaint fields to edit here —
+  // problem type / priority / customer details are only captured when creating new.
+  el('sa-new-fields-wrap').style.display = 'none';
   const isDirect = !!e.staffUsername;
   const radio = document.querySelector(`input[name="sa-assign-type"][value="${isDirect?'direct':'pool'}"]`);
   if(radio) radio.checked = true;

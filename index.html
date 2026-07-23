@@ -468,6 +468,8 @@
                 <option value="Penyelenggaraan bangunan">🏢 Penyelenggaraan bangunan / Building maintenance</option>
                 <option value="Kerja besi &amp; kimpalan">🔩 Kerja besi &amp; kimpalan / Metal &amp; welding works</option>
                 <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
+                <option value="Kerja Dalaman">🏗️ Kerja Dalaman / Internal Work</option>
+                <option value="Penyelenggaraan Berjadual">🔧 Penyelenggaraan Berjadual / Scheduled Maintenance</option>
                 <option value="Lain-lain">📝 Lain-lain / Others</option>
               </select>
             </div>
@@ -1135,6 +1137,8 @@
               <option value="Penyelenggaraan bangunan">🏢 Penyelenggaraan bangunan / Building maintenance</option>
               <option value="Kerja besi &amp; kimpalan">🔩 Kerja besi &amp; kimpalan / Metal &amp; welding works</option>
               <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
+              <option value="Kerja Dalaman">🏗️ Kerja Dalaman / Internal Work</option>
+              <option value="Penyelenggaraan Berjadual">🔧 Penyelenggaraan Berjadual / Scheduled Maintenance</option>
               <option value="Lain-lain">📝 Lain-lain / Others</option>
             </select>
           </div>
@@ -1397,25 +1401,59 @@
         <label class="form-label" id="sa-lbl-staff">Kakitangan</label>
         <select class="form-control" id="sa-staff"></select>
       </div>
+      <div id="sa-new-fields-wrap">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" id="sa-lbl-name">Nama</label>
+            <input type="text" class="form-control" id="sa-name" placeholder="Pilihan">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="sa-lbl-phone">Phone</label>
+            <input type="tel" class="form-control" id="sa-phone" placeholder="Pilihan">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" id="sa-lbl-prob">Jenis Masalah <span class="req">*</span></label>
+            <select class="form-control" id="sa-prob">
+              <option value="" id="sa-prob-ph">-- Pilih Masalah --</option>
+              <option value="Paip bocor">🔧 Paip bocor / Leaking pipe</option>
+              <option value="Saliran tersumbat">🚰 Saliran tersumbat / Blocked drain</option>
+              <option value="Tandas tersumbat">🚽 Tandas tersumbat / Blocked toilet</option>
+              <option value="Tangki najis">🛢️ Tangki najis / Septic tank</option>
+              <option value="Pemasangan baru">⚙️ Pemasangan baru / New installation</option>
+              <option value="Penyelenggaraan bangunan">🏢 Penyelenggaraan bangunan / Building maintenance</option>
+              <option value="Kerja besi &amp; kimpalan">🔩 Kerja besi &amp; kimpalan / Metal &amp; welding works</option>
+              <option value="Pemeriksaan am">🔍 Pemeriksaan am / General inspection</option>
+              <option value="Kerja Dalaman">🏗️ Kerja Dalaman / Internal Work</option>
+              <option value="Penyelenggaraan Berjadual">🔧 Penyelenggaraan Berjadual / Scheduled Maintenance</option>
+              <option value="Lain-lain">📝 Lain-lain / Others</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="sa-lbl-urgency">Keutamaan</label>
+            <select class="form-control" id="sa-urgency">
+              <option value="Normal">Normal</option>
+              <option value="Segera" id="sa-urgency-segera">🚨 Segera / Urgent</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="sa-lbl-addr">Alamat / Lokasi</label>
+        <textarea class="form-control" id="sa-addr" rows="2" placeholder="Pilihan"></textarea>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" id="sa-lbl-date">Tarikh</label>
-          <input type="date" class="form-control" id="sa-date">
+          <input type="date" class="form-control" id="sa-date" onchange="onSaDateChange()">
         </div>
         <div class="form-group">
           <label class="form-label" id="sa-lbl-time">Masa</label>
           <select class="form-control" id="sa-time">
             <option value="" id="sa-time-placeholder">-- Pilih Masa --</option>
-            <option value="08:00 - 10:00">08:00 – 10:00</option>
-            <option value="10:00 - 12:30">10:00 – 12:30</option>
-            <option value="13:30 - 15:30">13:30 – 15:30</option>
-            <option value="15:30 - 17:30">15:30 – 17:30</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="sa-lbl-location">Lokasi</label>
-        <input type="text" class="form-control" id="sa-location" placeholder="Alamat / lokasi kerja">
       </div>
       <div class="form-group">
         <label class="form-label" id="sa-lbl-desc">Penerangan Kerja</label>
@@ -1545,6 +1583,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=35"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>
