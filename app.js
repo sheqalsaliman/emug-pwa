@@ -1106,7 +1106,8 @@ async function dbUpdateFeedback(fb) {
 
 async function dbLoadWorkSchedule() {
   try {
-    const { data, error } = await db.from('work_schedule').select('*').order('job_date').order('job_time');
+    const { data, error } = await db.from('work_schedule').select('*')
+      .or('is_deleted.is.null,is_deleted.eq.false').order('job_date').order('job_time');
     if(error) { console.error('dbLoadWorkSchedule:', error.message); return; }
     if(data) workSchedule = data.map(r=>({
       id:            r.id,
@@ -1276,7 +1277,8 @@ async function dbUpdateWorkSchedule(entry) {
 
 async function dbDeleteWorkSchedule(id) {
   try {
-    const { error } = await db.from('work_schedule').delete().eq('id', id);
+    // Soft delete — consistent with complaints/jobs (is_deleted flag, never hard-delete)
+    const { error } = await db.from('work_schedule').update({ is_deleted: true }).eq('id', id);
     if(error) { console.error('dbDeleteWorkSchedule:', error.message); return false; }
     return true;
   } catch(e) { console.error('dbDeleteWorkSchedule:', e); return false; }
@@ -2584,16 +2586,11 @@ function renderMonthView() {
     if(p[0]!==schedYear||p[1]-1!==schedMonth) return; // only current month
     (byDate[d]=byDate[d]||[]).push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref });
   });
-  // 3) manual jobs — use job_date
-  const visManual = user.role==='admin' ? manualJobs
-    : manualJobs.filter(j=>j.is_pool||j.operator_id===user.username);
-  visManual.forEach(j=>{
-    const d = j.job_date;
-    if(!d) return;
-    const p = d.split('-').map(Number);
-    if(p[0]!==schedYear||p[1]-1!==schedMonth) return;
-    (byDate[d]=byDate[d]||[]).push({ _src:'manual', date:d, time:j.job_time, description:j.job_title||j.job_description, status:j.status, id:j.id });
-  });
+  // Note: manually-created jobs (job_type='manual' in the `jobs` table) are
+  // represented on this calendar via their work_schedule counterpart above
+  // (always created in saveSchedEntry) — not rendered separately here, since
+  // that duplicate chip had no click handler and caused the entries to be
+  // unclickable.
 
   const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
   let html = '';
@@ -2619,13 +2616,10 @@ function renderMonthView() {
       if(e._src==='schedule') {
         chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openSchedDetail('${e.id}')" title="${tm} ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
-      } else if(e._src==='complaint') {
+      } else { // complaint
         const handler = user.role==='admin' ? `openJobModal('${e.id}')` : '';
         chips += `<div class="job-chip chip-${cls}" style="opacity:.85;${handler?'cursor:pointer;':''}" onclick="event.stopPropagation();${handler}" title="${e.ref}: ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${e.ref}</span></div>`;
-      } else { // manual
-        chips += `<div class="job-chip" style="background:rgba(139,92,246,.15);border-left:2px solid #8b5cf6;" onclick="event.stopPropagation();" title="MANUAL: ${lbl}">`
-              +  `<span class="jc-dot" style="background:#8b5cf6;"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
       }
     });
     const more = list.length>2 ? `<div class="month-more">+${list.length-2} ${lang==='bm'?'lagi':'more'}</div>` : '';
@@ -2717,12 +2711,11 @@ async function saveSchedEntry() {
     }
     manualJobs.unshift(savedJob);
 
-    // If direct-assign, also create a work_schedule record so the job appears on their calendar
-    if(!isPool) {
-      const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
-      const saved = await dbInsertWorkSchedule(entry);
-      if(saved) workSchedule.push(saved);
-    }
+    // Always also create a work_schedule record so the job appears — and is
+    // clickable — on the calendar, regardless of pool vs direct assignment.
+    const entry = { staffUsername, staffName, date: dateVal, time, location, description, status:'Menunggu' };
+    const saved = await dbInsertWorkSchedule(entry);
+    if(saved) workSchedule.push(saved);
 
     // Notifications
     if(isPool) {
@@ -2759,7 +2752,7 @@ function openSchedDetail(id) {
         ${statusBadge(e.status)}
       </div>
       <div style="background:var(--gray-50);border-radius:var(--r);padding:14px;display:grid;gap:10px;font-size:.88rem;">
-        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">👷 ${lang==='bm'?'Kakitangan':'Staff'}</div><strong>${e.staffName}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">👷 ${lang==='bm'?'Kakitangan':'Staff'}</div><strong>${e.staffName || (lang==='bm'?'Pool (Semua Kakitangan)':'Pool (All Staff)')}</strong></div>
         <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📅 ${lang==='bm'?'Tarikh':'Date'}</div><strong>${fmtDate(e.date)}</strong></div>
         <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📍 ${lang==='bm'?'Lokasi':'Location'}</div><strong>${e.location}</strong></div>
         <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">🔧 ${lang==='bm'?'Penerangan':'Description'}</div><span>${e.description}</span></div>
@@ -2779,11 +2772,15 @@ function editSchedEntry() {
   const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
   const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
   el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
-  el('sa-staff').value   = e.staffUsername;
+  el('sa-staff').value   = e.staffUsername || '';
   el('sa-date').value    = e.date;
   el('sa-time').value    = e.time;
   el('sa-location').value = e.location;
   el('sa-desc').value    = e.description;
+  const isDirect = !!e.staffUsername;
+  const radio = document.querySelector(`input[name="sa-assign-type"][value="${isDirect?'direct':'pool'}"]`);
+  if(radio) radio.checked = true;
+  toggleAssignType();
   setTxt('sa-title', `✏️ ${lang==='bm'?'Edit Jadual':'Edit Schedule'}`);
   setTxt('sa-cancel', t('cancel'));
   openModal('modal-sched-add');
@@ -2792,9 +2789,10 @@ function editSchedEntry() {
 async function deleteSchedEntry() {
   const e = workSchedule.find(x=>x.id===schedDetailId);
   if(!e) return;
+  const staffLbl = e.staffName || (lang==='bm'?'Pool (Semua Kakitangan)':'Pool (All Staff)');
   const msg = lang==='bm'
-    ? `Padam jadual untuk ${e.staffName} pada ${fmtDateShort(e.date)}?`
-    : `Delete schedule for ${e.staffName} on ${fmtDateShort(e.date)}?`;
+    ? `Padam jadual untuk ${staffLbl} pada ${fmtDateShort(e.date)}?`
+    : `Delete schedule for ${staffLbl} on ${fmtDateShort(e.date)}?`;
   if(!confirm(msg)) return;
   const ok = await dbDeleteWorkSchedule(schedDetailId);
   if(ok) {
