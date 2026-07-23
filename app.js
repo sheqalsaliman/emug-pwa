@@ -203,6 +203,14 @@ const T = {
     mapCancel:'Batal',
     mapHint:'Klik pada peta atau seret penanda untuk pilih lokasi.',
     mapLoadFail:'Peta gagal dimuatkan. Sila semak sambungan internet.',
+    shareInfo:'Kongsi Maklumat',
+    shareTitle:'📤 Kongsi Maklumat Aduan',
+    shareTabText:'Text',
+    shareTabPng:'Gambar (PNG)',
+    shareCopy:'Copy',
+    shareCopied:'Disalin!',
+    shareDownload:'Download PNG',
+    shareNative:'Share',
     // Operator role
     role_operator:'Operator Lapangan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
@@ -429,6 +437,14 @@ const T = {
     mapCancel:'Cancel',
     mapHint:'Tap the map or drag the marker to pick a location.',
     mapLoadFail:'Map failed to load. Please check your connection.',
+    shareInfo:'Share Info',
+    shareTitle:'📤 Share Complaint Info',
+    shareTabText:'Text',
+    shareTabPng:'Image (PNG)',
+    shareCopy:'Copy',
+    shareCopied:'Copied!',
+    shareDownload:'Download PNG',
+    shareNative:'Share',
     dashTitle:'Dashboard',dashSub:"Welcome! Here is today's system summary.",
     statTotal:'Total Complaints',statPending:'Pending',statProgress:'In Progress',
     statDone:'Completed',statJobs:"Today's Jobs",statStaff:'Total Staff',
@@ -721,6 +737,13 @@ function applyAllText() {
   setTxt('mp-title', t('mapTitle'));
   setTxt('mp-confirm', t('mapConfirm'));
   setTxt('mp-cancel', t('mapCancel'));
+  setTxt('mj-share-lbl', t('shareInfo'));
+  setTxt('share-title', t('shareTitle'));
+  setTxt('share-tab-text-lbl', t('shareTabText'));
+  setTxt('share-tab-png-lbl', t('shareTabPng'));
+  setTxt('share-copy-lbl', t('shareCopy'));
+  setTxt('share-download-lbl', t('shareDownload'));
+  setTxt('share-native-lbl', t('shareNative'));
   // Booking type toggle
   setTxt('cf-lbl-bk-type', t('cfLblBkType'));
   setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
@@ -1385,7 +1408,7 @@ async function submitComplaint() {
   console.log('[EMUG] submitComplaint: SUCCESS — ref:', ref);
 
   addNotif('complaint', t('notifNewComplaint'),
-    `${ref} — ${name} (${problem}${urgency==='Segera'?' 🚨':''})`, 'admin');
+    `${ref} — ${name} (${problem}${urgency==='Segera'?' 🚨':''})`, 'admin', null, c.id);
 
   lastConfirmRef = ref;
   el('cc-ref-num').textContent = ref;
@@ -1836,6 +1859,7 @@ function renderComplaintsList() {
         ${isAdmin?`<button class="cp-btn cp-btn-sec" onclick="openJobModal('${c.id}')">✏️ ${t('editComplaint')}</button>`:''}
         <button class="cp-btn cp-btn-sec" onclick="openGalleryModal('${c.id}')">🖼️ ${t('galleryView')}</button>
         <button class="cp-btn cp-btn-pri" onclick="openStatusModal('${c.id}')">🔄 ${t('updateStatus')}</button>
+        <button class="cp-btn cp-btn-sec" onclick="openShareModal('${c.id}')">📤 ${t('shareInfo')}</button>
         ${c.coords?`<a class="cp-btn cp-btn-sec" href="https://www.google.com/maps?q=${c.coords.lat},${c.coords.lng}" target="_blank" rel="noopener" style="text-decoration:none;">🗺️ ${lang==='bm'?'Peta':'Map'}</a>`:''}
         ${isAdmin?`<button class="cp-btn" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;" onclick="adminDeleteComplaint('${c.ref}')">🗑️ Delete</button>`:''}
       </div>
@@ -2272,6 +2296,181 @@ function confirmStatusUpdate() {
   renderComplaintsList();
   renderDashboard();
   buildSidebar();
+}
+
+// ─── SHARE COMPLAINT INFO ─────────────────────────────────────────────────────
+let shareComplaint = null;
+
+function buildShareText(c) {
+  const priority = c.urgency === 'Segera' ? 'Segera 🚨' : 'Normal';
+  return `🔔 *ADUAN BARU* — #${c.ref}
+👤 Nama: ${c.name}
+📞 Phone: ${c.phone}
+📍 Alamat: ${c.address || '-'}
+🔧 Jenis Kerosakan: ${c.problem}
+⚡ Priority: ${priority}
+📅 Tarikh: ${fmtDate(c.prefDate)}
+🕐 Masa Slot: ${c.prefTime || '-'}
+📝 Nota: ${c.desc || '-'}`;
+}
+
+function openShareModal(cid) {
+  const c = complaints.find(x => x.id === cid);
+  if(!c) return;
+  shareComplaint = c;
+  el('share-text-content').value = buildShareText(c);
+  switchShareTab('text');
+  openModal('modal-share');
+}
+
+function switchShareTab(tab) {
+  document.querySelectorAll('.share-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.share-pane').forEach(p => p.classList.remove('active'));
+  el('share-tab-' + tab + '-btn').classList.add('active');
+  el('share-pane-' + tab).classList.add('active');
+  if(tab === 'png' && shareComplaint) renderSharePng(shareComplaint);
+}
+
+function copyShareText() {
+  const box = el('share-text-content');
+  box.select();
+  const text = box.value;
+  const done = () => toast(t('shareCopied'), 'success');
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => { document.execCommand('copy'); done(); });
+  } else {
+    document.execCommand('copy'); done();
+  }
+}
+
+function renderSharePng(c) {
+  const cv = el('share-png-canvas');
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  // Background
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 30px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('E MAN UTAMA', 40, 70);
+  ctx.fillStyle = '#8fc63d';
+  ctx.font = '600 15px Arial, sans-serif';
+  ctx.fillText('Pakar Paip & Pembetungan · Johor', 40, 96);
+
+  // Lime accent line
+  ctx.fillStyle = '#8fc63d';
+  ctx.fillRect(40, 118, W - 80, 4);
+
+  // Ref
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 24px Arial, sans-serif';
+  ctx.fillText('ADUAN #' + c.ref, 40, 168);
+
+  // Priority badge
+  const isUrgent = c.urgency === 'Segera';
+  const badgeColor = isUrgent ? '#e24b4a' : '#8fd06a';
+  const badgeLabel = isUrgent ? 'SEGERA' : 'NORMAL';
+  ctx.font = '700 14px Arial, sans-serif';
+  const badgeW = ctx.measureText(badgeLabel).width + 28;
+  ctx.fillStyle = badgeColor;
+  roundRect(ctx, W - 40 - badgeW, 140, badgeW, 30, 15);
+  ctx.fill();
+  ctx.fillStyle = '#0d0d0d';
+  ctx.textAlign = 'center';
+  ctx.fillText(badgeLabel, W - 40 - badgeW / 2, 160);
+  ctx.textAlign = 'left';
+
+  // Info fields
+  const fields = [
+    ['👤', 'Nama', c.name],
+    ['📞', 'Phone', c.phone],
+    ['📍', 'Alamat', c.address || '-'],
+    ['🔧', 'Jenis Kerosakan', c.problem],
+    ['📅', 'Tarikh', fmtDate(c.prefDate)],
+    ['🕐', 'Masa Slot', c.prefTime || '-'],
+    ['📝', 'Nota', c.desc || '-'],
+  ];
+
+  let y = 230;
+  fields.forEach(([icon, label, value]) => {
+    ctx.fillStyle = '#8fc63d';
+    ctx.font = '600 15px Arial, sans-serif';
+    ctx.fillText(icon + ' ' + label.toUpperCase(), 40, y);
+    y += 30;
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font = '400 20px Arial, sans-serif';
+    y = wrapCanvasText(ctx, String(value), 40, y, W - 80, 26) + 20;
+  });
+
+  // Footer
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.beginPath();
+  ctx.moveTo(40, H - 70);
+  ctx.lineTo(W - 40, H - 70);
+  ctx.stroke();
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '400 13px Arial, sans-serif';
+  ctx.fillText('E Man Utama Group Sdn. Bhd. — Sistem Pengurusan EMUG', 40, H - 40);
+
+  // Native share button visibility
+  const nativeBtn = el('share-native-btn');
+  if(nativeBtn) {
+    nativeBtn.style.display = (navigator.share && navigator.canShare) ? '' : 'none';
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Word-wraps text onto the canvas starting at (x,y); returns the y after the last line
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if(ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, y);
+      line = word;
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  });
+  if(line) { ctx.fillText(line, x, y); y += lineHeight; }
+  return y - lineHeight;
+}
+
+function downloadSharePng() {
+  const cv = el('share-png-canvas');
+  if(!cv || !shareComplaint) return;
+  const link = document.createElement('a');
+  link.download = 'emug-' + shareComplaint.ref + '.png';
+  link.href = cv.toDataURL('image/png');
+  link.click();
+}
+
+function nativeSharePng() {
+  const cv = el('share-png-canvas');
+  if(!cv || !shareComplaint) return;
+  cv.toBlob(blob => {
+    if(!blob) return;
+    const file = new File([blob], 'emug-' + shareComplaint.ref + '.png', { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'EMUG — ' + shareComplaint.ref }).catch(() => {});
+    }
+  }, 'image/png');
 }
 
 // ─── SCHEDULE (FULL MONTH CALENDAR) ──────────────────────────────────────────
@@ -2827,13 +3026,14 @@ function renderNotifications() {
   const ns = myNotifs();
   const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
   setHTML('all-notif-list', ns.length ? ns.map(n=>`
-    <div class="notif-item ${n.read?'read':'unread'}" style="cursor:pointer;" onclick="notifClick(${n.id})">
+    <div class="notif-item ${n.read?'read':'unread'}">
       <div class="notif-dot"></div>
-      <div>
+      <div style="flex:1;min-width:0;cursor:pointer;" onclick="notifClick(${n.id})">
         <div style="font-weight:${n.read?500:700};font-size:.9rem;">${icon[n.type]||'🔔'} ${n.title}</div>
         <div class="notif-text">${n.msg}</div>
         <div class="notif-time">🕐 ${fmtTimeAgo(n.time)}</div>
       </div>
+      ${n.cid?`<button type="button" class="notif-share-btn" title="${t('shareInfo')}" onclick="event.stopPropagation();openShareModal('${n.cid}')">📤</button>`:''}
     </div>`).join('')
     : `<div class="empty-state"><div class="empty-state-icon">🔔</div><p>${t('noNotifs')}</p></div>`);
   renderNotifBadge();
@@ -2843,13 +3043,14 @@ function renderNotifDD() {
   const ns = myNotifs().slice(0,8);
   const icon = {complaint:'📋',assign:'🔧',status:'🔄'};
   setHTML('notif-dd-list', ns.length ? ns.map(n=>`
-    <div class="notif-item ${n.read?'read':'unread'}" style="cursor:pointer;" onclick="notifClick(${n.id})">
+    <div class="notif-item ${n.read?'read':'unread'}">
       <div class="notif-dot"></div>
-      <div>
+      <div style="flex:1;min-width:0;cursor:pointer;" onclick="notifClick(${n.id})">
         <div class="notif-text" style="font-weight:${n.read?400:600};">${icon[n.type]||'🔔'} ${n.title}</div>
         <div class="notif-text">${n.msg}</div>
         <div class="notif-time">${fmtTimeAgo(n.time)}</div>
       </div>
+      ${n.cid?`<button type="button" class="notif-share-btn" title="${t('shareInfo')}" onclick="event.stopPropagation();openShareModal('${n.cid}')">📤</button>`:''}
     </div>`).join('')
     : `<div style="padding:20px;text-align:center;color:var(--gray-400);font-size:.85rem;">${t('noNotifs')}</div>`);
 }
@@ -2895,8 +3096,8 @@ document.addEventListener('click', e=>{
   if(!e.target.closest('.user-wrap'))  closeUserDD();
 });
 
-function addNotif(type, title, msg, forRole, forUser) {
-  notifs.unshift({ id:notifCounter++, type, title, msg, time:0, read:false, forRole, forUser:forUser||null });
+function addNotif(type, title, msg, forRole, forUser, cid) {
+  notifs.unshift({ id:notifCounter++, type, title, msg, time:0, read:false, forRole, forUser:forUser||null, cid:cid||null });
   renderNotifBadge();
   buildSidebar();
 }

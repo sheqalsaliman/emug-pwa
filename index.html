@@ -1085,7 +1085,10 @@
     <div class="modal-header">
       <div class="modal-hinner">
         <div class="modal-title" id="mj-title">📋 Edit Aduan</div>
-        <button class="modal-close" onclick="closeModal('modal-job')">✕</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button type="button" class="cp-btn cp-btn-sec" style="padding:6px 10px;font-size:.78rem;" onclick="openShareModal(editJobId)">📤 <span id="mj-share-lbl">Kongsi</span></button>
+          <button class="modal-close" onclick="closeModal('modal-job')">✕</button>
+        </div>
       </div>
       <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
     </div>
@@ -1198,6 +1201,39 @@
       <button class="btn btn-danger btn-sm" onclick="deleteComplaint()" id="mj-delete">🗑️ Padam</button>
       <button class="btn btn-outline" onclick="closeModal('modal-job')" id="mj-cancel">Batal</button>
       <button class="btn btn-lime" onclick="saveJob()" id="mj-save">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share Complaint Info Modal -->
+<div class="modal-overlay" id="modal-share">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="share-title">📤 Kongsi Maklumat Aduan</div>
+        <button class="modal-close" onclick="closeModal('modal-share')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="share-tabs">
+        <button class="share-tab active" id="share-tab-text-btn" onclick="switchShareTab('text')">📝 <span id="share-tab-text-lbl">Text</span></button>
+        <button class="share-tab" id="share-tab-png-btn" onclick="switchShareTab('png')">🖼️ <span id="share-tab-png-lbl">Gambar (PNG)</span></button>
+      </div>
+      <div class="share-pane active" id="share-pane-text">
+        <textarea class="share-text-box" id="share-text-content" readonly></textarea>
+        <div class="share-png-actions">
+          <button class="btn btn-lime" onclick="copyShareText()">📋 <span id="share-copy-lbl">Copy</span></button>
+        </div>
+      </div>
+      <div class="share-pane" id="share-pane-png">
+        <div class="share-png-canvas-wrap">
+          <canvas id="share-png-canvas" width="800" height="1000"></canvas>
+        </div>
+        <div class="share-png-actions">
+          <button class="btn btn-lime" onclick="downloadSharePng()">⬇️ <span id="share-download-lbl">Download PNG</span></button>
+          <button class="btn btn-outline" id="share-native-btn" style="display:none;" onclick="nativeSharePng()">📤 <span id="share-native-lbl">Share</span></button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1509,6 +1545,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=33"></script>
 </body>
 </html>
