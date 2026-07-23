@@ -2343,15 +2343,52 @@ function copyShareText() {
   }
 }
 
+const SHARE_PNG_W = 800;
+const SHARE_FIELDS_START_Y = 230;
+const SHARE_FIELD_LABEL_H = 30;   // label line → value start
+const SHARE_FIELD_VALUE_LH = 26;  // value line height
+const SHARE_FIELD_GAP = 20;       // gap after each field
+const SHARE_FOOTER_GAP = 30;      // last field → separator line
+const SHARE_FOOTER_TEXT_GAP = 30; // separator line → footer text
+const SHARE_BOTTOM_PAD = 40;      // footer text → canvas bottom
+
+function shareFieldsFor(c) {
+  return [
+    ['👤', 'Nama', c.name],
+    ['📞', 'Phone', c.phone],
+    ['📍', 'Alamat', c.address],
+    ['🔧', 'Jenis Kerosakan', c.problem],
+    ['📅', 'Tarikh', fmtDate(c.prefDate)],
+    ['🕐', 'Masa Slot', c.prefTime],
+    ['📝', 'Nota', c.desc],
+  ].filter(([, , value]) => value && value !== '-');
+}
+
 function renderSharePng(c) {
   const cv = el('share-png-canvas');
   if(!cv) return;
-  const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
+  cv.width = SHARE_PNG_W;
+  let ctx = cv.getContext('2d');
+  const W = SHARE_PNG_W;
+  const fields = shareFieldsFor(c);
+
+  // Pass 1: measure wrapped line counts to compute the exact canvas height
+  ctx.font = '400 20px Arial, sans-serif';
+  let contentH = 0;
+  const fieldLines = fields.map(([, , value]) => {
+    const lines = wrapTextLines(ctx, String(value), W - 80);
+    contentH += SHARE_FIELD_LABEL_H + lines.length * SHARE_FIELD_VALUE_LH + SHARE_FIELD_GAP;
+    return lines;
+  });
+  const H = SHARE_FIELDS_START_Y + contentH + SHARE_FOOTER_GAP + SHARE_FOOTER_TEXT_GAP + SHARE_BOTTOM_PAD;
+
+  // Resizing the canvas clears it and resets context state — re-fetch and redraw
+  cv.height = Math.round(H);
+  ctx = cv.getContext('2d');
 
   // Background
   ctx.fillStyle = '#0d0d0d';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, W, cv.height);
 
   // Header
   ctx.fillStyle = '#ffffff';
@@ -2386,41 +2423,39 @@ function renderSharePng(c) {
   ctx.textAlign = 'left';
 
   // Info fields
-  const fields = [
-    ['👤', 'Nama', c.name],
-    ['📞', 'Phone', c.phone],
-    ['📍', 'Alamat', c.address || '-'],
-    ['🔧', 'Jenis Kerosakan', c.problem],
-    ['📅', 'Tarikh', fmtDate(c.prefDate)],
-    ['🕐', 'Masa Slot', c.prefTime || '-'],
-    ['📝', 'Nota', c.desc || '-'],
-  ];
-
-  let y = 230;
-  fields.forEach(([icon, label, value]) => {
+  let y = SHARE_FIELDS_START_Y;
+  fields.forEach(([icon, label], i) => {
     ctx.fillStyle = '#8fc63d';
     ctx.font = '600 15px Arial, sans-serif';
     ctx.fillText(icon + ' ' + label.toUpperCase(), 40, y);
-    y += 30;
+    y += SHARE_FIELD_LABEL_H;
     ctx.fillStyle = '#f0f0f0';
     ctx.font = '400 20px Arial, sans-serif';
-    y = wrapCanvasText(ctx, String(value), 40, y, W - 80, 26) + 20;
+    y = drawLines(ctx, fieldLines[i], 40, y, SHARE_FIELD_VALUE_LH) + SHARE_FIELD_GAP;
   });
 
   // Footer
+  const footerLineY = y + SHARE_FOOTER_GAP;
   ctx.strokeStyle = '#2a2a2a';
   ctx.beginPath();
-  ctx.moveTo(40, H - 70);
-  ctx.lineTo(W - 40, H - 70);
+  ctx.moveTo(40, footerLineY);
+  ctx.lineTo(W - 40, footerLineY);
   ctx.stroke();
   ctx.fillStyle = '#6b7280';
   ctx.font = '400 13px Arial, sans-serif';
-  ctx.fillText('E Man Utama Group Sdn. Bhd. — Sistem Pengurusan EMUG', 40, H - 40);
+  ctx.fillText('E Man Utama Group Sdn. Bhd. — Sistem Pengurusan EMUG', 40, footerLineY + SHARE_FOOTER_TEXT_GAP);
 
-  // Native share button visibility
+  // Native share button — only when the browser truly supports sharing files
   const nativeBtn = el('share-native-btn');
   if(nativeBtn) {
-    nativeBtn.style.display = (navigator.share && navigator.canShare) ? '' : 'none';
+    let canShareFiles = false;
+    if(navigator.share && navigator.canShare) {
+      try {
+        const probe = new File(['x'], 'probe.png', { type: 'image/png' });
+        canShareFiles = navigator.canShare({ files: [probe] });
+      } catch(e) { canShareFiles = false; }
+    }
+    nativeBtn.style.display = canShareFiles ? '' : 'none';
   }
 }
 
@@ -2434,21 +2469,27 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// Word-wraps text onto the canvas starting at (x,y); returns the y after the last line
-function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+// Word-wraps text into an array of lines that fit maxWidth (no drawing)
+function wrapTextLines(ctx, text, maxWidth) {
   const words = text.split(' ');
+  const lines = [];
   let line = '';
   words.forEach(word => {
     const test = line ? line + ' ' + word : word;
     if(ctx.measureText(test).width > maxWidth && line) {
-      ctx.fillText(line, x, y);
+      lines.push(line);
       line = word;
-      y += lineHeight;
     } else {
       line = test;
     }
   });
-  if(line) { ctx.fillText(line, x, y); y += lineHeight; }
+  if(line) lines.push(line);
+  return lines;
+}
+
+// Draws pre-wrapped lines starting at (x,y); returns the y after the last line
+function drawLines(ctx, lines, x, y, lineHeight) {
+  lines.forEach(line => { ctx.fillText(line, x, y); y += lineHeight; });
   return y - lineHeight;
 }
 
