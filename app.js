@@ -1820,9 +1820,9 @@ function renderComplaintsList() {
   const q = (el('cp-search')?.value||'').toLowerCase();
   let list = myComplaints().filter(c=>{
     const mf = cpFilter==='all'||c.status===cpFilter;
-    const ms = !q||c.name.toLowerCase().includes(q)||c.ref.toLowerCase().includes(q)||c.problem.toLowerCase().includes(q)||(c.assignedName||'').toLowerCase().includes(q);
+    const ms = !q||(c.name||'').toLowerCase().includes(q)||(c.ref||'').toLowerCase().includes(q)||(c.problem||'').toLowerCase().includes(q)||(c.assignedName||'').toLowerCase().includes(q);
     return mf&&ms;
-  }).sort((a,b)=>b.submittedAt.localeCompare(a.submittedAt));
+  }).sort((a,b)=>(a.submittedAt||'').localeCompare(b.submittedAt||'')*-1);
 
   // Manual jobs from jobs table — excludes ones already linked to a real complaint
   // (source='manual' complaints created via the current "+ Tambah Jadual" flow),
