@@ -949,7 +949,7 @@ async function dbLoad() {
   // Load complaints
   try {
     console.log('[EMUG] dbLoad: fetching complaints...');
-    const { data, error } = await db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false');
+    const { data, error } = await db.from('complaints').select('*').eq('is_deleted', false);
     console.log('[EMUG] complaints response → error:', error, '| rows:', data ? data.length : 'null');
     if(error) {
       console.error('[EMUG] dbLoad complaints error:', error.message, error);
@@ -1117,7 +1117,7 @@ async function dbUpdateFeedback(fb) {
 async function dbLoadWorkSchedule() {
   try {
     const { data, error } = await db.from('work_schedule').select('*')
-      .or('is_deleted.is.null,is_deleted.eq.false').order('job_date').order('job_time');
+      .eq('is_deleted', false).order('job_date').order('job_time');
     if(error) { console.error('dbLoadWorkSchedule:', error.message); return; }
     if(data) workSchedule = data.map(r=>({
       id:            r.id,
@@ -1155,7 +1155,7 @@ async function dbLoadManualJobs() {
   try {
     const { data, error } = await db.from('jobs')
       .select('*').eq('job_type','manual')
-      .or('is_deleted.is.null,is_deleted.eq.false')
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
     if(!error && data) {
       manualJobs = data;
@@ -2012,7 +2012,7 @@ async function handleReportBarClick(status) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    const { data, error } = await db.from('complaints').select('*').eq('status', status).or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
+    const { data, error } = await db.from('complaints').select('*').eq('status', status).eq('is_deleted', false).order('submitted_at', { ascending: false });
     if(error) throw error;
     const list = (data||[]).map(rowToComplaint);
     setTxt('rp-drill-title', `${iconMap[status]||'📋'} Aduan - ${labelMap[status]||status} (${list.length})`);
@@ -2029,7 +2029,7 @@ async function handleReportTypeClick(el) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    const { data, error } = await db.from('complaints').select('*').eq('problem', prob).or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
+    const { data, error } = await db.from('complaints').select('*').eq('problem', prob).eq('is_deleted', false).order('submitted_at', { ascending: false });
     if(error) throw error;
     const list = (data||[]).map(rowToComplaint);
     openRpDrillModal(`🔧 Aduan - ${prob} (${list.length})`, list);
@@ -2067,7 +2067,7 @@ async function handleRpStatCard(filter) {
   setHTML('rp-drill-body', `<div style="text-align:center;padding:36px 0;color:#666;">⏳ Memuatkan...</div>`);
   openModal('modal-rp-drill');
   try {
-    let query = db.from('complaints').select('*').or('is_deleted.is.null,is_deleted.eq.false').order('submitted_at', { ascending: false });
+    let query = db.from('complaints').select('*').eq('is_deleted', false).order('submitted_at', { ascending: false });
     if(filter === 'urgent')              query = query.eq('urgency', 'Segera');
     else if(filter !== 'all')            query = query.eq('status', filter);
     const { data, error } = await query;
@@ -4793,7 +4793,7 @@ async function refreshBkComplaints() {
   try {
     const { data, error } = await db.from('complaints')
       .select('pref_date, pref_time, problem, status, is_deleted')
-      .or('is_deleted.is.null,is_deleted.eq.false');
+      .eq('is_deleted', false);
     if(!error && data) {
       bkBookings = data.map(function(r){
         return { prefDate: r.pref_date || '', prefTime: r.pref_time || '', problem: r.problem || '' };
