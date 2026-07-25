@@ -2594,8 +2594,22 @@ function renderMonthView() {
 
   // ── group all visible entries by date string ───────────────────────────────
   const byDate = {};
-  // 1) work_schedule entries
+
+  // Every "+ Tambah Jadual" save now creates BOTH a work_schedule row and a
+  // linked complaint (source:'manual', same date/time/staff/description) —
+  // build a lookup so the redundant work_schedule chip is skipped wherever a
+  // matching complaint chip (labelled with its real ref) will already render.
+  // Legacy/orphaned work_schedule rows with no matching complaint (pre-dating
+  // that change) still fall back to rendering via the schedule chip below.
+  const manualComplaintKeys = new Set();
+  complaints.forEach(c => {
+    if(c.source==='manual') manualComplaintKeys.add(`${c.prefDate}|${c.prefTime}|${c.assignedTo||''}|${c.desc||''}`);
+  });
+
+  // 1) work_schedule entries (skip ones already represented by a linked complaint)
   myWorkSchedule().forEach(e => {
+    const key = `${e.date}|${e.time}|${e.staffUsername||''}|${e.description||''}`;
+    if(manualComplaintKeys.has(key)) return;
     (byDate[e.date] = byDate[e.date] || []).push({ ...e, _src:'schedule' });
   });
   // 2) complaint jobs — use schedDate or prefDate
@@ -2608,11 +2622,6 @@ function renderMonthView() {
     if(p[0]!==schedYear||p[1]-1!==schedMonth) return; // only current month
     (byDate[d]=byDate[d]||[]).push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref });
   });
-  // Note: manually-created jobs (job_type='manual' in the `jobs` table) are
-  // represented on this calendar via their work_schedule counterpart above
-  // (always created in saveSchedEntry) — not rendered separately here, since
-  // that duplicate chip had no click handler and caused the entries to be
-  // unclickable.
 
   const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
   let html = '';
