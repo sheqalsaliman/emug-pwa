@@ -875,6 +875,10 @@
         </div>
         <div class="section-divider"><div class="sd-lime"></div><div class="sd-navy"></div></div>
         <div class="stats-grid" id="d-stats"></div>
+        <div class="card" id="d-unassigned-wrap" style="display:none;margin-bottom:20px;">
+          <div class="card-header"><div class="card-title">📋 <span id="d-unassigned-lbl">Job Menunggu Ditugaskan</span></div></div>
+          <div class="card-body" id="d-unassigned-list" style="max-height:420px;overflow-y:auto;"></div>
+        </div>
         <div style="margin-bottom:20px;" class="dash-cols">
           <div class="card">
             <div class="card-header">
@@ -1272,6 +1276,34 @@
 </div>
 
 <!-- ======================================================
+     ASSIGN OPERATOR MODAL (Team Leader / Admin job routing)
+     ====================================================== -->
+<div class="modal-overlay" id="modal-assign-op">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="aop-title">🤝 Tugaskan Operator</div>
+        <button class="modal-close" onclick="closeModal('modal-assign-op')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--gray-50);border-radius:var(--r);padding:12px;margin-bottom:16px;font-size:.88rem;">
+        <div id="aop-job-info"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="aop-lbl-operator">Operator</label>
+        <select class="form-control" id="aop-operator"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-assign-op')" id="aop-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="confirmAssignOperator()" id="aop-confirm">✓ Sahkan Tugasan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      DAY SUMMARY MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-day-summary">
@@ -1370,12 +1402,23 @@
         </div>
         <div class="form-group">
           <label class="form-label">Peranan <span style="color:#ff7a7a;">*</span></label>
-          <select class="form-control" id="asf-role">
+          <select class="form-control" id="asf-role" onchange="toggleAsfTeamWrap()">
             <option value="operator">Field Operator</option>
             <option value="team_leader">Team Leader</option>
             <option value="admin">Admin</option>
           </select>
         </div>
+      </div>
+      <div class="form-group" id="asf-team-wrap" style="display:none;">
+        <label class="form-label" id="asf-lbl-team">Team <span style="color:#ff7a7a;">*</span></label>
+        <select class="form-control" id="asf-team">
+          <option value="">-- Pilih Team --</option>
+          <option value="TEAM_A">Team Sudin</option>
+          <option value="TEAM_B">Team Saleh</option>
+          <option value="TEAM_C">Team Akin</option>
+          <option value="TEAM_D">Team Bob</option>
+          <option value="TEAM_E">Team Awang</option>
+        </select>
       </div>
     </div>
     <div class="modal-footer">
@@ -1597,6 +1640,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=43"></script>
+<script src="app.js?v=44"></script>
 </body>
 </html>

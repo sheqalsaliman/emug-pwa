@@ -114,6 +114,13 @@ const T = {
     addSchedule:'Tambah Jadual',schedSaved:'Jadual berjaya disimpan.',
     dsmTitle:'Senarai Kerja',dsmEmpty:'Tiada kerja pada tarikh ini.',
     dsmAdd:'Tambah Jadual',dsmClose:'Tutup',dsmPool:'Pool (Semua Kakitangan)',
+    unassignedTitle:'Job Menunggu Ditugaskan',unassignedEmpty:'Tiada job menunggu ditugaskan.',
+    assignOperatorBtn:'Terima & Tugaskan Operator',assignOperatorTitle:'Tugaskan Operator',
+    assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
+    assignedOk:'Job berjaya ditugaskan.',pleaseSelectOperator:'Sila pilih operator.',
+    reassignWarn:'Job ini sudah ditugaskan kepada {old} — tukar kepada {new}?',
+    completeNeedAfterPhoto:'Sila muat naik sekurang-kurangnya 1 gambar \'Selepas\' sebelum menandakan kerja selesai.',
+    completeNoAfterConfirm:'Tiada gambar \'Selepas\' diupload — teruskan tandakan selesai?',
     saLblName:'Nama',saLblPhone:'Phone',saLblAddr:'Alamat / Lokasi',
     saLblProb:'Jenis Masalah',saLblUrgency:'Keutamaan',saProbPh:'-- Pilih Masalah --',
     saTimePh:'-- Pilih Masa --',saNeedProb:'Sila pilih jenis masalah.',
@@ -335,6 +342,13 @@ const T = {
     addSchedule:'Add Schedule',schedSaved:'Schedule saved.',
     dsmTitle:'Job List',dsmEmpty:'No jobs on this date.',
     dsmAdd:'Add Schedule',dsmClose:'Close',dsmPool:'Pool (All Staff)',
+    unassignedTitle:'Jobs Awaiting Assignment',unassignedEmpty:'No jobs awaiting assignment.',
+    assignOperatorBtn:'Accept & Assign Operator',assignOperatorTitle:'Assign Operator',
+    assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
+    assignedOk:'Job assigned successfully.',pleaseSelectOperator:'Please select an operator.',
+    reassignWarn:'This job is already assigned to {old} — change to {new}?',
+    completeNeedAfterPhoto:'Please upload at least 1 \'After\' photo before marking the job complete.',
+    completeNoAfterConfirm:'No \'After\' photo uploaded — proceed to mark as complete anyway?',
     saLblName:'Name',saLblPhone:'Phone',saLblAddr:'Address / Location',
     saLblProb:'Problem Type',saLblUrgency:'Priority',saProbPh:'-- Select Problem --',
     saTimePh:'-- Select Time --',saNeedProb:'Please select a problem type.',
@@ -535,6 +549,12 @@ const PROBLEM_TEAM_MAP = {
 };
 function problemTeam(problem) { return PROBLEM_TEAM_MAP[problem] || 'GENERAL'; }
 
+// Display names for team_key values (used by Team Leader staff records & job routing)
+const TEAM_NAMES = {
+  TEAM_A: 'Team Sudin', TEAM_B: 'Team Saleh', TEAM_C: 'Team Akin',
+  TEAM_D: 'Team Bob', TEAM_E: 'Team Awang',
+};
+
 // Mileage charge — site-visit bookings only
 const OFFICE_COORDS = { lat: 1.4613238124884376, lng: 103.91106449286333 }; // Office E Man Utama, Pasir Gudang
 const MILEAGE_FREE_RADIUS_KM = 10;
@@ -702,6 +722,12 @@ function applyAllText() {
   const dsmAddBtn = document.querySelector('#modal-day-summary button[onclick="addFromDaySummary()"]');
   if(dsmAddBtn) dsmAddBtn.title = t('dsmAdd');
   if(daySummaryDate && el('modal-day-summary')?.classList.contains('open')) openDaySummary(daySummaryDate);
+  setTxt('d-unassigned-lbl', t('unassignedTitle'));
+  setTxt('aop-title', `🤝 ${t('assignOperatorTitle')}`);
+  setTxt('aop-lbl-operator', 'Operator');
+  setTxt('aop-cancel', t('cancel'));
+  setTxt('aop-confirm', `✓ ${t('assignConfirmBtn')}`);
+  setTxt('asf-lbl-team', 'Team');
   setTxt('sa-lbl-name',t('saLblName')); setTxt('sa-lbl-phone',t('saLblPhone'));
   setTxt('sa-lbl-prob',t('saLblProb')); setTxt('sa-lbl-urgency',t('saLblUrgency'));
   setTxt('sa-prob-ph',t('saProbPh'));
@@ -1295,6 +1321,7 @@ async function dbInsertStaff(entry) {
       phone:      entry.phone   || null,
       role:       entry.role,
       staff_id:   entry.staffId,
+      team_key:   entry.teamKey || null,
       status:     'active',
     }).select().single();
     if(error) { console.error('dbInsertStaff:', error.message, JSON.stringify(error, null, 2)); return null; }
@@ -1665,6 +1692,10 @@ function buildSidebar() {
     { pg:'op-schedule',  icon:'🗓️', lbl:t('opSchedTitle') },
     { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
     { pg:'profile',      icon:'👤', lbl:t('profile') },
+  ] : user.role==='team_leader' ? [
+    { pg:'dashboard',    icon:'📊', lbl:t('dashboard') },
+    { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
+    { pg:'profile',      icon:'👤', lbl:t('profile') },
   ] : [
     { pg:'dashboard',   icon:'📊', lbl:t('dashboard') },
     { pg:'schedule',    icon:'🗓️', lbl:t('mySchedule') },
@@ -1717,14 +1748,16 @@ function renderPage(pg) {
 }
 
 // ─── DATA HELPERS ─────────────────────────────────────────────────────────────
-// Team Leader is treated the same as Field Operator for basic permissions for
-// now — no dedicated permission tier defined yet.
-function isOperatorRole(role) { return role==='operator'||role==='team_leader'; }
+// Team Leader now has its OWN dashboard/permission model (job-routing feature)
+// instead of being treated as an operator — kept as a thin wrapper so existing
+// call sites don't need touching.
+function isOperatorRole(role) { return role==='operator'; }
 
 function myComplaints() {
   if(!user) return [];
   if(user.role==='admin') return complaints;
-  if(isOperatorRole(user.role)) return complaints.filter(c=>c.acceptedBy===user.username);
+  // Everyone else (operator, team_leader, staff) only sees jobs directly
+  // assigned to them — the old self-accept-from-pool pattern (acceptedBy) is retired.
   return complaints.filter(c=>c.assignedTo===user.username);
 }
 function myWorkSchedule() {
@@ -1732,8 +1765,80 @@ function myWorkSchedule() {
   if(user.role==='admin') return workSchedule;
   return workSchedule.filter(e=>e.staffUsername===user.username);
 }
-function availableJobs() {
-  return complaints.filter(c=>!c.acceptedBy && c.status==='Menunggu');
+// Jobs awaiting assignment (Team Leader / Admin job-routing feature).
+// GENERAL-category jobs (no specific team) only ever show to Admin.
+function unassignedJobsForTeam(teamKey) {
+  return complaints.filter(c => !c.assignedTo && c.status==='Menunggu' && problemTeam(c.problem)===teamKey);
+}
+function unassignedJobsAll() {
+  return complaints.filter(c => !c.assignedTo && c.status==='Menunggu');
+}
+
+// All Field Operators (hardcoded USERS + Supabase dynamicStaff), merged & deduped —
+// free pick for Team Leader/Admin assignment, not restricted to any one team.
+function allFieldOperators() {
+  const hard = USERS.filter(u=>u.role==='operator').map(u=>({ username:u.username, name:u.name }));
+  const dyn  = dynamicStaff.filter(u=>u.role==='operator')
+    .filter(u=>!hard.find(h=>h.username===u.username))
+    .map(u=>({ username:u.username, name:u.name }));
+  return [...hard, ...dyn];
+}
+
+let assignJobId = null;
+
+function renderUnassignedJobsWidget() {
+  const wrap = el('d-unassigned-wrap');
+  if(!wrap) return;
+  const isAdmin = user.role==='admin';
+  const isTL    = user.role==='team_leader';
+  if(!isAdmin && !isTL) { wrap.style.display='none'; return; }
+  wrap.style.display = '';
+  const jobs = isAdmin ? unassignedJobsAll() : unassignedJobsForTeam(user.team_key||'');
+  setHTML('d-unassigned-list', jobs.length ? jobs.map(c=>`
+    <div class="dsm-item" style="cursor:default;">
+      <div class="dsm-item-top">
+        <span class="dsm-time">${fmtDateShort(c.prefDate)} ${c.prefTime||''}</span>
+        ${c.urgency==='Segera'?'<span style="font-size:.68rem;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid #ef4444;border-radius:6px;padding:2px 7px;font-weight:700;">🚨 '+(lang==='bm'?'Segera':'Urgent')+'</span>':''}
+      </div>
+      <div class="dsm-item-label">${c.ref} — ${c.problem}</div>
+      <div class="dsm-item-sub">👤 ${c.name||'-'}${c.address?' · 📍 '+c.address:''}</div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-sm btn-lime" onclick="openAssignOperatorModal('${c.id}')">🤝 ${t('assignOperatorBtn')}</button>
+      </div>
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">🎉</div><p>${t('unassignedEmpty')}</p></div>`);
+}
+
+function openAssignOperatorModal(cid) {
+  const c = complaints.find(x=>x.id===cid);
+  if(!c) return;
+  assignJobId = cid;
+  setHTML('aop-job-info', `<strong>${c.ref}</strong> — ${c.problem}<br><span class="text-muted">${c.name||'-'}${c.address?' · '+c.address:''}</span>`);
+  const ops = allFieldOperators();
+  const sel = el('aop-operator');
+  sel.innerHTML = `<option value="">${t('assignOperatorPh')}</option>`
+    + ops.map(o=>`<option value="${o.username}" data-name="${o.name}">${o.name}</option>`).join('');
+  openModal('modal-assign-op');
+}
+
+function confirmAssignOperator() {
+  const c = complaints.find(x=>x.id===assignJobId);
+  if(!c) return;
+  const sel = el('aop-operator');
+  const username = sel.value;
+  if(!username) { toast(t('pleaseSelectOperator'),'error'); return; }
+  const name = sel.options[sel.selectedIndex]?.dataset.name || '';
+  c.assignedTo   = username;
+  c.assignedName = name;
+  if(c.status==='Menunggu') c.status = 'Sedang Berjalan';
+  c.updatedAt    = new Date().toISOString();
+  dbUpdateComplaint(c);
+  addNotif('assign', t('notifAssigned'), `${c.ref} — ${c.problem}`, 'operator', username);
+  closeModal('modal-assign-op');
+  toast(t('assignedOk'), 'success');
+  renderDashboard();
+  renderComplaintsList();
+  buildSidebar();
 }
 function myNotifs() {
   if(!user) return [];
@@ -1756,6 +1861,7 @@ function renderDashboard() {
     if(notifCol) notifCol.style.display = '';
   }
   el('dp-d-date').textContent = fmtDate(now());
+  renderUnassignedJobsWidget();
   const mc = myComplaints();
   const todayC = mc.filter(c=>c.schedDate===now()||c.prefDate===now());
   const pend  = mc.filter(c=>c.status==='Menunggu');
@@ -2306,6 +2412,15 @@ function saveJob() {
   const c = complaints.find(x=>x.id===editJobId);
   if(!c) return;
   const prevAssign = c.assignedTo;
+  const prevAssignName = c.assignedName;
+  const newAssignVal = el('mj-assign').value;
+  // Admin/Team-Leader override: warn before silently reassigning an already-assigned job
+  if(prevAssign && newAssignVal && newAssignVal!==prevAssign) {
+    const newAu = USERS.find(u=>u.username===newAssignVal) || dynamicStaff.find(u=>u.username===newAssignVal);
+    const newName = newAu ? newAu.name : newAssignVal;
+    const msg = t('reassignWarn').replace('{old}', prevAssignName||prevAssign).replace('{new}', newName);
+    if(!confirm(msg)) return;
+  }
   // Customer fields
   c.name        = el('mj-edit-name').value.trim()    || c.name;
   c.phone       = el('mj-edit-phone').value.trim()   || c.phone;
@@ -2364,7 +2479,19 @@ function openStatusModal(cid) {
 function confirmStatusUpdate() {
   const c = complaints.find(x=>x.id===statusJobId);
   if(!c) return;
-  c.status    = el('ms-status').value;
+  const newStatus = el('ms-status').value;
+  if(newStatus==='Selesai' && c.status!=='Selesai') {
+    const gd = galleryData[c.id] || {};
+    const hasAfter = gd.after && gd.after.length > 0;
+    if(!hasAfter) {
+      if(user.role==='operator') {
+        toast(t('completeNeedAfterPhoto'), 'error', 5000);
+        return;
+      }
+      if(!confirm(t('completeNoAfterConfirm'))) return;
+    }
+  }
+  c.status    = newStatus;
   c.updatedAt = new Date().toISOString();
   const note  = el('ms-note').value.trim();
   if(note) c.techNotes = note;
@@ -3066,9 +3193,16 @@ function toggleStaffDeleteMode() {
   renderStaff();
 }
 
+function toggleAsfTeamWrap() {
+  const wrap = el('asf-team-wrap');
+  if(wrap) wrap.style.display = el('asf-role')?.value==='team_leader' ? '' : 'none';
+}
+
 function openAddStaffModal() {
   ['asf-name','asf-username','asf-password','asf-phone'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
   el('asf-role').value = 'operator';
+  const teamSel = el('asf-team'); if(teamSel) teamSel.value = '';
+  toggleAsfTeamWrap();
   openModal('modal-add-staff');
 }
 
@@ -3078,6 +3212,7 @@ async function saveNewStaff() {
   const password = (el('asf-password')?.value||'').trim();
   const phone    = (el('asf-phone')?.value||'').trim();
   const role     = el('asf-role')?.value || 'operator';
+  const teamKey  = role==='team_leader' ? (el('asf-team')?.value||'') : '';
 
   if(!name||!username||!password) {
     toast(lang==='bm'?'Sila isi Nama, Username dan Kata Laluan.':'Please fill in Name, Username and Password.','error'); return;
@@ -3085,20 +3220,23 @@ async function saveNewStaff() {
   if(password.length < 6) {
     toast(lang==='bm'?'Kata laluan mesti sekurang-kurangnya 6 aksara.':'Password must be at least 6 characters.','error'); return;
   }
+  if(role==='team_leader' && !teamKey) {
+    toast(lang==='bm'?'Sila pilih Team untuk Team Leader.':'Please select a Team for the Team Leader.','error'); return;
+  }
   // Check for duplicate username across USERS and dynamicStaff
   const allUsernames = [...USERS.map(u=>u.username), ...dynamicStaff.map(u=>u.username)];
   if(allUsernames.includes(username)) {
     toast(lang==='bm'?'Username sudah digunakan. Sila pilih username lain.':'Username already taken. Please choose another.','error'); return;
   }
 
-  const rolePrefix = role==='admin' ? 'ADM' : 'OPR';
+  const rolePrefix = role==='admin' ? 'ADM' : role==='team_leader' ? 'TL' : 'OPR';
   const staffIdNum = String(dynamicStaff.filter(s=>s.role===role).length + USERS.filter(u=>u.role===role).length + 1).padStart(3,'0');
   const staffId    = rolePrefix + staffIdNum;
 
   const btn = document.querySelector('#modal-add-staff .btn-lime');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Menyimpan...'; }
 
-  const saved = await dbInsertStaff({ name, username, email: null, password, phone, role, staffId });
+  const saved = await dbInsertStaff({ name, username, email: null, password, phone, role, staffId, teamKey: teamKey||null });
 
   if(btn) { btn.disabled=false; btn.innerHTML='💾 Simpan Kakitangan'; }
 
@@ -3215,6 +3353,7 @@ function renderStaff() {
           <div style="font-size:.92rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${su.name}${systemBadge}</div>
           <div style="font-size:.7rem;opacity:.7;margin-bottom:5px;">ID: ${su.staffId||su.staff_id||'—'}</div>
           <span style="font-size:.68rem;background:${rColor};color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;">${rLabel}</span>
+          ${su.role==='team_leader'&&su.team_key?`<span style="font-size:.68rem;background:rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:2px 9px;font-weight:700;margin-left:4px;">${TEAM_NAMES[su.team_key]||su.team_key}</span>`:''}
         </div>
       </div>
       <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
@@ -4098,91 +4237,26 @@ function renderTrackGalleryGrid(arr, jobId, tab) {
 }
 
 // --- OPERATOR DASHBOARD ---
+// Self-accept-from-pool is retired: operators now only ever see jobs that a
+// Team Leader or Admin has explicitly assigned to them (complaints.assignedTo).
 async function renderOperatorDashboard() {
   el('dp-d-date').textContent = fmtDate(now());
-  var newComplaintJobs = availableJobs();
-  // Manual jobs: pool (visible to all operators) OR directly assigned to me
-  var newManualJobs = manualJobs.filter(function(j) {
-    if(j.status !== 'Menunggu') return false;
-    if(j.is_pool) return true;
-    return j.operator_id === user.username;
-  });
-  var totalNewJobs = newComplaintJobs.length + newManualJobs.length;
-  var myJobs  = complaints.filter(function(c){ return c.acceptedBy === user.username; });
+  var myJobs  = complaints.filter(function(c){ return c.assignedTo === user.username; });
   var active  = myJobs.filter(function(c){ return c.status === 'Sedang Berjalan'; });
   var done    = myJobs.filter(function(c){ return c.status === 'Selesai'; });
-  // Accepted manual jobs shown in My Jobs section
+  // Legacy manual/pool jobs (jobs table) accepted directly by this operator —
+  // kept for backward compatibility with jobs created before the Team Leader
+  // routing feature; new manual jobs are assigned via complaints.assignedTo instead.
   var myManualJobs = manualJobs.filter(function(j) {
     return j.operator_id === user.username && j.status !== 'Menunggu';
   });
 
   setHTML('d-stats',
-    '<div class="stat-card c-warn"><div class="stat-icon">📋</div><div class="stat-value">'+totalNewJobs+'</div><div class="stat-label">'+t('opNewJobs')+'</div></div>'
-    +'<div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">'+active.length+'</div><div class="stat-label">'+t('inProgress')+'</div></div>'
+    '<div class="stat-card c-info"><div class="stat-icon">🔄</div><div class="stat-value">'+active.length+'</div><div class="stat-label">'+t('inProgress')+'</div></div>'
     +'<div class="stat-card c-success"><div class="stat-icon">✅</div><div class="stat-value">'+done.length+'</div><div class="stat-label">'+t('completed')+'</div></div>'
   );
 
-  // ── "ADUAN BARU" section ──────────────────────────────────────────────────
-  var newJobsHTML = '<div style="margin-bottom:28px;">'
-    +'<div class="card-header" style="padding:0 0 12px 0;">'
-    +'<div class="card-title">📋 '+t('opNewJobs')
-    +(totalNewJobs?'<span style="margin-left:8px;background:var(--lime);color:var(--navy);border-radius:12px;padding:1px 9px;font-size:.72rem;font-weight:800;">'+totalNewJobs+'</span>':'')
-    +'</div></div>';
-
-  if(totalNewJobs === 0) {
-    newJobsHTML += '<div class="empty-state"><div class="empty-state-icon">🎉</div><p>'+t('opNoNewJobs')+'</p></div>';
-  } else {
-    // Complaint jobs (existing)
-    newJobsHTML += newComplaintJobs.map(function(c){
-      var locRow = c.coords
-        ? '<div style="margin-bottom:8px;"><a class="maps-btn" href="https://www.google.com/maps?q='+c.coords.lat+','+c.coords.lng+'" target="_blank" rel="noopener">📍 '+(lang==='bm'?'Buka Google Maps':'Open Google Maps')+'</a></div>'
-        : '<div style="font-size:.82rem;color:var(--gray-600);margin-bottom:8px;">📍 '+c.address+'</div>';
-      return '<div class="job-card op-new">'
-        +'<div class="job-card-top"><div>'
-        +'<div class="job-ref">'+c.ref+(c.urgency==='Segera'?' 🚨':'')+'</div>'
-        +'<div class="job-name">'+c.name+'</div>'
-        +'</div>'+statusBadge(c.status)+'</div>'
-        +'<div class="job-prob">🔧 '+c.problem+'</div>'
-        +(c.desc?'<div style="font-size:.8rem;color:var(--gray-500);margin:4px 0 8px;">💬 '+c.desc+'</div>':'')
-        +locRow
-        +'<div class="job-meta" style="margin-bottom:10px;">'
-        +'<div class="job-meta-item">📅 '+fmtDateShort(c.prefDate)+'</div>'
-        +'<div class="job-meta-item">🕐 '+c.prefTime+'</div>'
-        +(c.urgency==='Segera'?'<div class="job-meta-item" style="color:#dc2626;font-weight:700;">🚨 '+(lang==='bm'?'Segera':'Urgent')+'</div>':'')
-        +'</div>'
-        +'<div class="job-actions">'
-        +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\''+c.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
-        +'<button class="btn btn-sm" style="background:#fef3c7;color:#b45309;border:1px solid #fcd34d;" onclick="opCancelJob(\''+c.ref+'\')">❌ Cancel Job</button>'
-        +'<button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;" onclick="opDeleteComplaint(\''+c.ref+'\')">🗑️ Delete</button>'
-        +'</div></div>';
-    }).join('');
-
-    // Manual jobs — MANUAL badge (purple)
-    newJobsHTML += newManualJobs.map(function(j){
-      var poolBadge = j.is_pool
-        ? '<span style="font-size:.68rem;background:#ede9fe;color:#6d28d9;border-radius:10px;padding:2px 7px;font-weight:700;margin-left:4px;">POOL</span>'
-        : '<span style="font-size:.68rem;background:#dbeafe;color:#1d4ed8;border-radius:10px;padding:2px 7px;font-weight:700;margin-left:4px;">'+(lang==='bm'?'UNTUK SAYA':'FOR ME')+'</span>';
-      return '<div class="job-card op-new" style="border-left:3px solid #8b5cf6;">'
-        +'<div class="job-card-top"><div>'
-        +'<div class="job-ref" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'
-        +'<span>'+j.complaint_ref+'</span>'
-        +'<span style="font-size:.68rem;background:#8b5cf6;color:#fff;border-radius:10px;padding:2px 8px;font-weight:700;">MANUAL</span>'
-        +poolBadge+'</div>'
-        +'<div class="job-name">'+(lang==='bm'?'Kerja Pentadbir':'Admin Assigned Job')+'</div>'
-        +'</div>'+statusBadge(j.status)+'</div>'
-        +'<div class="job-prob">🔧 '+j.job_title+'</div>'
-        +'<div style="font-size:.82rem;color:var(--gray-600);margin:4px 0 8px;">📍 '+j.job_location+'</div>'
-        +'<div class="job-meta" style="margin-bottom:10px;">'
-        +'<div class="job-meta-item">📅 '+fmtDateShort(j.job_date)+'</div>'
-        +'<div class="job-meta-item">🕐 '+(j.job_time||'').slice(0,5)+'</div>'
-        +'<div class="job-meta-item" style="color:var(--gray-500);">👤 '+j.created_by+'</div>'
-        +'</div>'
-        +'<div class="job-actions">'
-        +'<button class="btn btn-lime btn-sm" style="font-weight:700;" onclick="acceptJob(\'mj-'+j.id+'\')">🤝 '+t('opAcceptJob')+'</button>'
-        +'</div></div>';
-    }).join('');
-  }
-  newJobsHTML += '</div>';
+  var newJobsHTML = '';
 
   // Customer photos in "Kerja Saya" are shown inline (not behind a click), and
   // this list is bounded to just this operator's own accepted jobs — so fetch
