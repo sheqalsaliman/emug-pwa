@@ -1429,6 +1429,66 @@
 </div>
 
 <!-- ======================================================
+     EDIT STAFF MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-edit-staff">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title">✏️ <span id="esf-title">Edit Kakitangan</span></div>
+        <button class="modal-close" onclick="closeModal('modal-edit-staff')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="esf-lbl-name">Nama Penuh <span style="color:#ff7a7a;">*</span></label>
+        <input type="text" class="form-control" id="esf-name" placeholder="Contoh: AHMAD BIN ALI" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" id="esf-lbl-username">Username <span style="color:#ff7a7a;">*</span></label>
+          <input type="text" class="form-control" id="esf-username" placeholder="ahmad@emanutama" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="esf-lbl-password">Kata Laluan</label>
+          <input type="password" class="form-control" id="esf-password" placeholder="Biarkan kosong jika tidak mahu tukar" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" id="esf-lbl-phone">No. Telefon</label>
+          <input type="tel" class="form-control" id="esf-phone" placeholder="0123456789">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="esf-lbl-role">Peranan <span style="color:#ff7a7a;">*</span></label>
+          <select class="form-control" id="esf-role" onchange="toggleEsfTeamWrap()">
+            <option value="operator">Field Operator</option>
+            <option value="team_leader">Team Leader</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" id="esf-team-wrap" style="display:none;">
+        <label class="form-label" id="esf-lbl-team">Team <span style="color:#ff7a7a;">*</span></label>
+        <select class="form-control" id="esf-team">
+          <option value="">-- Pilih Team --</option>
+          <option value="TEAM_A">Team Sudin</option>
+          <option value="TEAM_B">Team Saleh</option>
+          <option value="TEAM_C">Team Akin</option>
+          <option value="TEAM_D">Team Bob</option>
+          <option value="TEAM_E">Team Awang</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-staff')" id="esf-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="saveEditStaff()" id="esf-save">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      SCHEDULE ADD MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-sched-add">
@@ -1640,6 +1700,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=44"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

@@ -117,6 +117,9 @@ const T = {
     unassignedTitle:'Job Menunggu Ditugaskan',unassignedEmpty:'Tiada job menunggu ditugaskan.',
     assignOperatorBtn:'Terima & Tugaskan Operator',assignOperatorTitle:'Tugaskan Operator',
     assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
+    editStaffBtn:'Edit',editStaffTitle:'Edit Kakitangan',editStaffSaved:'Perubahan berjaya disimpan.',
+    editStaffHardcoded:'Kakitangan asas sistem tidak boleh diedit di sini.',
+    editStaffPassPh:'Biarkan kosong jika tidak mahu tukar',
     assignedOk:'Job berjaya ditugaskan.',pleaseSelectOperator:'Sila pilih operator.',
     reassignWarn:'Job ini sudah ditugaskan kepada {old} — tukar kepada {new}?',
     completeNeedAfterPhoto:'Sila muat naik sekurang-kurangnya 1 gambar \'Selepas\' sebelum menandakan kerja selesai.',
@@ -345,6 +348,9 @@ const T = {
     unassignedTitle:'Jobs Awaiting Assignment',unassignedEmpty:'No jobs awaiting assignment.',
     assignOperatorBtn:'Accept & Assign Operator',assignOperatorTitle:'Assign Operator',
     assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
+    editStaffBtn:'Edit',editStaffTitle:'Edit Staff',editStaffSaved:'Changes saved successfully.',
+    editStaffHardcoded:'Built-in system staff cannot be edited here.',
+    editStaffPassPh:'Leave blank to keep unchanged',
     assignedOk:'Job assigned successfully.',pleaseSelectOperator:'Please select an operator.',
     reassignWarn:'This job is already assigned to {old} — change to {new}?',
     completeNeedAfterPhoto:'Please upload at least 1 \'After\' photo before marking the job complete.',
@@ -728,6 +734,11 @@ function applyAllText() {
   setTxt('aop-cancel', t('cancel'));
   setTxt('aop-confirm', `✓ ${t('assignConfirmBtn')}`);
   setTxt('asf-lbl-team', 'Team');
+  setTxt('esf-title', t('editStaffTitle'));
+  setTxt('esf-save', `💾 ${lang==='bm'?'Simpan Perubahan':'Save Changes'}`);
+  setTxt('esf-cancel', t('cancel'));
+  setTxt('esf-lbl-team', 'Team');
+  const esfPass = el('esf-password'); if(esfPass) esfPass.placeholder = t('editStaffPassPh');
   setTxt('sa-lbl-name',t('saLblName')); setTxt('sa-lbl-phone',t('saLblPhone'));
   setTxt('sa-lbl-prob',t('saLblProb')); setTxt('sa-lbl-urgency',t('saLblUrgency'));
   setTxt('sa-prob-ph',t('saProbPh'));
@@ -1327,6 +1338,22 @@ async function dbInsertStaff(entry) {
     if(error) { console.error('dbInsertStaff:', error.message, JSON.stringify(error, null, 2)); return null; }
     return data;
   } catch(e) { console.error('dbInsertStaff:', e); return null; }
+}
+
+async function dbUpdateStaff(id, fields) {
+  try {
+    const row = {
+      name:     fields.name,
+      username: fields.username,
+      phone:    fields.phone   || null,
+      role:     fields.role,
+      team_key: fields.teamKey || null,
+    };
+    if(fields.password) row.password = fields.password; // only overwrite if a new one was entered
+    const { error } = await db.from('staff').update(row).eq('id', id);
+    if(error) { console.error('dbUpdateStaff:', error.message, JSON.stringify(error, null, 2)); return false; }
+    return true;
+  } catch(e) { console.error('dbUpdateStaff:', e); return false; }
 }
 
 async function dbDeleteDynamicStaff(id) {
@@ -3250,6 +3277,74 @@ async function saveNewStaff() {
   renderStaff();
 }
 
+let editStaffId = null;
+
+function toggleEsfTeamWrap() {
+  const wrap = el('esf-team-wrap');
+  if(wrap) wrap.style.display = el('esf-role')?.value==='team_leader' ? '' : 'none';
+}
+
+// Only Supabase-backed (dynamic) staff can be edited here — hardcoded USERS
+// (defined directly in app.js) have no DB row to update.
+function openEditStaffModal(username) {
+  const su = dynamicStaff.find(u=>u.username===username);
+  if(!su) { toast(t('editStaffHardcoded'), 'error'); return; }
+  editStaffId = su.id;
+  el('esf-name').value     = su.name || '';
+  el('esf-username').value = su.username || '';
+  el('esf-password').value = '';
+  el('esf-phone').value    = su.phone || '';
+  el('esf-role').value     = su.role || 'operator';
+  const teamSel = el('esf-team'); if(teamSel) teamSel.value = su.team_key || '';
+  toggleEsfTeamWrap();
+  openModal('modal-edit-staff');
+}
+
+async function saveEditStaff() {
+  if(!editStaffId) return;
+  const name     = (el('esf-name')?.value||'').trim().toUpperCase();
+  const username = (el('esf-username')?.value||'').trim().toLowerCase();
+  const password = (el('esf-password')?.value||'').trim();
+  const phone    = (el('esf-phone')?.value||'').trim();
+  const role     = el('esf-role')?.value || 'operator';
+  const teamKey  = role==='team_leader' ? (el('esf-team')?.value||'') : '';
+
+  if(!name||!username) {
+    toast(lang==='bm'?'Sila isi Nama dan Username.':'Please fill in Name and Username.','error'); return;
+  }
+  if(password && password.length < 6) {
+    toast(lang==='bm'?'Kata laluan mesti sekurang-kurangnya 6 aksara.':'Password must be at least 6 characters.','error'); return;
+  }
+  if(role==='team_leader' && !teamKey) {
+    toast(lang==='bm'?'Sila pilih Team untuk Team Leader.':'Please select a Team for the Team Leader.','error'); return;
+  }
+  // Duplicate-username check, excluding this staff member's own current username
+  const allUsernames = [...USERS.map(u=>u.username), ...dynamicStaff.filter(u=>u.id!==editStaffId).map(u=>u.username)];
+  if(allUsernames.includes(username)) {
+    toast(lang==='bm'?'Username sudah digunakan. Sila pilih username lain.':'Username already taken. Please choose another.','error'); return;
+  }
+
+  const btn = el('esf-save');
+  if(btn) { btn.disabled=true; btn.textContent='⏳ Menyimpan...'; }
+
+  const fields = { name, username, phone: phone||null, role, teamKey: teamKey||null };
+  if(password) fields.password = password;
+  const ok = await dbUpdateStaff(editStaffId, fields);
+
+  if(btn) { btn.disabled=false; btn.innerHTML='💾 Simpan Perubahan'; }
+
+  if(!ok) {
+    toast(lang==='bm'?'Gagal menyimpan. Semak konsol untuk butiran.':'Failed to save. Check console for details.','error'); return;
+  }
+
+  const su = dynamicStaff.find(u=>u.id===editStaffId);
+  if(su) { su.name=name; su.username=username; su.phone=phone||null; su.role=role; su.team_key=teamKey||null; }
+
+  closeModal('modal-edit-staff');
+  toast(t('editStaffSaved'), 'success');
+  renderStaff();
+}
+
 function confirmDeleteStaff(username, isDynamic) {
   const su = isDynamic
     ? dynamicStaff.find(u=>u.username===username)
@@ -3361,6 +3456,7 @@ function renderStaff() {
         <div style="font-size:.78rem;color:var(--gray-500);margin-bottom:10px;">
           ${su.email?`📧 ${su.email}`:''}${su.phone&&su.email?' · ':''}${su.phone?`📞 ${su.phone}`:''}
         </div>
+        ${(isAdmin&&isDynamic)?`<button class="btn btn-sm btn-outline" style="margin-bottom:12px;width:100%;" onclick="openEditStaffModal('${su.username}')">✏️ ${t('editStaffBtn')}</button>`:''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:14px;">
           <div style="padding:8px 4px;background:var(--gray-50);border-radius:var(--r);">
             <div style="font-size:1.3rem;font-weight:900;color:var(--navy);">${total}</div>
