@@ -2203,7 +2203,7 @@ function openJobModal(cid) {
   el('mj-edit-urgency').value   = c.urgency||'Normal';
   el('mj-edit-desc').value      = c.desc||'';
   el('mj-edit-pref-date').value = c.prefDate||'';
-  el('mj-edit-pref-time').value = c.prefTime||'';
+  populateMjTimeOptions(c.prefDate||'', c.prefTime||'');
   setMjBookingType(c.bookingType||'kerja');
   // Build assign dropdown — merge hardcoded USERS + Supabase dynamicStaff
   const assignEl = el('mj-assign');
@@ -2792,17 +2792,37 @@ function addFromDaySummary() {
 // ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────
 // Populates the sa-time <select> with the slot set for the given date
 // (Friday special vs standard), re-selecting keepValue if it's still valid.
-function populateSaTimeOptions(dateStr, keepValue) {
-  const sel = el('sa-time');
+// Shared source of truth for every "Masa"/time-slot <select> in the system
+// (customer booking, Tambah Jadual, Edit Aduan) — always derives options from
+// bkSlotsFor() (Friday special vs standard) so nothing drifts out of sync.
+// If keepValue is a legacy slot string no longer in today's slot set (e.g. an
+// old booking made before slot times changed), it's kept as an extra selected
+// option instead of being silently dropped/reset.
+function populateTimeSelect(sel, dateStr, keepValue, placeholder) {
   if(!sel) return;
   const slots = dateStr ? bkSlotsFor(dateStr) : BK_SLOTS_STD;
-  const opts = slots.map(s=>`<option value="${s}">${s.replace(' - ',' – ')}</option>`).join('');
-  sel.innerHTML = `<option value="">${t('saTimePh')}</option>${opts}`;
-  if(keepValue && slots.indexOf(keepValue)!==-1) sel.value = keepValue;
+  let opts = slots.map(s=>`<option value="${s}">${s.replace(' - ',' – ')}</option>`).join('');
+  if(keepValue && slots.indexOf(keepValue)===-1) {
+    opts += `<option value="${keepValue}">${keepValue.replace(' - ',' – ')} (${lang==='bm'?'lama':'legacy'})</option>`;
+  }
+  sel.innerHTML = `<option value="">${placeholder}</option>${opts}`;
+  if(keepValue) sel.value = keepValue;
+}
+
+function populateSaTimeOptions(dateStr, keepValue) {
+  populateTimeSelect(el('sa-time'), dateStr, keepValue, t('saTimePh'));
 }
 
 function onSaDateChange() {
   populateSaTimeOptions(el('sa-date').value, el('sa-time').value);
+}
+
+function populateMjTimeOptions(dateStr, keepValue) {
+  populateTimeSelect(el('mj-edit-pref-time'), dateStr, keepValue, t('saTimePh'));
+}
+
+function onMjPrefDateChange() {
+  populateMjTimeOptions(el('mj-edit-pref-date').value, el('mj-edit-pref-time').value);
 }
 
 function openSchedAddModal() {

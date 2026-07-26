@@ -1157,16 +1157,11 @@
         <div class="form-row" style="margin-bottom:0;">
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" id="mj-lbl-pref-date">Tarikh Pilihan</label>
-            <input type="date" class="form-control" id="mj-edit-pref-date">
+            <input type="date" class="form-control" id="mj-edit-pref-date" onchange="onMjPrefDateChange()">
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label" id="mj-lbl-pref-time">Masa Pilihan</label>
-            <select class="form-control" id="mj-edit-pref-time">
-              <option value="08:00 - 10:00">08:00 – 10:00</option>
-              <option value="10:00 - 12:30">10:00 – 12:30</option>
-              <option value="13:30 - 15:30">13:30 – 15:30</option>
-              <option value="15:30 - 17:30">15:30 – 17:30</option>
-            </select>
+            <select class="form-control" id="mj-edit-pref-time"></select>
           </div>
         </div>
       </div>
@@ -1605,6 +1600,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=41"></script>
+<script src="app.js?v=42"></script>
 </body>
 </html>
