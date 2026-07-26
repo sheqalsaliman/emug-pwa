@@ -112,6 +112,8 @@ const T = {
     updateStatus:'Kemaskini Status',techNote:'Nota Juruteknik',
     noScheduleToday:'Tiada jadual untuk hari ini.',
     addSchedule:'Tambah Jadual',schedSaved:'Jadual berjaya disimpan.',
+    dsmTitle:'Senarai Kerja',dsmEmpty:'Tiada kerja pada tarikh ini.',
+    dsmAdd:'Tambah Jadual',dsmClose:'Tutup',dsmPool:'Pool (Semua Kakitangan)',
     saLblName:'Nama',saLblPhone:'Phone',saLblAddr:'Alamat / Lokasi',
     saLblProb:'Jenis Masalah',saLblUrgency:'Keutamaan',saProbPh:'-- Pilih Masalah --',
     saTimePh:'-- Pilih Masa --',saNeedProb:'Sila pilih jenis masalah.',
@@ -331,6 +333,8 @@ const T = {
     updateStatus:'Update Status',techNote:'Technician Note',
     noScheduleToday:'No schedule for today.',
     addSchedule:'Add Schedule',schedSaved:'Schedule saved.',
+    dsmTitle:'Job List',dsmEmpty:'No jobs on this date.',
+    dsmAdd:'Add Schedule',dsmClose:'Close',dsmPool:'Pool (All Staff)',
     saLblName:'Name',saLblPhone:'Phone',saLblAddr:'Address / Location',
     saLblProb:'Problem Type',saLblUrgency:'Priority',saProbPh:'-- Select Problem --',
     saTimePh:'-- Select Time --',saNeedProb:'Please select a problem type.',
@@ -694,6 +698,10 @@ function applyAllText() {
   setTxt('sa-lbl-staff',t('staff'));
   setTxt('sa-lbl-date',t('saLblDate')); setTxt('sa-lbl-time',t('saLblTime'));
   setTxt('sa-lbl-addr',t('saLblAddr')); setTxt('sa-lbl-desc',t('saLblDesc'));
+  setTxt('dsm-close',t('dsmClose'));
+  const dsmAddBtn = document.querySelector('#modal-day-summary button[onclick="addFromDaySummary()"]');
+  if(dsmAddBtn) dsmAddBtn.title = t('dsmAdd');
+  if(daySummaryDate && el('modal-day-summary')?.classList.contains('open')) openDaySummary(daySummaryDate);
   setTxt('sa-lbl-name',t('saLblName')); setTxt('sa-lbl-phone',t('saLblPhone'));
   setTxt('sa-lbl-prob',t('saLblProb')); setTxt('sa-lbl-urgency',t('saLblUrgency'));
   setTxt('sa-prob-ph',t('saProbPh'));
@@ -2689,20 +2697,96 @@ function renderMonthView() {
       const tm  = (e.time||'').slice(0,5);
       const lbl = (e.description||e.location||e.ref||'').trim();
       if(e._src==='schedule') {
-        chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openSchedDetail('${e.id}')" title="${tm} ${lbl}">`
+        chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${tm} ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
       } else { // complaint
-        const handler = user.role==='admin' ? `openJobModal('${e.id}')` : '';
-        chips += `<div class="job-chip chip-${cls}" style="opacity:.85;${handler?'cursor:pointer;':''}" onclick="event.stopPropagation();${handler}" title="${e.ref}: ${lbl}">`
+        chips += `<div class="job-chip chip-${cls}" style="opacity:.85;cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${e.ref}: ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${e.ref}</span></div>`;
       }
     });
     const more = list.length>2 ? `<div class="month-more">+${list.length-2} ${lang==='bm'?'lagi':'more'}</div>` : '';
 
-    html += `<div class="month-cell${isToday?' today':''}" onclick="addSchedOn('${ds}')">`
+    html += `<div class="month-cell${isToday?' today':''}" onclick="onCalendarCellClick('${ds}',${list.length})">`
          +  `<div class="month-daynum">${dn}</div>${chips}${more}</div>`;
   }
   setHTML('sc-month-grid', html);
+}
+
+// Clicking a calendar cell (chip, "+X more", or empty space) opens the Day
+// Summary popup when the day already has bookings; an empty day still opens
+// "+ Tambah Jadual" prefilled with that date (admin only, per addSchedOn).
+function onCalendarCellClick(ds, count) {
+  if(count > 0) openDaySummary(ds);
+  else addSchedOn(ds);
+}
+
+// All schedule + complaint entries for a single date, deduped the same way as
+// renderMonthView (a manual job's work_schedule row is skipped when a linked
+// complaint already represents it), sorted by time.
+function getDayEntries(ds) {
+  const manualComplaintKeys = new Set();
+  complaints.forEach(c => {
+    if(c.source==='manual') manualComplaintKeys.add(`${c.prefDate}|${c.prefTime}|${c.assignedTo||''}|${c.desc||''}`);
+  });
+  const entries = [];
+  myWorkSchedule().forEach(e => {
+    if(e.date !== ds) return;
+    const key = `${e.date}|${e.time}|${e.staffUsername||''}|${e.description||''}`;
+    if(manualComplaintKeys.has(key)) return;
+    entries.push({ ...e, _src:'schedule' });
+  });
+  const visComplaint = user.role==='admin' ? complaints
+    : complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
+  visComplaint.forEach(c=>{
+    const d = c.schedDate||c.prefDate;
+    if(d !== ds) return;
+    entries.push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref, name:c.name, address:c.address });
+  });
+  return entries.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+}
+
+let daySummaryDate = null;
+
+function openDaySummary(ds) {
+  daySummaryDate = ds;
+  const d = new Date(ds + 'T00:00:00');
+  const dayLabel = `${t('dayNames')[d.getDay()]}, ${d.getDate()} ${t('monthNames')[d.getMonth()]} ${d.getFullYear()}`;
+  setTxt('dsm-title', `📋 ${t('dsmTitle')} — ${dayLabel}`);
+  const entries = getDayEntries(ds);
+  const body = el('dsm-body');
+  if(body) {
+    if(!entries.length) {
+      body.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><p>${t('dsmEmpty')}</p></div>`;
+    } else {
+      body.innerHTML = entries.map(e => {
+        const tm = (e.time||'').slice(0,5) || '—';
+        if(e._src==='schedule') {
+          const lbl = (e.description||e.location||'').trim();
+          const staffLbl = e.staffName || t('dsmPool');
+          return `<div class="dsm-item" onclick="closeModal('modal-day-summary');openSchedDetail('${e.id}')">
+            <div class="dsm-item-top"><span class="dsm-time">${tm}</span>${statusBadge(e.status)}</div>
+            <div class="dsm-item-label">${lbl}</div>
+            <div class="dsm-item-sub">👷 ${staffLbl}</div>
+          </div>`;
+        }
+        const canOpen = user.role==='admin';
+        return `<div class="dsm-item" ${canOpen?`onclick="closeModal('modal-day-summary');openJobModal('${e.id}')"`:''} style="${canOpen?'':'cursor:default;'}">
+          <div class="dsm-item-top"><span class="dsm-time">${tm}</span>${statusBadge(e.status)}</div>
+          <div class="dsm-item-label">${e.ref}</div>
+          <div class="dsm-item-sub">👤 ${e.name||'-'}${e.address?' · 📍 '+e.address:''}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+  openModal('modal-day-summary');
+}
+
+function addFromDaySummary() {
+  if(!daySummaryDate) return;
+  closeModal('modal-day-summary');
+  const p = daySummaryDate.split('-').map(Number);
+  schedDate = new Date(p[0], p[1]-1, p[2]);
+  openSchedAddModal();
 }
 
 // ─── SCHEDULE ADD MODAL ───────────────────────────────────────────────────────

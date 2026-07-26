@@ -1277,6 +1277,28 @@
 </div>
 
 <!-- ======================================================
+     DAY SUMMARY MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-day-summary">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="dsm-title">📋 Senarai Kerja</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button type="button" class="cp-btn cp-btn-sec" style="padding:6px 10px;font-size:.78rem;" onclick="addFromDaySummary()" title="Tambah Jadual">➕</button>
+          <button class="modal-close" onclick="closeModal('modal-day-summary')">✕</button>
+        </div>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body" id="dsm-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-day-summary')" id="dsm-close">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
      SCHEDULE DETAIL MODAL
      ====================================================== -->
 <div class="modal-overlay" id="modal-sched-detail">
@@ -1583,6 +1605,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>

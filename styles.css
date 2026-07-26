@@ -2196,6 +2196,15 @@ tbody tr:hover { background:var(--gray-50); }
   100% { background-position: -200% 0; }
 }
 
+/* Day Summary popup (Jadual Kerja calendar) */
+.dsm-item { padding:12px 14px; border-bottom:1px solid var(--gray-100); cursor:pointer; transition:var(--tr); }
+.dsm-item:hover { background:var(--gray-50); }
+.dsm-item:last-child { border-bottom:none; }
+.dsm-item-top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px; }
+.dsm-time { background:var(--navy); color:var(--white); font-size:.74rem; font-weight:700; padding:2px 10px; border-radius:10px; flex-shrink:0; }
+.dsm-item-label { font-weight:700; font-size:.88rem; color:var(--navy); }
+.dsm-item-sub { font-size:.78rem; color:var(--gray-500); margin-top:2px; }
+
 /* Summary */
 .bk-summary { border-top: 1px solid var(--gray-200); }
 .bk-summary-inner {
