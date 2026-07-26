@@ -217,7 +217,7 @@ const T = {
     shareDownload:'Download PNG',
     shareNative:'Share',
     // Operator role
-    role_operator:'Operator Lapangan',
+    role_operator:'Operator Lapangan',role_team_leader:'Ketua Pasukan',
     opDashTitle:'Papan Pemuka Operator',opDashSub:'Pengurusan kerja pasukan lapangan',
     opSchedTitle:'Jadual Kerja',opSchedSub:'Jadual kerja pasukan',
     opNewJobs:'Aduan Baru',opMyJobs:'Kerja Saya',
@@ -402,7 +402,7 @@ const T = {
     fbaQuality:'Quality',fbaTimeliness:'Timeliness',fbaService:'Service',fbaOverall:'Overall',
     fbRate:'Rate Our Service',
     // Operator role
-    role_operator:'Field Operator',
+    role_operator:'Field Operator',role_team_leader:'Team Leader',
     opDashTitle:'Operator Dashboard',opDashSub:'Field team job management',
     opSchedTitle:'Work Schedule',opSchedSub:'Team work schedule',
     opNewJobs:'New Jobs',opMyJobs:'My Jobs',
@@ -1646,7 +1646,7 @@ function buildSidebar() {
   const ini = iniOf(user.name);
   el('sb-av').textContent = ini;
   el('sb-name').textContent = user.name;
-  el('sb-role').textContent = user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):t('role_staff');
+  el('sb-role').textContent = user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):user.role==='team_leader'?t('role_team_leader'):t('role_staff');
   el('app-user-av').textContent = ini;
 
   const unread = myNotifs().filter(n=>!n.read).length;
@@ -1660,7 +1660,7 @@ function buildSidebar() {
     { pg:'notifications',icon:'🔔',lbl:t('notifications'), badge:unread||null },
     { pg:'feedback',   icon:'⭐', lbl:t('fbaTitle') },
     { pg:'profile',    icon:'👤', lbl:t('profile') },
-  ] : user.role==='operator' ? [
+  ] : isOperatorRole(user.role) ? [
     { pg:'dashboard',    icon:'🏗️', lbl:t('opDashTitle') },
     { pg:'op-schedule',  icon:'🗓️', lbl:t('opSchedTitle') },
     { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
@@ -1717,10 +1717,14 @@ function renderPage(pg) {
 }
 
 // ─── DATA HELPERS ─────────────────────────────────────────────────────────────
+// Team Leader is treated the same as Field Operator for basic permissions for
+// now — no dedicated permission tier defined yet.
+function isOperatorRole(role) { return role==='operator'||role==='team_leader'; }
+
 function myComplaints() {
   if(!user) return [];
   if(user.role==='admin') return complaints;
-  if(user.role==='operator') return complaints.filter(c=>c.acceptedBy===user.username);
+  if(isOperatorRole(user.role)) return complaints.filter(c=>c.acceptedBy===user.username);
   return complaints.filter(c=>c.assignedTo===user.username);
 }
 function myWorkSchedule() {
@@ -1743,7 +1747,7 @@ function myNotifs() {
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function renderDashboard() {
-  if(user.role==='operator') { renderOperatorDashboard(); return; }
+  if(isOperatorRole(user.role)) { renderOperatorDashboard(); return; }
   // Restore 2-col layout for admin/staff (operator may have collapsed it)
   var dashCols = document.querySelector('.dash-cols');
   if(dashCols) {
@@ -1867,7 +1871,7 @@ function renderComplaintsList() {
   // (source='manual' complaints created via the current "+ Tambah Jadual" flow),
   // since those already render as full complaint cards above and would otherwise
   // show up twice.
-  const mjVisible = user.role==='operator'
+  const mjVisible = isOperatorRole(user.role)
     ? manualJobs.filter(j=>j.is_pool||j.operator_id===user.username)
     : manualJobs; // admin / staff sees all
   const mjList = mjVisible.filter(j=>{
@@ -2094,7 +2098,7 @@ async function handleRpStatCard(filter) {
         <div style="width:36px;height:36px;border-radius:50%;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">${iniOf(u.name)}</div>
         <div>
           <div style="font-weight:700;font-size:.88rem;color:#fff;">${u.name}</div>
-          <div style="font-size:.76rem;color:#888;margin-top:2px;">🆔 ${u.staffId||u.staff_id||'—'} · ${u.role==='admin'?t('role_admin'):u.role==='operator'?t('role_operator'):t('role_staff')}</div>
+          <div style="font-size:.76rem;color:#888;margin-top:2px;">🆔 ${u.staffId||u.staff_id||'—'} · ${u.role==='admin'?t('role_admin'):u.role==='operator'?t('role_operator'):u.role==='team_leader'?t('role_team_leader'):t('role_staff')}</div>
         </div>
       </div>`).join('')
       : `<div style="text-align:center;padding:36px 0;color:#666;font-size:.88rem;">Tiada rekod</div>`);
@@ -2208,14 +2212,14 @@ function openJobModal(cid) {
   // Build assign dropdown — merge hardcoded USERS + Supabase dynamicStaff
   const assignEl = el('mj-assign');
   if(assignEl) {
-    const hardcodedOps = USERS.filter(u=>u.role==='staff'||u.role==='operator')
+    const hardcodedOps = USERS.filter(u=>u.role==='staff'||u.role==='operator'||u.role==='team_leader')
       .map(u=>({ username: u.username, name: u.name, role: u.role }));
-    const dynamicOps = dynamicStaff.filter(u=>u.role==='staff'||u.role==='operator')
+    const dynamicOps = dynamicStaff.filter(u=>u.role==='staff'||u.role==='operator'||u.role==='team_leader')
       .filter(u=>!hardcodedOps.find(h=>h.username===u.username)) // deduplicate
       .map(u=>({ username: u.username, name: u.name, role: u.role }));
     const allOps = [...hardcodedOps, ...dynamicOps];
     assignEl.innerHTML = `<option value="">-- ${t('unassigned')} --</option>`
-      + allOps.map(u=>`<option value="${u.username}">${u.name} (${u.role==='operator'?t('role_operator'):t('role_staff')})</option>`).join('');
+      + allOps.map(u=>`<option value="${u.username}">${u.name} (${u.role==='operator'?t('role_operator'):u.role==='team_leader'?t('role_team_leader'):t('role_staff')})</option>`).join('');
     assignEl.value = c.assignedTo||'';
   }
   el('mj-status').value    = c.status;
@@ -3063,7 +3067,7 @@ function toggleStaffDeleteMode() {
 }
 
 function openAddStaffModal() {
-  ['asf-name','asf-username','asf-email','asf-password','asf-phone'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
+  ['asf-name','asf-username','asf-password','asf-phone'].forEach(id=>{ const e=el(id); if(e) e.value=''; });
   el('asf-role').value = 'operator';
   openModal('modal-add-staff');
 }
@@ -3072,7 +3076,6 @@ async function saveNewStaff() {
   const name     = (el('asf-name')?.value||'').trim().toUpperCase();
   const username = (el('asf-username')?.value||'').trim().toLowerCase();
   const password = (el('asf-password')?.value||'').trim();
-  const email    = (el('asf-email')?.value||'').trim();
   const phone    = (el('asf-phone')?.value||'').trim();
   const role     = el('asf-role')?.value || 'operator';
 
@@ -3095,7 +3098,7 @@ async function saveNewStaff() {
   const btn = document.querySelector('#modal-add-staff .btn-lime');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Menyimpan...'; }
 
-  const saved = await dbInsertStaff({ name, username, email, password, phone, role, staffId });
+  const saved = await dbInsertStaff({ name, username, email: null, password, phone, role, staffId });
 
   if(btn) { btn.disabled=false; btn.innerHTML='💾 Simpan Kakitangan'; }
 
@@ -3177,8 +3180,8 @@ function renderStaff() {
 
   const btnRow = isAdmin ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">${addBtn}${removeBtn}</div>` : '';
 
-  const roleColors = { admin:'#1a237e', operator:'#2e7d32', staff:'#0277bd' };
-  const roleLabels = { admin: lang==='bm'?'Pentadbir':'Admin', operator: lang==='bm'?'Operator':'Operator', staff: lang==='bm'?'Kakitangan':'Staff' };
+  const roleColors = { admin:'#1a237e', operator:'#2e7d32', team_leader:'#b45309', staff:'#0277bd' };
+  const roleLabels = { admin: lang==='bm'?'Pentadbir':'Admin', operator: lang==='bm'?'Operator':'Operator', team_leader: t('role_team_leader'), staff: lang==='bm'?'Kakitangan':'Staff' };
 
   const cardHTML = slist.map(su=>{
     const assigned  = complaints.filter(c=>c.assignedTo===su.username);
@@ -3396,7 +3399,7 @@ function renderProfile() {
       <div>
         <div style="font-size:1.2rem;font-weight:800;color:var(--navy);">${user.name}</div>
         <span class="badge ${user.role==='admin'?'badge-admin':user.role==='operator'?'badge-operator':'badge-staff'}" style="margin-top:6px;display:inline-flex;">
-          ${user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):t('role_staff')}
+          ${user.role==='admin'?t('role_admin'):user.role==='operator'?t('role_operator'):user.role==='team_leader'?t('role_team_leader'):t('role_staff')}
         </span>
         ${user.staffId?`<div class="text-muted text-sm mt-1">ID: ${user.staffId}</div>`:''}
       </div>
@@ -3697,12 +3700,12 @@ function handleGalleryUpload(input) {
   let loaded = 0;
   const toRead = files.slice(0, remaining);
   toRead.forEach(file => {
-    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&user.role==='operator') renderOperatorDashboard(); } return; }
+    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&isOperatorRole(user.role)) renderOperatorDashboard(); } return; }
     const reader = new FileReader();
     reader.onload = e => {
       arr.push({ src:e.target.result, name:file.name, type:file.type, ts:new Date().toISOString(), who:user?user.name:'Staff' });
       loaded++;
-      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&user.role==='operator') renderOperatorDashboard(); }
+      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&isOperatorRole(user.role)) renderOperatorDashboard(); }
     };
     reader.readAsDataURL(file);
   });
@@ -3769,7 +3772,7 @@ function deleteGalleryPhoto(idx) {
   saveGallery();
   renderGalleryGrid();
   updateGalleryTabBadges();
-  if(user && user.role === 'operator') renderOperatorDashboard();
+  if(user && isOperatorRole(user.role)) renderOperatorDashboard();
 }
 
 // --- FULLSCREEN VIEWER ---
