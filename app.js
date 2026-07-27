@@ -574,7 +574,6 @@ let bkBookings = null;   // lightweight booking rows for availability (null = fa
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const USERS = [
   { id:1, username:'sheqal@emanutama', password:'emanutama14', name:'MOHAMMAD SHEQAL BIN SALIMAN', role:'admin',    phone:'', email:'sheqal@emanutama.com',  staffId:'ADM001' },
-  { id:2, username:'awang@emanutama',  password:'emanutama14', name:'AWANG OTHMAN BIN AWANG AHMAD', role:'operator', phone:'', email:'awang@emanutama.com',   staffId:'OPR001' },
 ];
 
 function dAgo(n)  { const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
