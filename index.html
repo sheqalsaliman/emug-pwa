@@ -1501,6 +1501,22 @@
       <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
     </div>
     <div class="modal-body">
+      <div class="form-group" id="sa-bktype-wrap" style="margin-bottom:16px;">
+        <label class="form-label" id="sa-lbl-bk-type">Jenis Tempahan</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button type="button" id="sa-bkt-kerja"
+            onclick="setSaBookingType('kerja')"
+            style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid var(--lime);background:rgba(163,230,53,.12);color:var(--lime);font-size:.85rem;font-weight:700;cursor:pointer;">
+            🔧 <span id="sa-bkt-kerja-lbl">Pelaksanaan Kerja</span>
+          </button>
+          <button type="button" id="sa-bkt-site"
+            onclick="setSaBookingType('site_visit')"
+            style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid var(--gray-300);background:transparent;color:var(--gray-600);font-size:.85rem;font-weight:600;cursor:pointer;">
+            🔍 <span id="sa-bkt-site-lbl">Pemeriksaan Tapak</span>
+          </button>
+        </div>
+        <input type="hidden" id="sa-booking-type" value="kerja">
+      </div>
       <div class="form-group" id="sa-assign-type-wrap">
         <label class="form-label" id="sa-lbl-assign-type">Jenis Penugasan</label>
         <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">
@@ -1559,6 +1575,13 @@
       <div class="form-group">
         <label class="form-label" id="sa-lbl-addr">Alamat / Lokasi</label>
         <textarea class="form-control" id="sa-addr" rows="2" placeholder="Pilihan"></textarea>
+        <div style="margin-top:8px;">
+          <button type="button" class="location-btn" id="sa-map-btn" onclick="openMapPicker('admin')">
+            🗺️ <span id="sa-map-btn-txt">Pilih di Peta</span>
+          </button>
+        </div>
+        <div id="sa-location-result" style="display:none;"></div>
+        <div id="sa-mileage-box" style="display:none;"></div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1575,6 +1598,22 @@
       <div class="form-group">
         <label class="form-label" id="sa-lbl-desc">Penerangan Kerja</label>
         <textarea class="form-control" id="sa-desc" rows="3" placeholder="Penerangan tugas..."></textarea>
+      </div>
+      <div class="form-group" id="sa-media-wrap">
+        <label class="form-label" id="sa-lbl-media">📷 Muat Naik Gambar/Video Masalah</label>
+        <div class="media-upload-area" id="sa-media-upload-area" onclick="document.getElementById('sa-media-input').click()">
+          <div class="media-upload-placeholder" id="sa-media-upload-placeholder">
+            <div class="up-icon">📷</div>
+            <div class="up-label" id="sa-mup-label">Klik untuk muat naik gambar/video</div>
+            <div class="up-sub" id="sa-mup-sub">JPG, PNG, GIF, MP4, MOV &nbsp;•&nbsp; Maks 5 fail</div>
+          </div>
+          <div class="media-preview-grid" id="sa-media-preview-grid" style="display:none;"></div>
+        </div>
+        <input type="file" id="sa-media-input" multiple accept="image/jpeg,image/png,image/gif,video/mp4,video/quicktime" style="display:none;" onchange="handleSaMediaUpload(this)">
+        <div class="media-count-bar" id="sa-media-count-bar" style="display:none;">
+          <span id="sa-media-count-txt">0 / 5 fail</span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="clearSaMedia(event)" id="sa-mup-clear">🗑️ Buang Semua</button>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1700,6 +1739,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=46"></script>
+<script src="app.js?v=47"></script>
 </body>
 </html>

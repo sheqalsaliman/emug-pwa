@@ -521,6 +521,10 @@ let userDDOpen = false;
 let uploadedFiles = [];
 // Location state
 let pinnedLat = null, pinnedLng = null;
+// Admin "Tambah Jadual" has its own separate pin/media state so it never
+// interferes with the customer landing-page form sharing the same DOM tree.
+let saAdminPinnedLat = null, saAdminPinnedLng = null;
+let saUploadedFiles = [];
 // Gallery state
 let galleryJobId = null;
 let galleryTab = 'before';
@@ -800,6 +804,10 @@ function applyAllText() {
   setTxt('cf-lbl-bk-type', t('cfLblBkType'));
   setTxt('cf-bkt-kerja-lbl', t('cfBktKerja'));
   setTxt('cf-bkt-site-lbl', t('cfBktSite'));
+  setTxt('sa-lbl-bk-type', t('cfLblBkType'));
+  setTxt('sa-bkt-kerja-lbl', t('cfBktKerja'));
+  setTxt('sa-bkt-site-lbl', t('cfBktSite'));
+  const saMapTxt = el('sa-map-btn-txt'); if(saMapTxt && saAdminPinnedLat==null) saMapTxt.textContent = t('mapBtn');
   // Form placeholders
   const _cfn = el('cf-name');  if(_cfn)  _cfn.placeholder  = t('cfNamePh');
   const _cfa = el('cf-addr');  if(_cfa)  _cfa.placeholder  = t('cfAddrPh');
@@ -1433,6 +1441,24 @@ function setCfBookingType(val) {
     kerja.style.border = '2px solid var(--gray-300)'; kerja.style.background = 'transparent'; kerja.style.color = 'var(--gray-600)';
   }
   updateMileageEstimate();
+}
+
+// Admin "Tambah Jadual" equivalent of setCfBookingType — separate hidden field
+// (sa-booking-type) and its own mileage box so it never interferes with the
+// customer landing-page form, which shares the same DOM tree.
+function setSaBookingType(val) {
+  el('sa-booking-type').value = val;
+  const kerja = el('sa-bkt-kerja');
+  const site  = el('sa-bkt-site');
+  if(!kerja || !site) return;
+  if(val === 'kerja') {
+    kerja.style.border = '2px solid var(--lime)'; kerja.style.background = 'rgba(163,230,53,.12)'; kerja.style.color = 'var(--lime)';
+    site.style.border  = '2px solid var(--gray-300)'; site.style.background = 'transparent'; site.style.color = 'var(--gray-600)';
+  } else {
+    site.style.border  = '2px solid #8b5cf6'; site.style.background = 'rgba(139,92,246,.12)'; site.style.color = '#a78bfa';
+    kerja.style.border = '2px solid var(--gray-300)'; kerja.style.background = 'transparent'; kerja.style.color = 'var(--gray-600)';
+  }
+  updateSaMileageEstimate();
 }
 
 async function submitComplaint() {
@@ -2982,11 +3008,23 @@ function onMjPrefDateChange() {
   populateMjTimeOptions(el('mj-edit-pref-date').value, el('mj-edit-pref-time').value);
 }
 
+// Direct-assign dropdown for Tambah Jadual — every Field Operator AND Team
+// Leader (hardcoded USERS + Supabase dynamicStaff, deduped), each option
+// labelled with its role so admin can free-pick across teams/leaders.
+function buildSaStaffOptions() {
+  const roleLbl = r => r==='team_leader' ? t('role_team_leader') : t('role_operator');
+  const hard = USERS.filter(u=>u.role==='operator')
+    .map(u=>({ username:u.username, name:u.name, role:u.role }));
+  const dyn  = dynamicStaff.filter(u=>u.role==='operator'||u.role==='team_leader')
+    .filter(u=>!hard.find(h=>h.username===u.username))
+    .map(u=>({ username:u.username, name:u.name, role:u.role }));
+  return [...hard, ...dyn]
+    .map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name} (${roleLbl(u.role)})</option>`).join('');
+}
+
 function openSchedAddModal() {
   schedEditId = null;
-  const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
-  const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
-  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
+  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${buildSaStaffOptions()}`;
   el('sa-date').value = schedDate.toLocaleDateString('en-CA');
   populateSaTimeOptions(el('sa-date').value);
   el('sa-addr').value = '';
@@ -2996,11 +3034,21 @@ function openSchedAddModal() {
   el('sa-prob').value = '';
   el('sa-urgency').value = 'Normal';
   el('sa-new-fields-wrap').style.display = '';
+  el('sa-bktype-wrap').style.display = '';
+  el('sa-media-wrap').style.display = '';
   setTxt('sa-title', `🗓️ ${t('addSchedule')}`);
   setTxt('sa-cancel', t('cancel'));
   // Reset to Pool mode by default
   const poolR = document.querySelector('input[name="sa-assign-type"][value="pool"]');
   if(poolR) { poolR.checked = true; toggleAssignType(); }
+  // Reset booking type, map pin, mileage box and media
+  setSaBookingType('kerja');
+  saAdminPinnedLat = null; saAdminPinnedLng = null;
+  const saLocResult = el('sa-location-result'); if(saLocResult) { saLocResult.style.display='none'; saLocResult.innerHTML=''; }
+  const saMapBtnTxt = el('sa-map-btn-txt'); if(saMapBtnTxt) saMapBtnTxt.textContent = lang==='bm'?'Pilih di Peta':'Choose on Map';
+  const saMileBox = el('sa-mileage-box'); if(saMileBox) { saMileBox.style.display='none'; saMileBox.innerHTML=''; }
+  saUploadedFiles = [];
+  renderSaMediaPreviews();
   openModal('modal-sched-add');
 }
 
@@ -3065,19 +3113,24 @@ async function saveSchedEntry() {
     toast(t('bkJustBooked'), 'error', 6000); return;
   }
 
+  const bookingType = el('sa-booking-type')?.value || 'kerja';
+  const coords = (saAdminPinnedLat && saAdminPinnedLng) ? { lat: saAdminPinnedLat, lng: saAdminPinnedLng } : null;
+
   const year = new Date().getFullYear();
   const ref  = `EMUG-${year}-${String(refCounter).padStart(4,'0')}`;
   const c = {
     id: ref, ref,
     name, phone, address: location,
-    problem, desc: description, urgency, bookingType: 'kerja', source: 'manual',
+    problem, desc: description, urgency, bookingType, source: 'manual',
     prefDate: dateVal, prefTime: time,
     status: 'Menunggu',
     assignedTo:   isPool ? '' : staffUsername,
     assignedName: isPool ? '' : staffName,
     schedDate: '', adminNotes: '', techNotes: '',
-    coords: null, mileageKm: null, mileageCharge: null,
-    media: [],
+    coords,
+    mileageKm:     (bookingType==='site_visit' && saMileageKm!=null) ? saMileageKm : null,
+    mileageCharge: (bookingType==='site_visit' && saMileageKm!=null) ? saMileageCharge : null,
+    media: saUploadedFiles.slice(),
     submittedAt: new Date().toISOString(),
     updatedAt:   new Date().toISOString(),
   };
@@ -3167,9 +3220,7 @@ function editSchedEntry() {
   if(!e) return;
   closeModal('modal-sched-detail');
   schedEditId = schedDetailId;
-  const staffList = USERS.filter(u=>u.role==='staff'||u.role==='operator');
-  const staffOpts = staffList.map(u=>`<option value="${u.username}" data-name="${u.name}">${u.name}</option>`).join('');
-  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${staffOpts}`;
+  el('sa-staff').innerHTML = `<option value="">-- ${t('staff')} --</option>${buildSaStaffOptions()}`;
   el('sa-staff').value   = e.staffUsername || '';
   el('sa-date').value    = e.date;
   populateSaTimeOptions(e.date, e.time);
@@ -3178,6 +3229,8 @@ function editSchedEntry() {
   // This lightweight schedule entry has no linked complaint fields to edit here —
   // problem type / priority / customer details are only captured when creating new.
   el('sa-new-fields-wrap').style.display = 'none';
+  el('sa-bktype-wrap').style.display = 'none';
+  el('sa-media-wrap').style.display = 'none';
   const isDirect = !!e.staffUsername;
   const radio = document.querySelector(`input[name="sa-assign-type"][value="${isDirect?'direct':'pool'}"]`);
   if(radio) radio.checked = true;
@@ -3716,6 +3769,65 @@ function renderMediaPreviews() {
   }).join('');
 }
 
+// --- MEDIA UPLOAD (Admin "Tambah Jadual") — mirrors the customer handlers
+// above but operates on saUploadedFiles / sa-media-* DOM, kept fully separate.
+function handleSaMediaUpload(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  const remaining = 5 - saUploadedFiles.length;
+  if(remaining <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
+  const toRead = files.slice(0, remaining);
+  let loaded = 0;
+  toRead.forEach(file => {
+    if(file.size > 10*1024*1024) { toast((lang==='bm'?'Fail terlalu besar: ':'File too large: ')+file.name,'error'); loaded++; if(loaded===toRead.length) renderSaMediaPreviews(); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      saUploadedFiles.push({ name:file.name, type:file.type, src:e.target.result });
+      loaded++;
+      if(loaded===toRead.length) renderSaMediaPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function clearSaMedia(e) {
+  if(e) e.stopPropagation();
+  saUploadedFiles = [];
+  renderSaMediaPreviews();
+}
+
+function removeSaMediaFile(idx) {
+  saUploadedFiles.splice(idx, 1);
+  renderSaMediaPreviews();
+}
+
+function renderSaMediaPreviews() {
+  const grid = el('sa-media-preview-grid');
+  const bar  = el('sa-media-count-bar');
+  if(!grid) return;
+  if(!saUploadedFiles.length) {
+    grid.innerHTML = '';
+    if(bar) bar.style.display = 'none';
+    return;
+  }
+  if(bar) { bar.style.display='flex'; bar.querySelector('span').textContent = saUploadedFiles.length+'/5'; }
+  grid.innerHTML = saUploadedFiles.map((f,i)=>{
+    const isImg = f.type.startsWith('image/');
+    const isVid = f.type.startsWith('video/');
+    const thumb = isImg
+      ? '<img src="'+f.src+'" style="width:100%;height:64px;object-fit:cover;border-radius:6px;">'
+      : isVid
+        ? '<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;background:#1a237e11;border-radius:6px;font-size:1.5rem;">🎬</div>'
+        : '<div style="width:100%;height:64px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📄</div>';
+    return '<div style="position:relative;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">'
+      +thumb
+      +'<button onclick="removeSaMediaFile('+i+')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:.7rem;cursor:pointer;line-height:1;">✕</button>'
+      +'<div style="font-size:.6rem;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--gray-500);">'+f.name+'</div>'
+      +'</div>';
+  }).join('');
+}
+
 // --- MILEAGE CHARGE (SITE VISIT) ---
 function haversineKm(lat1, lng1, lat2, lng2) {
   var R = 6371, toRad = function(x){ return x * Math.PI / 180; };
@@ -3729,6 +3841,27 @@ function mileBox(bg, border, color, inner) {
   return '<div style="margin-top:8px;background:' + bg + ';border:1px solid ' + border
     + ';border-radius:8px;padding:9px 12px;font-size:.8rem;color:' + color + ';line-height:1.5;">'
     + inner + '</div>';
+}
+
+// Road distance (OFFICE_COORDS → lat/lng) via OSRM; haversine × 1.3 as fallback
+// estimate. Pure calculation, no DOM — shared by the customer and admin mileage
+// UIs so the OSRM/fallback logic only lives in one place.
+async function fetchDistanceKm(lat, lng) {
+  try {
+    var ctl = new AbortController();
+    var tm = setTimeout(function(){ ctl.abort(); }, 8000);
+    var res = await fetch('https://router.project-osrm.org/route/v1/driving/'
+      + OFFICE_COORDS.lng + ',' + OFFICE_COORDS.lat + ';' + lng + ',' + lat
+      + '?overview=false', { signal: ctl.signal });
+    clearTimeout(tm);
+    var j = await res.json();
+    if(j && j.routes && j.routes[0] && typeof j.routes[0].distance === 'number') {
+      return { km: j.routes[0].distance / 1000, isEstimate: false };
+    }
+  } catch(e) {
+    console.warn('[EMUG] OSRM route failed, using haversine estimate:', e);
+  }
+  return { km: haversineKm(OFFICE_COORDS.lat, OFFICE_COORDS.lng, lat, lng) * 1.3, isEstimate: true };
 }
 
 // Road distance via OSRM; haversine × 1.3 as fallback estimate.
@@ -3746,25 +3879,8 @@ async function updateMileageEstimate() {
   }
   var seq = ++mileageCalcSeq;
   box.innerHTML = mileBox('var(--gray-50)', 'var(--gray-200)', 'var(--gray-500)', '⏳ ' + t('mileCalc'));
-  var km = null, est = false;
-  try {
-    var ctl = new AbortController();
-    var tm = setTimeout(function(){ ctl.abort(); }, 8000);
-    var res = await fetch('https://router.project-osrm.org/route/v1/driving/'
-      + OFFICE_COORDS.lng + ',' + OFFICE_COORDS.lat + ';' + pinnedLng + ',' + pinnedLat
-      + '?overview=false', { signal: ctl.signal });
-    clearTimeout(tm);
-    var j = await res.json();
-    if(j && j.routes && j.routes[0] && typeof j.routes[0].distance === 'number') km = j.routes[0].distance / 1000;
-  } catch(e) {
-    console.warn('[EMUG] OSRM route failed, using haversine estimate:', e);
-  }
-  if(seq !== mileageCalcSeq) return; // superseded by a newer pin/toggle
-  if(km === null) {
-    km = haversineKm(OFFICE_COORDS.lat, OFFICE_COORDS.lng, pinnedLat, pinnedLng) * 1.3;
-    est = true;
-  }
-  km = Math.round(km * 10) / 10;
+  var d = await fetchDistanceKm(pinnedLat, pinnedLng);
+  var km = Math.round(d.km * 10) / 10, est = d.isEstimate;
   mileageKm = km;
   mileageIsEstimate = est;
   mileageCharge = km <= MILEAGE_FREE_RADIUS_KM ? 0 : Math.round(km * MILEAGE_RATE_PER_KM * 100) / 100;
@@ -3780,29 +3896,72 @@ async function updateMileageEstimate() {
   }
 }
 
-// Shared confirmation UI for a set pin — used by GPS pin and map picker
-function showPinnedResult() {
-  const btnTxt = el('cf-loc-btn-txt');
+// Admin "Tambah Jadual" equivalent of updateMileageEstimate — separate state
+// (saMileageKm/Charge) and DOM (sa-mileage-box), reading the admin pin instead
+// of the customer's pinnedLat/pinnedLng.
+let saMileageKm = null, saMileageCharge = null, saMileageCalcSeq = 0;
+async function updateSaMileageEstimate() {
+  var box = el('sa-mileage-box');
+  saMileageKm = null; saMileageCharge = null;
+  if(!box) return;
+  var isSiteVisit = (el('sa-booking-type') ? el('sa-booking-type').value : 'kerja') === 'site_visit';
+  if(!isSiteVisit) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  if(!(saAdminPinnedLat && saAdminPinnedLng)) {
+    box.innerHTML = mileBox('#fffbeb', '#fcd34d', '#92400e', '📍 ' + t('milePin'));
+    return;
+  }
+  var seq = ++saMileageCalcSeq;
+  box.innerHTML = mileBox('var(--gray-50)', 'var(--gray-200)', 'var(--gray-500)', '⏳ ' + t('mileCalc'));
+  var d = await fetchDistanceKm(saAdminPinnedLat, saAdminPinnedLng);
+  if(seq !== saMileageCalcSeq) return; // superseded by a newer pin/toggle
+  var km = Math.round(d.km * 10) / 10, est = d.isEstimate;
+  saMileageKm = km;
+  saMileageCharge = km <= MILEAGE_FREE_RADIUS_KM ? 0 : Math.round(km * MILEAGE_RATE_PER_KM * 100) / 100;
+  var kmTxt = km.toFixed(1);
+  var estTag = est ? ' (' + t('mileEst') + ')' : '';
+  if(saMileageCharge === 0) {
+    box.innerHTML = mileBox('#f0fdf4', '#86efac', '#166534',
+      '✅ ' + t('mileFree').replace('{km}', kmTxt) + estTag);
+  } else {
+    box.innerHTML = mileBox('#eff6ff', '#93c5fd', '#1e40af',
+      '🚗 ' + t('mileCharge').replace('{amt}', saMileageCharge.toFixed(2)).replace('{km}', kmTxt) + estTag
+      + '<div style="margin-top:4px;font-size:.72rem;color:var(--gray-500);">' + t('mileNote') + '</div>');
+  }
+}
+
+// Shared confirmation UI for a set pin — used by GPS pin and map picker.
+// target: 'customer' (cf-* fields, the default) or 'admin' (sa-* fields, Tambah Jadual).
+function showPinnedResult(target) {
+  const lat = target==='admin' ? saAdminPinnedLat : pinnedLat;
+  const lng = target==='admin' ? saAdminPinnedLng : pinnedLng;
+  const btnTxt = el(target==='admin' ? 'sa-map-btn-txt' : 'cf-loc-btn-txt');
   if(btnTxt) btnTxt.textContent = lang==='bm'?'Lokasi Dipin ✓':'Location Pinned ✓';
-  const result = el('cf-location-result');
+  const result = el(target==='admin' ? 'sa-location-result' : 'cf-location-result');
   if(result) {
     result.style.display = 'block';
     result.innerHTML = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-      +'<span style="font-size:.85rem;color:#166534;">📍 '+pinnedLat.toFixed(6)+', '+pinnedLng.toFixed(6)+'</span>'
-      +'<a href="https://www.google.com/maps?q='+pinnedLat+','+pinnedLng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
+      +'<span style="font-size:.85rem;color:#166534;">📍 '+lat.toFixed(6)+', '+lng.toFixed(6)+'</span>'
+      +'<a href="https://www.google.com/maps?q='+lat+','+lng+'" target="_blank" rel="noopener" class="maps-btn" style="font-size:.8rem;padding:4px 10px;">'+(lang==='bm'?'Buka Maps':'Open Maps')+'</a>'
       +'</div>';
   }
 }
 
 // --- MAP LOCATION PICKER (Leaflet) ---
-let mpMap = null, mpMarker = null, mpLat = null, mpLng = null;
+// Shared by the customer landing-page form AND the admin "Tambah Jadual"
+// modal — mapPickerTarget records which one is currently open so Confirm
+// writes back to the right pin/DOM without duplicating the whole widget.
+let mpMap = null, mpMarker = null, mpLat = null, mpLng = null, mapPickerTarget = 'customer';
 
-function openMapPicker() {
+function openMapPicker(target) {
   if(typeof L === 'undefined') { toast(t('mapLoadFail'), 'error'); return; }
+  mapPickerTarget = target==='admin' ? 'admin' : 'customer';
   openModal('modal-map');
-  const hasPin = !!(pinnedLat && pinnedLng);
-  const startLat = hasPin ? pinnedLat : OFFICE_COORDS.lat;
-  const startLng = hasPin ? pinnedLng : OFFICE_COORDS.lng;
+  const curLat = mapPickerTarget==='admin' ? saAdminPinnedLat : pinnedLat;
+  const curLng = mapPickerTarget==='admin' ? saAdminPinnedLng : pinnedLng;
+  const hasPin = !!(curLat && curLng);
+  const startLat = hasPin ? curLat : OFFICE_COORDS.lat;
+  const startLng = hasPin ? curLng : OFFICE_COORDS.lng;
   const zoom = hasPin ? 16 : 12;
   if(!mpMap) {
     mpMap = L.map('mp-map').setView([startLat, startLng], zoom);
@@ -3847,17 +4006,26 @@ function updateMpCoordsLbl() {
 
 function confirmMapLocation() {
   if(mpLat == null) { toast(t('mapHint'), 'error'); return; }
-  pinnedLat = mpLat;
-  pinnedLng = mpLng;
-  closeModal('modal-map');
-  showPinnedResult();
-  updateMileageEstimate();
-  reverseGeocodeFill(mpLat, mpLng);
+  if(mapPickerTarget==='admin') {
+    saAdminPinnedLat = mpLat;
+    saAdminPinnedLng = mpLng;
+    closeModal('modal-map');
+    showPinnedResult('admin');
+    updateSaMileageEstimate();
+    reverseGeocodeFill(mpLat, mpLng, 'admin');
+  } else {
+    pinnedLat = mpLat;
+    pinnedLng = mpLng;
+    closeModal('modal-map');
+    showPinnedResult('customer');
+    updateMileageEstimate();
+    reverseGeocodeFill(mpLat, mpLng, 'customer');
+  }
 }
 
 // Best-effort: auto-fill the address field from the picked coords if empty
-async function reverseGeocodeFill(lat, lng) {
-  const addr = el('cf-addr');
+async function reverseGeocodeFill(lat, lng, target) {
+  const addr = el(target==='admin' ? 'sa-addr' : 'cf-addr');
   if(!addr || addr.value.trim()) return;
   try {
     const res = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng);
