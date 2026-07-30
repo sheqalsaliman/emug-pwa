@@ -117,6 +117,7 @@ const T = {
     unassignedTitle:'Job Menunggu Ditugaskan',unassignedEmpty:'Tiada job menunggu ditugaskan.',
     assignOperatorBtn:'Terima & Tugaskan Operator',assignOperatorTitle:'Tugaskan Operator',
     assignedByAdminLbl:'Ditugaskan oleh Admin — pilih operator',
+    teamJobsEmpty:'Tiada job aktif untuk team anda.',teamJobsTitle:'Job Team Saya',
     assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
     editStaffBtn:'Edit',editStaffTitle:'Edit Kakitangan',editStaffSaved:'Perubahan berjaya disimpan.',
     editStaffHardcoded:'Kakitangan asas sistem tidak boleh diedit di sini.',
@@ -351,6 +352,7 @@ const T = {
     unassignedTitle:'Jobs Awaiting Assignment',unassignedEmpty:'No jobs awaiting assignment.',
     assignOperatorBtn:'Accept & Assign Operator',assignOperatorTitle:'Assign Operator',
     assignedByAdminLbl:'Assigned by Admin — select operator',
+    teamJobsEmpty:'No active jobs for your team.',teamJobsTitle:"My Team's Jobs",
     assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
     editStaffBtn:'Edit',editStaffTitle:'Edit Staff',editStaffSaved:'Changes saved successfully.',
     editStaffHardcoded:'Built-in system staff cannot be edited here.',
@@ -750,6 +752,7 @@ function applyAllText() {
   if(dsmAddBtn) dsmAddBtn.title = t('dsmAdd');
   if(daySummaryDate && el('modal-day-summary')?.classList.contains('open')) openDaySummary(daySummaryDate);
   setTxt('d-unassigned-lbl', t('unassignedTitle'));
+  setTxt('d-teamjobs-lbl', t('teamJobsTitle'));
   setTxt('aop-title', `🤝 ${t('assignOperatorTitle')}`);
   setTxt('aop-lbl-operator', 'Operator');
   setTxt('aop-cancel', t('cancel'));
@@ -1786,6 +1789,7 @@ function buildSidebar() {
     { pg:'profile',      icon:'👤', lbl:t('profile') },
   ] : user.role==='team_leader' ? [
     { pg:'dashboard',    icon:'📊', lbl:t('dashboard') },
+    { pg:'schedule',     icon:'🗓️', lbl:t('schedule') },
     { pg:'notifications',icon:'🔔', lbl:t('notifications'), badge:unread||null },
     { pg:'profile',      icon:'👤', lbl:t('profile') },
   ] : [
@@ -1916,6 +1920,30 @@ function renderUnassignedJobsWidget() {
     : `<div class="empty-state"><div class="empty-state-icon">🎉</div><p>${t('unassignedEmpty')}</p></div>`);
 }
 
+// "Job Team Saya" — every job belonging to this Team Leader's team (via
+// PROBLEM_TEAM_MAP) that isn't done yet, including ones already assigned to an
+// operator, so the leader can track who's doing what across their team.
+function renderTeamJobsWidget() {
+  const wrap = el('d-teamjobs-wrap');
+  if(!wrap) return;
+  if(user.role!=='team_leader') { wrap.style.display='none'; return; }
+  wrap.style.display = '';
+  const jobs = complaints
+    .filter(c => problemTeam(c.problem)===(user.team_key||'') && c.status!=='Selesai')
+    .sort((a,b)=>(a.prefDate||'').localeCompare(b.prefDate||''));
+  setHTML('d-teamjobs-list', jobs.length ? jobs.map(c=>`
+    <div class="dsm-item" onclick="openJobModal('${c.id}')">
+      <div class="dsm-item-top">
+        <span class="dsm-time">${fmtDateShort(c.prefDate)} ${c.prefTime||''}</span>
+        ${statusBadge(c.status)}
+      </div>
+      <div class="dsm-item-label">${c.ref} — ${c.problem}</div>
+      <div class="dsm-item-sub">👤 ${c.name||'-'}${c.address?' · 📍 '+c.address:''}</div>
+      <div class="dsm-item-sub">🧰 ${c.assignedName || `<em>${t('notAssigned')}</em>`}</div>
+    </div>`).join('')
+    : `<div class="empty-state"><div class="empty-state-icon">🎉</div><p>${t('teamJobsEmpty')}</p></div>`);
+}
+
 function openAssignOperatorModal(cid) {
   const c = complaints.find(x=>x.id===cid);
   if(!c) return;
@@ -1969,6 +1997,7 @@ function renderDashboard() {
   }
   el('dp-d-date').textContent = fmtDate(now());
   renderUnassignedJobsWidget();
+  renderTeamJobsWidget();
   const mc = myComplaints();
   const todayC = mc.filter(c=>c.schedDate===now()||c.prefDate===now());
   const pend  = mc.filter(c=>c.status==='Menunggu');
@@ -2903,9 +2932,7 @@ function renderMonthView() {
     (byDate[e.date] = byDate[e.date] || []).push({ ...e, _src:'schedule' });
   });
   // 2) complaint jobs — use schedDate or prefDate
-  const visComplaint = user.role==='admin' ? complaints
-    : complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
-  visComplaint.forEach(c=>{
+  visibleScheduleComplaints().forEach(c=>{
     const d = c.schedDate||c.prefDate;
     if(!d) return;
     const p = d.split('-').map(Number);
@@ -2961,6 +2988,15 @@ function onCalendarCellClick(ds, count) {
 // All schedule + complaint entries for a single date, deduped the same way as
 // renderMonthView (a manual job's work_schedule row is skipped when a linked
 // complaint already represents it), sorted by time.
+// Complaints visible on the Jadual Kerja calendar for the logged-in user:
+// Admin sees everything, Team Leader sees only their team's jobs (via
+// PROBLEM_TEAM_MAP), everyone else sees only what's assigned/accepted by them.
+function visibleScheduleComplaints() {
+  if(user.role==='admin') return complaints;
+  if(user.role==='team_leader') return complaints.filter(c=>problemTeam(c.problem)===user.team_key);
+  return complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
+}
+
 function getDayEntries(ds) {
   const manualComplaintKeys = new Set();
   complaints.forEach(c => {
@@ -2973,9 +3009,7 @@ function getDayEntries(ds) {
     if(manualComplaintKeys.has(key)) return;
     entries.push({ ...e, _src:'schedule' });
   });
-  const visComplaint = user.role==='admin' ? complaints
-    : complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
-  visComplaint.forEach(c=>{
+  visibleScheduleComplaints().forEach(c=>{
     const d = c.schedDate||c.prefDate;
     if(d !== ds) return;
     entries.push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref, name:c.name, address:c.address });
@@ -3007,7 +3041,7 @@ function openDaySummary(ds) {
             <div class="dsm-item-sub">👷 ${staffLbl}</div>
           </div>`;
         }
-        const canOpen = user.role==='admin';
+        const canOpen = user.role==='admin' || user.role==='team_leader';
         return `<div class="dsm-item" ${canOpen?`onclick="closeModal('modal-day-summary');openJobModal('${e.id}')"`:''} style="${canOpen?'':'cursor:default;'}">
           <div class="dsm-item-top"><span class="dsm-time">${tm}</span>${statusBadge(e.status)}</div>
           <div class="dsm-item-label">${e.ref}</div>
