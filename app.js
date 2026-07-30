@@ -1345,6 +1345,8 @@ async function dbLoadDynamicStaff() {
   } catch(e) { console.warn('[EMUG] dbLoadDynamicStaff (staff table may not exist yet):', e.message); }
 }
 
+// Returns { data, error } (rather than data|null) so callers can inspect
+// error.code — e.g. to retry on 23505 (duplicate staff_id) with a fresh id.
 async function dbInsertStaff(entry) {
   try {
     const { data, error } = await db.from('staff').insert({
@@ -1358,9 +1360,29 @@ async function dbInsertStaff(entry) {
       team_key:   entry.teamKey || null,
       status:     'active',
     }).select().single();
-    if(error) { console.error('dbInsertStaff:', error.message, JSON.stringify(error, null, 2)); return null; }
-    return data;
-  } catch(e) { console.error('dbInsertStaff:', e); return null; }
+    if(error) { console.error('dbInsertStaff:', error.message, JSON.stringify(error, null, 2)); return { data: null, error }; }
+    return { data, error: null };
+  } catch(e) { console.error('dbInsertStaff:', e); return { data: null, error: e }; }
+}
+
+// Next staff_id for `role` (ADM/TL/OPR + zero-padded number), based on the
+// MAX existing numeric suffix (not a count — counts break silently whenever
+// the sequence has gaps, e.g. a deleted or manually-migrated record). Always
+// fetches fresh from Supabase rather than the client's cached dynamicStaff,
+// since that cache can be stale or already out of sync mid-session.
+async function nextStaffId(role) {
+  const prefix = role==='admin' ? 'ADM' : role==='team_leader' ? 'TL' : 'OPR';
+  let maxNum = 0;
+  const scan = (idList) => idList.forEach(id => {
+    const m = (id||'').match(/(\d+)$/);
+    if(m) { const n = parseInt(m[1],10); if(n>maxNum) maxNum = n; }
+  });
+  try {
+    const { data, error } = await db.from('staff').select('staff_id').eq('role', role);
+    if(!error && data) scan(data.map(r=>r.staff_id));
+  } catch(e) { console.error('[EMUG] nextStaffId fetch:', e); }
+  scan(USERS.filter(u=>u.role===role).map(u=>u.staffId)); // hardcoded seed accounts (e.g. ADM001)
+  return prefix + String(maxNum + 1).padStart(3,'0');
 }
 
 async function dbUpdateStaff(id, fields) {
@@ -3330,19 +3352,27 @@ async function saveNewStaff() {
     toast(lang==='bm'?'Username sudah digunakan. Sila pilih username lain.':'Username already taken. Please choose another.','error'); return;
   }
 
-  const rolePrefix = role==='admin' ? 'ADM' : role==='team_leader' ? 'TL' : 'OPR';
-  const staffIdNum = String(dynamicStaff.filter(s=>s.role===role).length + USERS.filter(u=>u.role===role).length + 1).padStart(3,'0');
-  const staffId    = rolePrefix + staffIdNum;
-
   const btn = document.querySelector('#modal-add-staff .btn-lime');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Menyimpan...'; }
 
-  const saved = await dbInsertStaff({ name, username, email: null, password, phone, role, staffId, teamKey: teamKey||null });
+  // Retry with a freshly-recomputed staff_id if a race condition causes a
+  // duplicate-key clash (23505) — up to 3 attempts before giving up.
+  let saved = null, lastError = null;
+  for(let attempt = 0; attempt < 3 && !saved; attempt++) {
+    const staffId = await nextStaffId(role);
+    const result = await dbInsertStaff({ name, username, email: null, password, phone, role, staffId, teamKey: teamKey||null });
+    if(result.data) { saved = result.data; break; }
+    lastError = result.error;
+    if(!lastError || lastError.code !== '23505') break; // not a retryable clash — stop
+  }
 
   if(btn) { btn.disabled=false; btn.innerHTML='💾 Simpan Kakitangan'; }
 
   if(!saved) {
-    toast(lang==='bm'?'Gagal menyimpan. Semak konsol untuk butiran.':'Failed to save. Check console for details.','error'); return;
+    const msg = lastError?.code === '23505'
+      ? (lang==='bm'?'Gagal menyimpan selepas beberapa percubaan (ID berlanggar). Sila cuba lagi.':'Failed to save after several attempts (ID clash). Please try again.')
+      : (lang==='bm'?'Gagal menyimpan. Semak konsol untuk butiran.':'Failed to save. Check console for details.');
+    toast(msg, 'error'); return;
   }
 
   dynamicStaff.push(saved);
