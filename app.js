@@ -127,6 +127,8 @@ const T = {
     saLblName:'Nama',saLblPhone:'Phone',saLblAddr:'Alamat / Lokasi',
     saLblProb:'Jenis Masalah',saLblUrgency:'Keutamaan',saProbPh:'-- Pilih Masalah --',
     saTimePh:'-- Pilih Masa --',saNeedProb:'Sila pilih jenis masalah.',
+    saFullDay:'Sepanjang Hari (Full Day)',
+    saFullDayBlocked:'Tidak boleh tetapkan Sepanjang Hari — sudah ada tempahan pada slot Pagi/Petang untuk team ini pada tarikh tersebut.',
     monthNames:['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'],
     dayNames:['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'],
     dayNamesShort:['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'],
@@ -358,6 +360,8 @@ const T = {
     saLblName:'Name',saLblPhone:'Phone',saLblAddr:'Address / Location',
     saLblProb:'Problem Type',saLblUrgency:'Priority',saProbPh:'-- Select Problem --',
     saTimePh:'-- Select Time --',saNeedProb:'Please select a problem type.',
+    saFullDay:'Full Day',
+    saFullDayBlocked:'Cannot set Full Day — a Morning/Afternoon slot for this team is already booked on that date.',
     monthNames:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dayNames:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
     dayNamesShort:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
@@ -535,13 +539,25 @@ let starRatings = { quality:0, timeliness:0, service:0 };
 let galleryData = {};
 // Booking calendar
 // Standard slots (Mon–Thu, Sat) — break 12:30–13:30
-const BK_SLOTS_STD = ['08:30 - 10:30','10:30 - 12:30','13:30 - 15:30','15:30 - 17:30'];
-// Friday slots — long break 12:30–14:30, 3 slots only
-const BK_SLOTS_FRI = ['08:30 - 10:30','10:30 - 12:30','14:30 - 17:30'];
+const BK_SLOTS_STD = ['08:30 - 12:30','13:30 - 17:30'];
+// Friday slots — long break 12:30–14:30 (solat Jumaat)
+const BK_SLOTS_FRI = ['08:30 - 12:30','14:30 - 17:30'];
 function bkSlotsFor(dateStr) {
   var d = new Date(dateStr + 'T00:00:00');
   return d.getDay() === 5 ? BK_SLOTS_FRI : BK_SLOTS_STD;
 }
+// Morning/Afternoon suffix for a slot's display label (BM/EN) — both weekday
+// and Friday slot sets always have exactly 2 entries: [0]=morning, [1]=afternoon.
+function slotPeriodLabel(dateStr, slot) {
+  var slots = bkSlotsFor(dateStr);
+  var idx = slots.indexOf(slot);
+  if(idx === 0) return lang==='bm' ? 'Pagi' : 'Morning';
+  if(idx === 1) return lang==='bm' ? 'Petang' : 'Afternoon';
+  return '';
+}
+// Admin-only "Full Day" option (Tambah Jadual) — blocks both slots for the
+// job's team on that date. Not offered to customers on the landing page.
+const FULL_DAY_LABEL = '08:30 - 17:30 (Full Day)';
 const BK_MAX_PER_SLOT = 1; // max 1 booking per team per slot
 // Problem category → team. GENERAL bookings block every team in the slot.
 const PROBLEM_TEAM_MAP = {
@@ -2981,11 +2997,14 @@ function addFromDaySummary() {
 // If keepValue is a legacy slot string no longer in today's slot set (e.g. an
 // old booking made before slot times changed), it's kept as an extra selected
 // option instead of being silently dropped/reset.
-function populateTimeSelect(sel, dateStr, keepValue, placeholder) {
+function populateTimeSelect(sel, dateStr, keepValue, placeholder, includeFullDay) {
   if(!sel) return;
   const slots = dateStr ? bkSlotsFor(dateStr) : BK_SLOTS_STD;
-  let opts = slots.map(s=>`<option value="${s}">${s.replace(' - ',' – ')}</option>`).join('');
-  if(keepValue && slots.indexOf(keepValue)===-1) {
+  let opts = slots.map(s=>`<option value="${s}">${s.replace(' - ',' – ')} (${slotPeriodLabel(dateStr, s)})</option>`).join('');
+  if(includeFullDay) {
+    opts += `<option value="${FULL_DAY_LABEL}">☀️ ${t('saFullDay')}</option>`;
+  }
+  if(keepValue && slots.indexOf(keepValue)===-1 && keepValue!==FULL_DAY_LABEL) {
     opts += `<option value="${keepValue}">${keepValue.replace(' - ',' – ')} (${lang==='bm'?'lama':'legacy'})</option>`;
   }
   sel.innerHTML = `<option value="">${placeholder}</option>${opts}`;
@@ -2993,7 +3012,7 @@ function populateTimeSelect(sel, dateStr, keepValue, placeholder) {
 }
 
 function populateSaTimeOptions(dateStr, keepValue) {
-  populateTimeSelect(el('sa-time'), dateStr, keepValue, t('saTimePh'));
+  populateTimeSelect(el('sa-time'), dateStr, keepValue, t('saTimePh'), true);
 }
 
 function onSaDateChange() {
@@ -3104,13 +3123,16 @@ async function saveSchedEntry() {
   const name  = el('sa-name').value.trim();
   const phone = el('sa-phone').value.trim();
 
-  // Slot availability / double-booking check — consistent with the customer flow
-  if(isBkSlotFull(dateVal, time, problemTeam(problem))) {
-    toast(t('bkFull'), 'error', 5000); return;
+  // Slot availability / double-booking check — consistent with the customer flow.
+  // "Full Day" (admin-only) instead requires BOTH slots free for the team.
+  const isFullDay = time === FULL_DAY_LABEL;
+  const teamForSlot = problemTeam(problem);
+  if(isFullDay ? !canBookFullDay(dateVal, teamForSlot) : isBkSlotFull(dateVal, time, teamForSlot)) {
+    toast(isFullDay ? t('saFullDayBlocked') : t('bkFull'), 'error', 6000); return;
   }
   await refreshBkComplaints();
-  if(isBkSlotFull(dateVal, time, problemTeam(problem))) {
-    toast(t('bkJustBooked'), 'error', 6000); return;
+  if(isFullDay ? !canBookFullDay(dateVal, teamForSlot) : isBkSlotFull(dateVal, time, teamForSlot)) {
+    toast(isFullDay ? t('saFullDayBlocked') : t('bkJustBooked'), 'error', 6000); return;
   }
 
   const bookingType = el('sa-booking-type')?.value || 'kerja';
@@ -5244,7 +5266,9 @@ function getSlotTeams(dateStr, slot) {
   var teams = [];
   var src = bkBookings || complaints;
   src.forEach(function(c){
-    if(c.prefDate === dateStr && c.prefTime === slot) teams.push(problemTeam(c.problem));
+    if(c.prefDate !== dateStr) return;
+    // A "Full Day" booking occupies BOTH slots for its team on that date.
+    if(c.prefTime === slot || c.prefTime === FULL_DAY_LABEL) teams.push(problemTeam(c.problem));
   });
   return teams;
 }
@@ -5265,6 +5289,12 @@ function isBkSlotFull(dateStr, slot, team) {
   if(teams.length === 0) return false;
   if(team === 'GENERAL') return true;
   return teams.indexOf(team) !== -1 || teams.indexOf('GENERAL') !== -1;
+}
+
+// Admin-only: can `team` book the WHOLE day (both slots) on dateStr?
+// Blocked if either slot already conflicts for that team (same rules as isBkSlotFull).
+function canBookFullDay(dateStr, team) {
+  return !bkSlotsFor(dateStr).some(function(s){ return isBkSlotFull(dateStr, s, team); });
 }
 
 function getBkDayAvailability(dateStr) {
@@ -5467,7 +5497,7 @@ function renderBkSlots(dateStr) {
     var sublbl = full ? t('bkSlotFull') : rem + ' ' + t('bkSlotAvail');
     var onclick = !full ? 'onclick="selectBkSlot(\'' + slot.replace(/'/g,"\\'") + '\')"' : '';
     html += '<div class="' + cls + '" ' + onclick + '>'
-      + '<span class="bk-slot-time">' + slot + '</span>'
+      + '<span class="bk-slot-time">' + slot + ' (' + slotPeriodLabel(dateStr, slot) + ')</span>'
       + '<span class="bk-slot-avail">' + sublbl + '</span>'
       + '</div>';
   });

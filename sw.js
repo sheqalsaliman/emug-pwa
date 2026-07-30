@@ -1,4 +1,4 @@
-const CACHE_NAME = 'emug-v47';
+const CACHE_NAME = 'emug-v48';
 const ASSETS = ['/', '/index.html', '/styles.css', '/app.js', '/staff', '/admin'];
 
 self.addEventListener('install', e => {
