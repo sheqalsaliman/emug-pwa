@@ -116,6 +116,7 @@ const T = {
     dsmAdd:'Tambah Jadual',dsmClose:'Tutup',dsmPool:'Pool (Semua Kakitangan)',
     unassignedTitle:'Job Menunggu Ditugaskan',unassignedEmpty:'Tiada job menunggu ditugaskan.',
     assignOperatorBtn:'Terima & Tugaskan Operator',assignOperatorTitle:'Tugaskan Operator',
+    assignedByAdminLbl:'Ditugaskan oleh Admin — pilih operator',
     assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
     editStaffBtn:'Edit',editStaffTitle:'Edit Kakitangan',editStaffSaved:'Perubahan berjaya disimpan.',
     editStaffHardcoded:'Kakitangan asas sistem tidak boleh diedit di sini.',
@@ -349,6 +350,7 @@ const T = {
     dsmAdd:'Add Schedule',dsmClose:'Close',dsmPool:'Pool (All Staff)',
     unassignedTitle:'Jobs Awaiting Assignment',unassignedEmpty:'No jobs awaiting assignment.',
     assignOperatorBtn:'Accept & Assign Operator',assignOperatorTitle:'Assign Operator',
+    assignedByAdminLbl:'Assigned by Admin — select operator',
     assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
     editStaffBtn:'Edit',editStaffTitle:'Edit Staff',editStaffSaved:'Changes saved successfully.',
     editStaffHardcoded:'Built-in system staff cannot be edited here.',
@@ -1857,11 +1859,25 @@ function myWorkSchedule() {
 }
 // Jobs awaiting assignment (Team Leader / Admin job-routing feature).
 // GENERAL-category jobs (no specific team) only ever show to Admin.
-function unassignedJobsForTeam(teamKey) {
-  return complaints.filter(c => !c.assignedTo && c.status==='Menunggu' && problemTeam(c.problem)===teamKey);
+// True if `username` belongs to a Team Leader (hardcoded or dynamic staff).
+function isTeamLeaderUsername(username) {
+  if(!username) return false;
+  return USERS.some(u=>u.username===username && u.role==='team_leader')
+    || dynamicStaff.some(u=>u.username===username && u.role==='team_leader');
+}
+
+// A job still needs someone's action here if it's genuinely unassigned, OR if
+// it was assigned straight to a Team Leader (assign-to-self via the dropdown)
+// — that's "pending operator assignment", not done, so it must keep showing.
+function unassignedJobsForTeam(teamKey, myUsername) {
+  return complaints.filter(c =>
+    (!c.assignedTo || c.assignedTo===myUsername)
+    && c.status==='Menunggu' && problemTeam(c.problem)===teamKey);
 }
 function unassignedJobsAll() {
-  return complaints.filter(c => !c.assignedTo && c.status==='Menunggu');
+  return complaints.filter(c =>
+    (!c.assignedTo || isTeamLeaderUsername(c.assignedTo))
+    && c.status==='Menunggu');
 }
 
 // All Field Operators (hardcoded USERS + Supabase dynamicStaff), merged & deduped —
@@ -1883,7 +1899,7 @@ function renderUnassignedJobsWidget() {
   const isTL    = user.role==='team_leader';
   if(!isAdmin && !isTL) { wrap.style.display='none'; return; }
   wrap.style.display = '';
-  const jobs = isAdmin ? unassignedJobsAll() : unassignedJobsForTeam(user.team_key||'');
+  const jobs = isAdmin ? unassignedJobsAll() : unassignedJobsForTeam(user.team_key||'', user.username);
   setHTML('d-unassigned-list', jobs.length ? jobs.map(c=>`
     <div class="dsm-item" style="cursor:default;">
       <div class="dsm-item-top">
@@ -1892,6 +1908,7 @@ function renderUnassignedJobsWidget() {
       </div>
       <div class="dsm-item-label">${c.ref} — ${c.problem}</div>
       <div class="dsm-item-sub">👤 ${c.name||'-'}${c.address?' · 📍 '+c.address:''}</div>
+      ${c.assignedTo?`<div style="margin-top:4px;font-size:.68rem;background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid #3b82f6;border-radius:6px;padding:2px 7px;font-weight:700;display:inline-block;">${t('assignedByAdminLbl')}</div>`:''}
       <div style="margin-top:8px;">
         <button class="btn btn-sm btn-lime" onclick="openAssignOperatorModal('${c.id}')">🤝 ${t('assignOperatorBtn')}</button>
       </div>
