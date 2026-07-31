@@ -122,6 +122,7 @@ const T = {
     tenderNeedFields:'Sila isi Tajuk Kerja, Team, Tarikh dan Slot Masa.',
     tenderSaveFail:'Gagal menyimpan kunci tender. Semak konsol untuk butiran.',
     tenderSaved:'Kunci tender berjaya disimpan.',tenderBadge:'📌 Tender/Kontrak',
+    tenderRangeConflict:'Tidak boleh kunci — tarikh {dates} sudah mempunyai tempahan untuk team ini.',
     assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
     editStaffBtn:'Edit',editStaffTitle:'Edit Kakitangan',editStaffSaved:'Perubahan berjaya disimpan.',
     editStaffHardcoded:'Kakitangan asas sistem tidak boleh diedit di sini.',
@@ -361,6 +362,7 @@ const T = {
     tenderNeedFields:'Please fill in Job Title, Team, Date and Time Slot.',
     tenderSaveFail:'Failed to save tender lock. Check console for details.',
     tenderSaved:'Tender lock saved successfully.',tenderBadge:'📌 Tender/Contract',
+    tenderRangeConflict:'Cannot lock — date(s) {dates} already have a booking for this team.',
     assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
     editStaffBtn:'Edit',editStaffTitle:'Edit Staff',editStaffSaved:'Changes saved successfully.',
     editStaffHardcoded:'Built-in system staff cannot be edited here.',
@@ -3404,6 +3406,17 @@ function tenderFullDayConflict(dateVal, teamKey, excludeId) {
   return bkSlotsFor(dateVal).some(function(s){ return tenderSlotConflict(dateVal, s, teamKey, excludeId); });
 }
 
+// List of YYYY-MM-DD date strings starting at startDate, `days` long.
+function tenderDateRange(startDate, days) {
+  const out = [];
+  const p = startDate.split('-').map(Number);
+  for(let i=0;i<days;i++) {
+    const d = new Date(p[0], p[1]-1, p[2]+i);
+    out.push(d.toLocaleDateString('en-CA'));
+  }
+  return out;
+}
+
 function openTenderLockModal() {
   if(user?.role !== 'admin') return;
   tenderEditId = null;
@@ -3412,13 +3425,33 @@ function openTenderLockModal() {
   el('tlk-location').value = '';
   el('tlk-desc').value = '';
   el('tlk-date').value = (schedDate||new Date()).toLocaleDateString('en-CA');
+  el('tlk-days').value = 1;
+  el('tlk-days-wrap').style.display = '';
   populateTimeSelect(el('tlk-time'), el('tlk-date').value, null, t('saTimePh'), true);
   setTxt('tlk-title', `📌 ${t('tenderLockTitle')}`);
+  onTlkDateChange();
   openModal('modal-tender-lock');
 }
 
 function onTlkDateChange() {
   populateTimeSelect(el('tlk-time'), el('tlk-date').value, el('tlk-time').value, t('saTimePh'), true);
+  renderTenderPreview();
+}
+
+function renderTenderPreview() {
+  const box = el('tlk-preview');
+  if(!box) return;
+  const startDate = el('tlk-date').value;
+  const days = Math.max(1, Math.min(30, parseInt(el('tlk-days').value, 10) || 1));
+  const teamKey = el('tlk-team').value;
+  const timeSlot = el('tlk-time').value;
+  if(!startDate || !timeSlot) { box.style.display = 'none'; return; }
+  const dates = tenderDateRange(startDate, days);
+  const teamLbl = teamKey ? (TEAM_NAMES[teamKey]||teamKey) : (lang==='bm'?'(pilih team)':'(select team)');
+  const slotLbl = timeSlot===FULL_DAY_LABEL ? t('saFullDay') : timeSlot.replace(' - ',' – ');
+  const rangeLbl = days>1 ? `${fmtDateShort(dates[0])} - ${fmtDateShort(dates[dates.length-1])} (${days} ${lang==='bm'?'hari':'days'})` : fmtDateShort(dates[0]);
+  box.style.display = 'block';
+  box.innerHTML = `📌 ${lang==='bm'?'Akan mengunci':'Will lock'}: <strong>${rangeLbl}</strong>, ${teamLbl}, ${slotLbl}`;
 }
 
 async function saveTenderBooking() {
@@ -3426,36 +3459,53 @@ async function saveTenderBooking() {
   const teamKey = el('tlk-team').value;
   const location = el('tlk-location').value.trim();
   const description = el('tlk-desc').value.trim();
-  const workDate = el('tlk-date').value.slice(0,10);
+  const startDate = el('tlk-date').value.slice(0,10);
+  const days = tenderEditId ? 1 : Math.max(1, Math.min(30, parseInt(el('tlk-days').value, 10) || 1));
   const timeSlot = el('tlk-time').value;
 
-  if(!title || !teamKey || !workDate || !timeSlot) {
+  if(!title || !teamKey || !startDate || !timeSlot) {
     toast(t('tenderNeedFields'), 'error'); return;
   }
 
+  const dates = tenderDateRange(startDate, days);
   const isFullDay = timeSlot === FULL_DAY_LABEL;
-  const conflict = isFullDay
-    ? tenderFullDayConflict(workDate, teamKey, tenderEditId)
-    : tenderSlotConflict(workDate, timeSlot, teamKey, tenderEditId);
-  if(conflict) {
-    toast(isFullDay ? t('saFullDayBlocked') : t('bkFull'), 'error', 6000); return;
+
+  // Check every day in the range BEFORE inserting anything — if any day
+  // conflicts, block the whole save instead of locking only part of the range.
+  const conflictDates = dates.filter(d => isFullDay
+    ? tenderFullDayConflict(d, teamKey, tenderEditId)
+    : tenderSlotConflict(d, timeSlot, teamKey, tenderEditId));
+  if(conflictDates.length) {
+    const list = conflictDates.map(fmtDateShort).join(', ');
+    toast(t('tenderRangeConflict').replace('{dates}', list), 'error', 8000);
+    return;
   }
 
-  const entry = { title, teamKey, location, description, workDate, timeSlot };
   const btn = el('tlk-save');
   if(btn) btn.disabled = true;
 
   if(tenderEditId) {
+    const entry = { title, teamKey, location, description, workDate: dates[0], timeSlot };
     const ok = await dbUpdateTenderBooking(tenderEditId, entry);
     if(btn) btn.disabled = false;
     if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
     const existing = tenderBookings.find(tb=>tb.id===tenderEditId);
     if(existing) Object.assign(existing, entry);
   } else {
-    const saved = await dbInsertTenderBooking(entry);
+    // One separate row per day — each day stays individually manageable/deletable.
+    const saved = [];
+    for(const d of dates) {
+      const row = await dbInsertTenderBooking({ title, teamKey, location, description, workDate: d, timeSlot });
+      if(!row) {
+        if(btn) btn.disabled = false;
+        toast(t('tenderSaveFail'), 'error');
+        if(saved.length) { tenderBookings.push(...saved); renderSchedule(); }
+        return;
+      }
+      saved.push(row);
+    }
     if(btn) btn.disabled = false;
-    if(!saved) { toast(t('tenderSaveFail'), 'error'); return; }
-    tenderBookings.push(saved);
+    tenderBookings.push(...saved);
   }
 
   closeModal('modal-tender-lock');
@@ -3497,8 +3547,11 @@ function editTenderBooking() {
   el('tlk-location').value = tb.location || '';
   el('tlk-desc').value = tb.description || '';
   el('tlk-date').value = tb.workDate;
+  el('tlk-days').value = 1;
+  el('tlk-days-wrap').style.display = 'none'; // editing always targets this single day's record
   populateTimeSelect(el('tlk-time'), tb.workDate, tb.timeSlot, t('saTimePh'), true);
   setTxt('tlk-title', `✏️ ${t('tenderLockTitle')}`);
+  renderTenderPreview();
   openModal('modal-tender-lock');
 }
 
