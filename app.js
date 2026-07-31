@@ -118,6 +118,10 @@ const T = {
     assignOperatorBtn:'Terima & Tugaskan Operator',assignOperatorTitle:'Tugaskan Operator',
     assignedByAdminLbl:'Ditugaskan oleh Admin — pilih operator',
     teamJobsEmpty:'Tiada job aktif untuk team anda.',teamJobsTitle:'Job Team Saya',
+    tenderLockBtn:'Kunci Tender/Kontrak',tenderLockTitle:'Kunci Tender/Kontrak Tetap',
+    tenderNeedFields:'Sila isi Tajuk Kerja, Team, Tarikh dan Slot Masa.',
+    tenderSaveFail:'Gagal menyimpan kunci tender. Semak konsol untuk butiran.',
+    tenderSaved:'Kunci tender berjaya disimpan.',tenderBadge:'📌 Tender/Kontrak',
     assignOperatorPh:'-- Pilih Operator --',assignConfirmBtn:'Sahkan Tugasan',
     editStaffBtn:'Edit',editStaffTitle:'Edit Kakitangan',editStaffSaved:'Perubahan berjaya disimpan.',
     editStaffHardcoded:'Kakitangan asas sistem tidak boleh diedit di sini.',
@@ -353,6 +357,10 @@ const T = {
     assignOperatorBtn:'Accept & Assign Operator',assignOperatorTitle:'Assign Operator',
     assignedByAdminLbl:'Assigned by Admin — select operator',
     teamJobsEmpty:'No active jobs for your team.',teamJobsTitle:"My Team's Jobs",
+    tenderLockBtn:'Lock Tender/Contract',tenderLockTitle:'Lock Recurring Tender/Contract',
+    tenderNeedFields:'Please fill in Job Title, Team, Date and Time Slot.',
+    tenderSaveFail:'Failed to save tender lock. Check console for details.',
+    tenderSaved:'Tender lock saved successfully.',tenderBadge:'📌 Tender/Contract',
     assignOperatorPh:'-- Select Operator --',assignConfirmBtn:'Confirm Assignment',
     editStaffBtn:'Edit',editStaffTitle:'Edit Staff',editStaffSaved:'Changes saved successfully.',
     editStaffHardcoded:'Built-in system staff cannot be edited here.',
@@ -753,6 +761,8 @@ function applyAllText() {
   if(daySummaryDate && el('modal-day-summary')?.classList.contains('open')) openDaySummary(daySummaryDate);
   setTxt('d-unassigned-lbl', t('unassignedTitle'));
   setTxt('d-teamjobs-lbl', t('teamJobsTitle'));
+  setTxt('sc-tender-btn-lbl', t('tenderLockBtn'));
+  setTxt('tlk-cancel', t('cancel'));
   setTxt('aop-title', `🤝 ${t('assignOperatorTitle')}`);
   setTxt('aop-lbl-operator', 'Operator');
   setTxt('aop-cancel', t('cancel'));
@@ -1114,6 +1124,7 @@ async function dbLoad() {
   await dbLoadWorkSchedule();
   await dbLoadManualJobs();
   await dbLoadDynamicStaff();
+  await dbLoadTenderBookings();
   // One-time cleanup of test/demo records (silently skips if none found)
   cleanupTestData();
 }
@@ -1252,6 +1263,56 @@ async function dbInsertWorkSchedule(entry) {
     if(error) { console.error('dbInsertWorkSchedule error:', JSON.stringify(error, null, 2)); return null; }
     return data ? { ...entry, id: data.id } : null;
   } catch(e) { console.error('dbInsertWorkSchedule:', e); return null; }
+}
+
+// ─── TENDER/CONTRACT BOOKINGS DB ──────────────────────────────────────────────
+// Recurring tender/contract slot locks — separate from `complaints`, no ref
+// number, admin-only creation/edit. Blocks availability the same way a normal
+// booking does (see getSlotTeams).
+let tenderBookings = [];
+
+async function dbLoadTenderBookings() {
+  try {
+    const { data, error } = await db.from('tender_bookings').select('*').eq('is_deleted', false);
+    if(error) { console.error('dbLoadTenderBookings:', error.message); return; }
+    if(data) tenderBookings = data.map(r=>({
+      id: r.id, title: r.title, teamKey: r.team_key, location: r.location || '',
+      description: r.description || '', workDate: r.work_date, timeSlot: r.time_slot,
+      createdBy: r.created_by, createdAt: r.created_at,
+    }));
+    console.log('[EMUG] tender_bookings loaded:', tenderBookings.length);
+  } catch(e) { console.error('dbLoadTenderBookings:', e); }
+}
+
+async function dbInsertTenderBooking(entry) {
+  try {
+    const { data, error } = await db.from('tender_bookings').insert({
+      title: entry.title, team_key: entry.teamKey, location: entry.location || null,
+      description: entry.description || null, work_date: entry.workDate, time_slot: entry.timeSlot,
+      created_by: user.name, is_deleted: false,
+    }).select().single();
+    if(error) { console.error('dbInsertTenderBooking:', error.message, JSON.stringify(error,null,2)); return null; }
+    return data ? { ...entry, id: data.id, createdBy: user.name } : null;
+  } catch(e) { console.error('dbInsertTenderBooking:', e); return null; }
+}
+
+async function dbUpdateTenderBooking(id, entry) {
+  try {
+    const { error } = await db.from('tender_bookings').update({
+      title: entry.title, team_key: entry.teamKey, location: entry.location || null,
+      description: entry.description || null, work_date: entry.workDate, time_slot: entry.timeSlot,
+    }).eq('id', id);
+    if(error) { console.error('dbUpdateTenderBooking:', error.message); return false; }
+    return true;
+  } catch(e) { console.error('dbUpdateTenderBooking:', e); return false; }
+}
+
+async function dbDeleteTenderBooking(id) {
+  try {
+    const { error } = await db.from('tender_bookings').update({ is_deleted: true }).eq('id', id);
+    if(error) { console.error('dbDeleteTenderBooking:', error.message); return false; }
+    return true;
+  } catch(e) { console.error('dbDeleteTenderBooking:', e); return false; }
 }
 
 // ─── MANUAL JOBS DB ───────────────────────────────────────────────────────────
@@ -2875,6 +2936,7 @@ async function schedShiftMonth(dir) {
   if(schedMonth < 0)  { schedMonth = 11; schedYear--; }
   else if(schedMonth > 11) { schedMonth = 0; schedYear++; }
   await dbLoadWorkSchedule();   // re-fetch entries for the newly visible month
+  await dbLoadTenderBookings();
   renderMonthView();
 }
 function schedPrevMonth() { schedShiftMonth(-1); }
@@ -2891,6 +2953,8 @@ function addSchedOn(ds) {
 function renderSchedule() {
   const addBtn = el('sc-add-btn');
   if(addBtn) { addBtn.style.display = user?.role==='admin' ? '' : 'none'; addBtn.textContent = `+ ${t('addSchedule')}`; }
+  const tenderBtn = el('sc-tender-btn');
+  if(tenderBtn) tenderBtn.style.display = user?.role==='admin' ? '' : 'none';
   if(schedYear == null || schedMonth == null) {
     schedYear = schedDate.getFullYear(); schedMonth = schedDate.getMonth();
   }
@@ -2939,6 +3003,14 @@ function renderMonthView() {
     if(p[0]!==schedYear||p[1]-1!==schedMonth) return; // only current month
     (byDate[d]=byDate[d]||[]).push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref });
   });
+  // 3) locked tender/contract bookings — no ref, labelled by title
+  visibleTenderBookings().forEach(tb=>{
+    const d = tb.workDate;
+    if(!d) return;
+    const p = d.split('-').map(Number);
+    if(p[0]!==schedYear||p[1]-1!==schedMonth) return;
+    (byDate[d]=byDate[d]||[]).push({ _src:'tender', date:d, time:tb.timeSlot, description:tb.title, id:tb.id });
+  });
 
   const totalCells = Math.ceil((firstDow + dim) / 7) * 7;
   let html = '';
@@ -2964,6 +3036,9 @@ function renderMonthView() {
       if(e._src==='schedule') {
         chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${tm} ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
+      } else if(e._src==='tender') {
+        chips += `<div class="job-chip" style="background:rgba(139,92,246,.15);border-left:3px solid #8b5cf6;cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="📌 ${lbl}">`
+              +  `<span class="jc-dot" style="background:#8b5cf6;"></span><span class="jc-txt">📌 ${tm?tm+' ':''}${lbl}</span></div>`;
       } else { // complaint
         chips += `<div class="job-chip chip-${cls}" style="opacity:.85;cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${e.ref}: ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${e.ref}</span></div>`;
@@ -2997,6 +3072,14 @@ function visibleScheduleComplaints() {
   return complaints.filter(c=>c.assignedTo===user.username||c.acceptedBy===user.username);
 }
 
+// Locked tender/contract bookings visible on the calendar: Admin sees all,
+// Team Leader sees only their own team's (view-only), nobody else sees any.
+function visibleTenderBookings() {
+  if(user.role==='admin') return tenderBookings;
+  if(user.role==='team_leader') return tenderBookings.filter(tb=>tb.teamKey===user.team_key);
+  return [];
+}
+
 function getDayEntries(ds) {
   const manualComplaintKeys = new Set();
   complaints.forEach(c => {
@@ -3013,6 +3096,10 @@ function getDayEntries(ds) {
     const d = c.schedDate||c.prefDate;
     if(d !== ds) return;
     entries.push({ _src:'complaint', date:d, time:c.prefTime, description:c.problem, status:c.status, id:c.id, ref:c.ref, name:c.name, address:c.address });
+  });
+  visibleTenderBookings().forEach(tb=>{
+    if(tb.workDate !== ds) return;
+    entries.push({ _src:'tender', date:ds, time:tb.timeSlot, title:tb.title, id:tb.id, location:tb.location, teamKey:tb.teamKey });
   });
   return entries.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
 }
@@ -3039,6 +3126,13 @@ function openDaySummary(ds) {
             <div class="dsm-item-top"><span class="dsm-time">${tm}</span>${statusBadge(e.status)}</div>
             <div class="dsm-item-label">${lbl}</div>
             <div class="dsm-item-sub">👷 ${staffLbl}</div>
+          </div>`;
+        }
+        if(e._src==='tender') {
+          return `<div class="dsm-item" style="border-left:3px solid #8b5cf6;" onclick="closeModal('modal-day-summary');openTenderDetail(${e.id})">
+            <div class="dsm-item-top"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></div>
+            <div class="dsm-item-label">📌 ${e.title}</div>
+            <div class="dsm-item-sub">🧰 ${TEAM_NAMES[e.teamKey]||e.teamKey}${e.location?' · 📍 '+e.location:''}</div>
           </div>`;
         }
         const canOpen = user.role==='admin' || user.role==='team_leader';
@@ -3284,6 +3378,143 @@ async function saveSchedEntry() {
   toast(t('schedSaved'), 'success');
   renderSchedule();
   if(page==='complaints') renderComplaintsList();
+}
+
+// ─── TENDER/CONTRACT LOCK (Admin only) ───────────────────────────────────────
+let tenderEditId = null, tenderDetailId = null;
+
+// Same team-blocking rule as isBkSlotFull, scoped to a single check and able
+// to exclude the tender record currently being edited from the conflict scan.
+function tenderSlotConflict(dateVal, slot, teamKey, excludeId) {
+  var teams = [];
+  var src = bkBookings || complaints;
+  src.forEach(function(c){
+    if(c.prefDate !== dateVal) return;
+    if(c.prefTime === slot || c.prefTime === FULL_DAY_LABEL) teams.push(problemTeam(c.problem));
+  });
+  tenderBookings.forEach(function(tb){
+    if(tb.id === excludeId) return;
+    if(tb.workDate !== dateVal) return;
+    if(tb.timeSlot === slot || tb.timeSlot === FULL_DAY_LABEL) teams.push(tb.teamKey);
+  });
+  if(teams.length === 0) return false;
+  return teams.indexOf(teamKey) !== -1 || teams.indexOf('GENERAL') !== -1;
+}
+function tenderFullDayConflict(dateVal, teamKey, excludeId) {
+  return bkSlotsFor(dateVal).some(function(s){ return tenderSlotConflict(dateVal, s, teamKey, excludeId); });
+}
+
+function openTenderLockModal() {
+  if(user?.role !== 'admin') return;
+  tenderEditId = null;
+  el('tlk-work-title').value = '';
+  el('tlk-team').value = '';
+  el('tlk-location').value = '';
+  el('tlk-desc').value = '';
+  el('tlk-date').value = (schedDate||new Date()).toLocaleDateString('en-CA');
+  populateTimeSelect(el('tlk-time'), el('tlk-date').value, null, t('saTimePh'), true);
+  setTxt('tlk-title', `📌 ${t('tenderLockTitle')}`);
+  openModal('modal-tender-lock');
+}
+
+function onTlkDateChange() {
+  populateTimeSelect(el('tlk-time'), el('tlk-date').value, el('tlk-time').value, t('saTimePh'), true);
+}
+
+async function saveTenderBooking() {
+  const title = el('tlk-work-title').value.trim();
+  const teamKey = el('tlk-team').value;
+  const location = el('tlk-location').value.trim();
+  const description = el('tlk-desc').value.trim();
+  const workDate = el('tlk-date').value.slice(0,10);
+  const timeSlot = el('tlk-time').value;
+
+  if(!title || !teamKey || !workDate || !timeSlot) {
+    toast(t('tenderNeedFields'), 'error'); return;
+  }
+
+  const isFullDay = timeSlot === FULL_DAY_LABEL;
+  const conflict = isFullDay
+    ? tenderFullDayConflict(workDate, teamKey, tenderEditId)
+    : tenderSlotConflict(workDate, timeSlot, teamKey, tenderEditId);
+  if(conflict) {
+    toast(isFullDay ? t('saFullDayBlocked') : t('bkFull'), 'error', 6000); return;
+  }
+
+  const entry = { title, teamKey, location, description, workDate, timeSlot };
+  const btn = el('tlk-save');
+  if(btn) btn.disabled = true;
+
+  if(tenderEditId) {
+    const ok = await dbUpdateTenderBooking(tenderEditId, entry);
+    if(btn) btn.disabled = false;
+    if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
+    const existing = tenderBookings.find(tb=>tb.id===tenderEditId);
+    if(existing) Object.assign(existing, entry);
+  } else {
+    const saved = await dbInsertTenderBooking(entry);
+    if(btn) btn.disabled = false;
+    if(!saved) { toast(t('tenderSaveFail'), 'error'); return; }
+    tenderBookings.push(saved);
+  }
+
+  closeModal('modal-tender-lock');
+  toast(t('tenderSaved'), 'success');
+  renderSchedule();
+}
+
+function openTenderDetail(id) {
+  const tb = tenderBookings.find(x=>x.id===id);
+  if(!tb) return;
+  tenderDetailId = id;
+  setHTML('tdt-body', `
+    <div style="display:grid;gap:12px;padding:4px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="background:var(--navy);color:var(--white);font-size:.78rem;font-weight:700;padding:3px 12px;border-radius:10px;">${(tb.timeSlot||'').replace(' - ',' – ')}</span>
+        <span style="font-size:.68rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span>
+      </div>
+      <div style="background:var(--gray-50);border-radius:var(--r);padding:14px;display:grid;gap:10px;font-size:.88rem;">
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📌 ${lang==='bm'?'Tajuk Kerja':'Job Title'}</div><strong>${tb.title}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">🧰 Team</div><strong>${TEAM_NAMES[tb.teamKey]||tb.teamKey}</strong></div>
+        <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📅 ${lang==='bm'?'Tarikh':'Date'}</div><strong>${fmtDate(tb.workDate)}</strong></div>
+        ${tb.location?`<div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📍 ${lang==='bm'?'Lokasi':'Location'}</div><strong>${tb.location}</strong></div>`:''}
+        ${tb.description?`<div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">🔧 ${lang==='bm'?'Keterangan':'Description'}</div><span>${tb.description}</span></div>`:''}
+      </div>
+    </div>`);
+  const isAdmin = user?.role==='admin';
+  el('tdt-edit').style.display   = isAdmin ? '' : 'none';
+  el('tdt-delete').style.display = isAdmin ? '' : 'none';
+  openModal('modal-tender-detail');
+}
+
+function editTenderBooking() {
+  const tb = tenderBookings.find(x=>x.id===tenderDetailId);
+  if(!tb || user?.role!=='admin') return;
+  closeModal('modal-tender-detail');
+  tenderEditId = tb.id;
+  el('tlk-work-title').value = tb.title;
+  el('tlk-team').value = tb.teamKey;
+  el('tlk-location').value = tb.location || '';
+  el('tlk-desc').value = tb.description || '';
+  el('tlk-date').value = tb.workDate;
+  populateTimeSelect(el('tlk-time'), tb.workDate, tb.timeSlot, t('saTimePh'), true);
+  setTxt('tlk-title', `✏️ ${t('tenderLockTitle')}`);
+  openModal('modal-tender-lock');
+}
+
+async function deleteTenderBooking() {
+  const tb = tenderBookings.find(x=>x.id===tenderDetailId);
+  if(!tb || user?.role!=='admin') return;
+  const msg = lang==='bm'
+    ? `Padam kunci tender "${tb.title}"?`
+    : `Delete tender lock "${tb.title}"?`;
+  if(!confirm(msg)) return;
+  const ok = await dbDeleteTenderBooking(tb.id);
+  if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
+  tenderBookings = tenderBookings.filter(x=>x.id!==tb.id);
+  closeModal('modal-tender-detail');
+  toast(lang==='bm'?'Kunci tender dipadam.':'Tender lock deleted.', 'success');
+  renderSchedule();
 }
 
 // ─── SCHEDULE DETAIL / EDIT / DELETE ─────────────────────────────────────────
@@ -5350,6 +5581,11 @@ function getSlotTeams(dateStr, slot) {
     if(c.prefDate !== dateStr) return;
     // A "Full Day" booking occupies BOTH slots for its team on that date.
     if(c.prefTime === slot || c.prefTime === FULL_DAY_LABEL) teams.push(problemTeam(c.problem));
+  });
+  // Locked tender/contract slots block availability the same way a normal booking does.
+  tenderBookings.forEach(function(tb){
+    if(tb.workDate !== dateStr) return;
+    if(tb.timeSlot === slot || tb.timeSlot === FULL_DAY_LABEL) teams.push(tb.teamKey);
   });
   return teams;
 }

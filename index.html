@@ -964,6 +964,7 @@
             </div>
             <div class="schedule-tabs" style="display:flex;align-items:center;gap:8px;">
               <button class="btn btn-sm btn-lime" id="sc-add-btn" onclick="openSchedAddModal()" style="display:none;">+ Tambah Jadual</button>
+              <button class="btn btn-sm btn-outline" id="sc-tender-btn" onclick="openTenderLockModal()" style="display:none;">📌 <span id="sc-tender-btn-lbl">Kunci Tender/Kontrak</span></button>
             </div>
           </div>
         </div>
@@ -1303,6 +1304,81 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-assign-op')" id="aop-cancel">Batal</button>
       <button class="btn btn-lime" onclick="confirmAssignOperator()" id="aop-confirm">✓ Sahkan Tugasan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     TENDER/CONTRACT LOCK MODAL (Admin only)
+     ====================================================== -->
+<div class="modal-overlay" id="modal-tender-lock">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="tlk-title">📌 Kunci Tender/Kontrak Tetap</div>
+        <button class="modal-close" onclick="closeModal('modal-tender-lock')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="tlk-lbl-title">Tajuk Kerja <span class="req">*</span></label>
+        <input type="text" class="form-control" id="tlk-work-title" placeholder="Contoh: Servis Bulanan - Kilang XYZ">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="tlk-lbl-team">Team <span class="req">*</span></label>
+        <select class="form-control" id="tlk-team">
+          <option value="">-- Pilih Team --</option>
+          <option value="TEAM_A">Team Sudin</option>
+          <option value="TEAM_B">Team Saleh</option>
+          <option value="TEAM_C">Team Akin</option>
+          <option value="TEAM_D">Team Bob</option>
+          <option value="TEAM_E">Team Awang</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="tlk-lbl-location">Lokasi</label>
+        <input type="text" class="form-control" id="tlk-location" placeholder="Pilihan">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="tlk-lbl-desc">Keterangan</label>
+        <textarea class="form-control" id="tlk-desc" rows="2" placeholder="Pilihan"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" id="tlk-lbl-date">Tarikh <span class="req">*</span></label>
+          <input type="date" class="form-control" id="tlk-date" onchange="onTlkDateChange()">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="tlk-lbl-time">Slot Masa <span class="req">*</span></label>
+          <select class="form-control" id="tlk-time"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-tender-lock')" id="tlk-cancel">Batal</button>
+      <button class="btn btn-lime" onclick="saveTenderBooking()" id="tlk-save">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================
+     TENDER/CONTRACT DETAIL MODAL
+     ====================================================== -->
+<div class="modal-overlay" id="modal-tender-detail">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-hinner">
+        <div class="modal-title" id="tdt-title">📌 Tender/Kontrak</div>
+        <button class="modal-close" onclick="closeModal('modal-tender-detail')">✕</button>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+    </div>
+    <div class="modal-body" id="tdt-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-tender-detail')" id="tdt-close">Tutup</button>
+      <button class="btn btn-outline" id="tdt-edit" onclick="editTenderBooking()" style="display:none;">✏️ Edit</button>
+      <button class="btn btn-danger btn-sm" id="tdt-delete" onclick="deleteTenderBooking()" style="display:none;">🗑️ Padam</button>
     </div>
   </div>
 </div>
@@ -1743,6 +1819,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=51"></script>
+<script src="app.js?v=52"></script>
 </body>
 </html>
