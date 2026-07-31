@@ -1327,14 +1327,23 @@
       </div>
       <div class="form-group">
         <label class="form-label" id="tlk-lbl-team">Team <span class="req">*</span></label>
-        <select class="form-control" id="tlk-team" onchange="renderTenderPreview()">
-          <option value="">-- Pilih Team --</option>
-          <option value="TEAM_A">Team Sudin</option>
-          <option value="TEAM_B">Team Saleh</option>
-          <option value="TEAM_C">Team Akin</option>
-          <option value="TEAM_D">Team Bob</option>
-          <option value="TEAM_E">Team Awang</option>
-        </select>
+        <div id="tlk-team-list" style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem;color:var(--gray-700);">
+            <input type="checkbox" class="tlk-team-cb" value="TEAM_A" onchange="renderTenderPreview()"> Team Sudin
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem;color:var(--gray-700);">
+            <input type="checkbox" class="tlk-team-cb" value="TEAM_B" onchange="renderTenderPreview()"> Team Saleh
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem;color:var(--gray-700);">
+            <input type="checkbox" class="tlk-team-cb" value="TEAM_C" onchange="renderTenderPreview()"> Team Akin
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem;color:var(--gray-700);">
+            <input type="checkbox" class="tlk-team-cb" value="TEAM_D" onchange="renderTenderPreview()"> Team Bob
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem;color:var(--gray-700);">
+            <input type="checkbox" class="tlk-team-cb" value="TEAM_E" onchange="renderTenderPreview()"> Team Awang
+          </label>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" id="tlk-lbl-location">Lokasi</label>
@@ -1824,6 +1833,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js?v=53"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>

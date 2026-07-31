@@ -3417,11 +3417,18 @@ function tenderDateRange(startDate, days) {
   return out;
 }
 
+function getTlkTeams() {
+  return Array.from(document.querySelectorAll('.tlk-team-cb:checked')).map(cb=>cb.value);
+}
+function setTlkTeams(teamKeys) {
+  document.querySelectorAll('.tlk-team-cb').forEach(cb=>{ cb.checked = teamKeys.includes(cb.value); });
+}
+
 function openTenderLockModal() {
   if(user?.role !== 'admin') return;
   tenderEditId = null;
   el('tlk-work-title').value = '';
-  el('tlk-team').value = '';
+  setTlkTeams([]);
   el('tlk-location').value = '';
   el('tlk-desc').value = '';
   el('tlk-date').value = (schedDate||new Date()).toLocaleDateString('en-CA');
@@ -3443,11 +3450,11 @@ function renderTenderPreview() {
   if(!box) return;
   const startDate = el('tlk-date').value;
   const days = Math.max(1, Math.min(30, parseInt(el('tlk-days').value, 10) || 1));
-  const teamKey = el('tlk-team').value;
+  const teamKeys = getTlkTeams();
   const timeSlot = el('tlk-time').value;
   if(!startDate || !timeSlot) { box.style.display = 'none'; return; }
   const dates = tenderDateRange(startDate, days);
-  const teamLbl = teamKey ? (TEAM_NAMES[teamKey]||teamKey) : (lang==='bm'?'(pilih team)':'(select team)');
+  const teamLbl = teamKeys.length ? teamKeys.map(k=>TEAM_NAMES[k]||k).join(' + ') : (lang==='bm'?'(pilih team)':'(select team)');
   const slotLbl = timeSlot===FULL_DAY_LABEL ? t('saFullDay') : timeSlot.replace(' - ',' – ');
   const rangeLbl = days>1 ? `${fmtDateShort(dates[0])} - ${fmtDateShort(dates[dates.length-1])} (${days} ${lang==='bm'?'hari':'days'})` : fmtDateShort(dates[0]);
   box.style.display = 'block';
@@ -3456,28 +3463,33 @@ function renderTenderPreview() {
 
 async function saveTenderBooking() {
   const title = el('tlk-work-title').value.trim();
-  const teamKey = el('tlk-team').value;
+  const teamKeys = getTlkTeams();
   const location = el('tlk-location').value.trim();
   const description = el('tlk-desc').value.trim();
   const startDate = el('tlk-date').value.slice(0,10);
   const days = tenderEditId ? 1 : Math.max(1, Math.min(30, parseInt(el('tlk-days').value, 10) || 1));
   const timeSlot = el('tlk-time').value;
 
-  if(!title || !teamKey || !startDate || !timeSlot) {
+  if(!title || !teamKeys.length || !startDate || !timeSlot) {
     toast(t('tenderNeedFields'), 'error'); return;
   }
 
   const dates = tenderDateRange(startDate, days);
   const isFullDay = timeSlot === FULL_DAY_LABEL;
 
-  // Check every day in the range BEFORE inserting anything — if any day
-  // conflicts, block the whole save instead of locking only part of the range.
-  const conflictDates = dates.filter(d => isFullDay
-    ? tenderFullDayConflict(d, teamKey, tenderEditId)
-    : tenderSlotConflict(d, timeSlot, teamKey, tenderEditId));
-  if(conflictDates.length) {
-    const list = conflictDates.map(fmtDateShort).join(', ');
-    toast(t('tenderRangeConflict').replace('{dates}', list), 'error', 8000);
+  // Check every team+day combination BEFORE inserting anything — if any one
+  // combination conflicts, block the whole save instead of locking partially.
+  const conflicts = [];
+  teamKeys.forEach(teamKey => {
+    dates.forEach(d => {
+      const clash = isFullDay
+        ? tenderFullDayConflict(d, teamKey, tenderEditId)
+        : tenderSlotConflict(d, timeSlot, teamKey, tenderEditId);
+      if(clash) conflicts.push(`${fmtDateShort(d)} (${TEAM_NAMES[teamKey]||teamKey})`);
+    });
+  });
+  if(conflicts.length) {
+    toast(t('tenderRangeConflict').replace('{dates}', conflicts.join(', ')), 'error', 8000);
     return;
   }
 
@@ -3485,24 +3497,26 @@ async function saveTenderBooking() {
   if(btn) btn.disabled = true;
 
   if(tenderEditId) {
-    const entry = { title, teamKey, location, description, workDate: dates[0], timeSlot };
+    const entry = { title, teamKey: teamKeys[0], location, description, workDate: dates[0], timeSlot };
     const ok = await dbUpdateTenderBooking(tenderEditId, entry);
     if(btn) btn.disabled = false;
     if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
     const existing = tenderBookings.find(tb=>tb.id===tenderEditId);
     if(existing) Object.assign(existing, entry);
   } else {
-    // One separate row per day — each day stays individually manageable/deletable.
+    // One separate row per team per day — each stays individually manageable/deletable.
     const saved = [];
-    for(const d of dates) {
-      const row = await dbInsertTenderBooking({ title, teamKey, location, description, workDate: d, timeSlot });
-      if(!row) {
-        if(btn) btn.disabled = false;
-        toast(t('tenderSaveFail'), 'error');
-        if(saved.length) { tenderBookings.push(...saved); renderSchedule(); }
-        return;
+    for(const teamKey of teamKeys) {
+      for(const d of dates) {
+        const row = await dbInsertTenderBooking({ title, teamKey, location, description, workDate: d, timeSlot });
+        if(!row) {
+          if(btn) btn.disabled = false;
+          toast(t('tenderSaveFail'), 'error');
+          if(saved.length) { tenderBookings.push(...saved); renderSchedule(); }
+          return;
+        }
+        saved.push(row);
       }
-      saved.push(row);
     }
     if(btn) btn.disabled = false;
     tenderBookings.push(...saved);
@@ -3543,7 +3557,7 @@ function editTenderBooking() {
   closeModal('modal-tender-detail');
   tenderEditId = tb.id;
   el('tlk-work-title').value = tb.title;
-  el('tlk-team').value = tb.teamKey;
+  setTlkTeams([tb.teamKey]);
   el('tlk-location').value = tb.location || '';
   el('tlk-desc').value = tb.description || '';
   el('tlk-date').value = tb.workDate;
