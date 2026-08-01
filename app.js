@@ -3039,8 +3039,8 @@ function renderMonthView() {
         chips += `<div class="job-chip chip-${cls}" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${tm} ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${lbl}</span></div>`;
       } else if(e._src==='tender') {
-        chips += `<div class="job-chip" style="background:rgba(139,92,246,.15);border-left:3px solid #8b5cf6;cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="📌 ${lbl}">`
-              +  `<span class="jc-dot" style="background:#8b5cf6;"></span><span class="jc-txt">📌 ${tm?tm+' ':''}${lbl}</span></div>`;
+        chips += `<div class="job-chip chip-tender" style="cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="📌 ${lbl}">`
+              +  `<span class="jc-dot"></span><span class="jc-txt">📌 ${tm?tm+' ':''}${lbl}</span></div>`;
       } else { // complaint
         chips += `<div class="job-chip chip-${cls}" style="opacity:.85;cursor:pointer;" onclick="event.stopPropagation();openDaySummary('${ds}')" title="${e.ref}: ${lbl}">`
               +  `<span class="jc-dot"></span><span class="jc-txt">${tm?tm+' ':''}${e.ref}</span></div>`;
@@ -3131,8 +3131,8 @@ function openDaySummary(ds) {
           </div>`;
         }
         if(e._src==='tender') {
-          return `<div class="dsm-item" style="border-left:3px solid #8b5cf6;" onclick="closeModal('modal-day-summary');openTenderDetail(${e.id})">
-            <div class="dsm-item-top"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></div>
+          return `<div class="dsm-item" style="border-left:3px solid #14b8a6;" onclick="closeModal('modal-day-summary');openTenderDetail(${e.id})">
+            <div class="dsm-item-top"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:#ccfbf1;color:#0f766e;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></div>
             <div class="dsm-item-label">📌 ${e.title}</div>
             <div class="dsm-item-sub">🧰 ${TEAM_NAMES[e.teamKey]||e.teamKey}${e.location?' · 📍 '+e.location:''}</div>
           </div>`;
@@ -3535,7 +3535,7 @@ function openTenderDetail(id) {
     <div style="display:grid;gap:12px;padding:4px 0;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span style="background:var(--navy);color:var(--white);font-size:.78rem;font-weight:700;padding:3px 12px;border-radius:10px;">${(tb.timeSlot||'').replace(' - ',' – ')}</span>
-        <span style="font-size:.68rem;background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid #8b5cf6;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span>
+        <span style="font-size:.68rem;background:#ccfbf1;color:#0f766e;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span>
       </div>
       <div style="background:var(--gray-50);border-radius:var(--r);padding:14px;display:grid;gap:10px;font-size:.88rem;">
         <div><div style="font-size:.74rem;color:var(--gray-500);margin-bottom:2px;">📌 ${lang==='bm'?'Tajuk Kerja':'Job Title'}</div><strong>${tb.title}</strong></div>

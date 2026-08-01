@@ -2434,6 +2434,8 @@ nav.sidebar .nav-item.active {
 .chip-berjalan .jc-dot { background:#5aa9ff; }
 .chip-selesai  { background:rgba(143,208,106,.15); color:#8fd06a; }
 .chip-selesai .jc-dot { background:#8fd06a; }
+.chip-tender   { background:rgba(78,205,196,.18); color:#4ecdc4; border-left:3px solid #4ecdc4; }
+.chip-tender .jc-dot { background:#4ecdc4; }
 .month-more { font-size:.62rem; color:#6b8bb0; padding-left:2px; }
 
 @media(max-width:600px){
