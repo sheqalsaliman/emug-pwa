@@ -2969,10 +2969,12 @@ function renderMonthView() {
   const nm = el('sc-month-name');
   if(nm) nm.textContent = `${T[lang].monthNames[schedMonth].slice(0,3)} ${schedYear}`;
   const dowEl = el('sc-month-dow');
-  if(dowEl) dowEl.innerHTML = T[lang].dayNamesShort.map(d=>`<div class="month-dow">${d}</div>`).join('');
+  // Monday-first header order — weekend (Sat/Sun) lands in the last two columns.
+  if(dowEl) dowEl.innerHTML = [1,2,3,4,5,6,0].map(i=>`<div class="month-dow">${T[lang].dayNamesShort[i]}</div>`).join('');
 
   const pad = n => String(n).padStart(2,'0');
-  const firstDow = new Date(schedYear, schedMonth, 1).getDay();
+  // Monday-based offset (Mon=0 ... Sun=6) so day cells align under the reordered header.
+  const firstDow = (new Date(schedYear, schedMonth, 1).getDay() + 6) % 7;
   const dim      = new Date(schedYear, schedMonth+1, 0).getDate();
   const prevDim  = new Date(schedYear, schedMonth, 0).getDate();
   const todayS   = new Date().toLocaleDateString('en-CA');
