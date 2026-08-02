@@ -7,6 +7,21 @@
   <meta name="description" content="Pakar Paip & Pembetungan Johor — Sistem Pengurusan EMUG">
   <meta name="theme-color" content="#1a237e">
   <link rel="manifest" href="manifest.json">
+  <script>
+  (function(){
+    var p = location.pathname;
+    if (p === '/staff' || p === '/admin' || p.indexOf('/staff/') === 0 || p.indexOf('/admin/') === 0) {
+      var l = document.querySelector('link[rel="manifest"]');
+      if (l) l.setAttribute('href', '/manifest.staff.webmanifest');
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (!t) { t = document.createElement('meta'); t.setAttribute('name','apple-mobile-web-app-title'); document.head.appendChild(t); }
+      t.setAttribute('content','EMUG Staff');
+    }
+  })();
+  </script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-512.png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
