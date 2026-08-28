@@ -3116,6 +3116,7 @@ function openDaySummary(ds) {
   const dayLabel = `${t('dayNames')[d.getDay()]}, ${d.getDate()} ${t('monthNames')[d.getMonth()]} ${d.getFullYear()}`;
   setTxt('dsm-title', `📋 ${t('dsmTitle')} — ${dayLabel}`);
   const entries = getDayEntries(ds);
+  const isAdmin = user.role==='admin';
   const body = el('dsm-body');
   if(body) {
     if(!entries.length) {
@@ -3133,8 +3134,15 @@ function openDaySummary(ds) {
           </div>`;
         }
         if(e._src==='tender') {
+          const actions = isAdmin ? `<span style="display:flex;align-items:center;gap:6px;">
+              <button onclick="event.stopPropagation();editTenderBookingById(${e.id})" title="${lang==='bm'?'Edit booking tender':'Edit tender booking'}" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">✏️</button>
+              <button onclick="event.stopPropagation();deleteTenderFromDaySummary(${e.id})" title="${lang==='bm'?'Padam booking tender':'Delete tender booking'}" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">🗑️</button>
+            </span>` : '';
           return `<div class="dsm-item" style="border-left:3px solid #14b8a6;" onclick="closeModal('modal-day-summary');openTenderDetail(${e.id})">
-            <div class="dsm-item-top"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:#ccfbf1;color:#0f766e;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></div>
+            <div class="dsm-item-top">
+              <span style="display:flex;align-items:center;gap:6px;"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:#ccfbf1;color:#0f766e;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></span>
+              ${actions}
+            </div>
             <div class="dsm-item-label">📌 ${e.title}</div>
             <div class="dsm-item-sub">🧰 ${TEAM_NAMES[e.teamKey]||e.teamKey}${e.location?' · 📍 '+e.location:''}</div>
           </div>`;
@@ -3431,6 +3439,8 @@ function openTenderLockModal() {
   tenderEditId = null;
   el('tlk-work-title').value = '';
   setTlkTeams([]);
+  el('tlk-team-list').style.display = '';
+  el('tlk-team-readonly').style.display = 'none';
   el('tlk-location').value = '';
   el('tlk-desc').value = '';
   el('tlk-date').value = (schedDate||new Date()).toLocaleDateString('en-CA');
@@ -3553,13 +3563,22 @@ function openTenderDetail(id) {
   openModal('modal-tender-detail');
 }
 
-function editTenderBooking() {
-  const tb = tenderBookings.find(x=>x.id===tenderDetailId);
+// Shared single-record edit prefill — used by both the Tender Detail modal's
+// Edit button (via tenderDetailId) and the Day Summary popup's inline pencil
+// icon (passes the id directly). Always targets exactly one row: one date,
+// one team, one slot — the "Bilangan Hari"/multi-team pickers are create-only
+// and are hidden/locked here, never shown for an edit.
+function editTenderBookingById(id) {
+  const tb = tenderBookings.find(x=>x.id===id);
   if(!tb || user?.role!=='admin') return;
   closeModal('modal-tender-detail');
+  closeModal('modal-day-summary');
   tenderEditId = tb.id;
   el('tlk-work-title').value = tb.title;
   setTlkTeams([tb.teamKey]);
+  el('tlk-team-list').style.display = 'none';
+  const ro = el('tlk-team-readonly');
+  if(ro) { ro.style.display = ''; ro.textContent = '🧰 ' + (TEAM_NAMES[tb.teamKey]||tb.teamKey); }
   el('tlk-location').value = tb.location || '';
   el('tlk-desc').value = tb.description || '';
   el('tlk-date').value = tb.workDate;
@@ -3571,19 +3590,38 @@ function editTenderBooking() {
   openModal('modal-tender-lock');
 }
 
-async function deleteTenderBooking() {
-  const tb = tenderBookings.find(x=>x.id===tenderDetailId);
+function editTenderBooking() { editTenderBookingById(tenderDetailId); }
+
+async function deleteTenderBookingById(id) {
+  const tb = tenderBookings.find(x=>x.id===id);
   if(!tb || user?.role!=='admin') return;
   const msg = lang==='bm'
-    ? `Padam kunci tender "${tb.title}"?`
-    : `Delete tender lock "${tb.title}"?`;
+    ? 'Padam booking tender ni? Slot akan dibuka semula.'
+    : 'Delete this tender booking? The slot will be freed up.';
   if(!confirm(msg)) return;
-  const ok = await dbDeleteTenderBooking(tb.id);
+  const ok = await dbDeleteTenderBooking(id);
   if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
-  tenderBookings = tenderBookings.filter(x=>x.id!==tb.id);
-  closeModal('modal-tender-detail');
+  tenderBookings = tenderBookings.filter(x=>x.id!==id);
   toast(lang==='bm'?'Kunci tender dipadam.':'Tender lock deleted.', 'success');
+  return true;
+}
+
+async function deleteTenderBooking() {
+  const ok = await deleteTenderBookingById(tenderDetailId);
+  if(!ok) return;
+  closeModal('modal-tender-detail');
   renderSchedule();
+}
+
+// Delete triggered from the inline trash icon in the Day Summary / Job List
+// popup — unlike deleteTenderBooking() (called from the Tender Detail modal),
+// this keeps the popup open and re-renders it in place so the freed slot is
+// visible immediately, instead of closing back out to the calendar.
+async function deleteTenderFromDaySummary(id) {
+  const ok = await deleteTenderBookingById(id);
+  if(!ok) return;
+  renderSchedule();
+  if(daySummaryDate) openDaySummary(daySummaryDate);
 }
 
 // ─── SCHEDULE DETAIL / EDIT / DELETE ─────────────────────────────────────────
