@@ -3135,10 +3135,10 @@ function openDaySummary(ds) {
         }
         if(e._src==='tender') {
           const actions = isAdmin ? `<span style="display:flex;align-items:center;gap:6px;">
-              <button onclick="event.stopPropagation();editTenderBookingById(${e.id})" title="${lang==='bm'?'Edit booking tender':'Edit tender booking'}" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">✏️</button>
-              <button onclick="event.stopPropagation();deleteTenderFromDaySummary(${e.id})" title="${lang==='bm'?'Padam booking tender':'Delete tender booking'}" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">🗑️</button>
+              <button onclick="event.stopPropagation();editTenderBookingById('${e.id}')" title="${lang==='bm'?'Edit booking tender':'Edit tender booking'}" style="background:#eef2ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">✏️</button>
+              <button onclick="event.stopPropagation();deleteTenderFromDaySummary('${e.id}')" title="${lang==='bm'?'Padam booking tender':'Delete tender booking'}" style="background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;width:26px;height:26px;font-size:.78rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;">🗑️</button>
             </span>` : '';
-          return `<div class="dsm-item" style="border-left:3px solid #14b8a6;" onclick="closeModal('modal-day-summary');openTenderDetail(${e.id})">
+          return `<div class="dsm-item" style="border-left:3px solid #14b8a6;" onclick="closeModal('modal-day-summary');openTenderDetail('${e.id}')">
             <div class="dsm-item-top">
               <span style="display:flex;align-items:center;gap:6px;"><span class="dsm-time">${tm}</span><span style="font-size:.68rem;background:#ccfbf1;color:#0f766e;border-radius:6px;padding:2px 7px;font-weight:700;">${t('tenderBadge')}</span></span>
               ${actions}
@@ -3540,7 +3540,7 @@ async function saveTenderBooking() {
 }
 
 function openTenderDetail(id) {
-  const tb = tenderBookings.find(x=>x.id===id);
+  const tb = tenderBookings.find(x=>String(x.id)===String(id));
   if(!tb) return;
   tenderDetailId = id;
   setHTML('tdt-body', `
@@ -3569,7 +3569,7 @@ function openTenderDetail(id) {
 // one team, one slot — the "Bilangan Hari"/multi-team pickers are create-only
 // and are hidden/locked here, never shown for an edit.
 function editTenderBookingById(id) {
-  const tb = tenderBookings.find(x=>x.id===id);
+  const tb = tenderBookings.find(x=>String(x.id)===String(id));
   if(!tb || user?.role!=='admin') return;
   closeModal('modal-tender-detail');
   closeModal('modal-day-summary');
@@ -3593,7 +3593,7 @@ function editTenderBookingById(id) {
 function editTenderBooking() { editTenderBookingById(tenderDetailId); }
 
 async function deleteTenderBookingById(id) {
-  const tb = tenderBookings.find(x=>x.id===id);
+  const tb = tenderBookings.find(x=>String(x.id)===String(id));
   if(!tb || user?.role!=='admin') return;
   const msg = lang==='bm'
     ? 'Padam booking tender ni? Slot akan dibuka semula.'
@@ -3601,7 +3601,7 @@ async function deleteTenderBookingById(id) {
   if(!confirm(msg)) return;
   const ok = await dbDeleteTenderBooking(id);
   if(!ok) { toast(t('tenderSaveFail'), 'error'); return; }
-  tenderBookings = tenderBookings.filter(x=>x.id!==id);
+  tenderBookings = tenderBookings.filter(x=>String(x.id)!==String(id));
   toast(lang==='bm'?'Kunci tender dipadam.':'Tender lock deleted.', 'success');
   return true;
 }
