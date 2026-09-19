@@ -898,7 +898,8 @@ function showAppSection() {
 const COMPLAINT_LIST_COLUMNS = 'ref, name, phone, address, problem, description, urgency, '
   + 'pref_date, pref_time, status, assigned_to, assigned_name, sched_date, admin_notes, tech_notes, '
   + 'coords, submitted_at, updated_at, accepted_by, accepted_by_name, accepted_at, completed_at, '
-  + 'photos_before, photos_during, photos_after, booking_type, mileage_km, mileage_charge, source, is_deleted';
+  + 'photos_before, photos_during, photos_after, booking_type, mileage_km, mileage_charge, source, is_deleted, '
+  + 'invoice_path, invoice_uploaded_at';
 
 // Supabase row → JS complaint object
 function rowToComplaint(row) {
@@ -938,6 +939,8 @@ function rowToComplaint(row) {
     mileageKm:      row.mileage_km     != null ? row.mileage_km     : null,
     mileageCharge:  row.mileage_charge != null ? row.mileage_charge : null,
     source:         row.source         || 'customer', // 'customer' or 'manual' (created via + Tambah Jadual)
+    invoicePath:       row.invoice_path        || '',  // Supabase: invoice_path → JS: invoicePath
+    invoiceUploadedAt: row.invoice_uploaded_at || '',  // Supabase: invoice_uploaded_at → JS: invoiceUploadedAt
   };
 }
 
@@ -974,6 +977,8 @@ function complaintToRow(c) {
     mileage_km:       c.mileageKm     != null ? c.mileageKm     : null,
     mileage_charge:   c.mileageCharge != null ? c.mileageCharge : null,
     source:           c.source        || 'customer',
+    invoice_path:        c.invoicePath       || null,
+    invoice_uploaded_at: c.invoiceUploadedAt || null,
   };
   // media (base64 blob, can be several MB) is only ever loaded on-demand (see
   // ensureComplaintMedia). Omit the key entirely when it hasn't been loaded so
@@ -1762,6 +1767,137 @@ function doTrack() {
         <button class="btn btn-lime btn-sm" onclick="showPubPage('complaint');initComplaintForm()">${t('trNewComplaint')}</button>
       </div>
     </div>`;
+}
+
+// ─── SEMAK STATUS & INVOIS (PUBLIC, ref + last-4-phone gated) ────────────────
+// Separate from doTrack()/doQuickTrack() above — those look up the already
+// bulk-loaded `complaints` array by ref alone with no verification. This flow
+// instead goes through server-side RPCs (get_job_public / get_job_photos /
+// get_job_invoice_path) that check ref + last 4 phone digits and throttle
+// repeated failures, so it discloses far less per lookup and can't be brute
+// forced. Kept in memory only (never localStorage) for the current session,
+// just to avoid re-typing when fetching photos/invoice after the status call.
+let jstSessionRef = null, jstSessionLast4 = null;
+let jstPhotosCache = { before:[], after:[] };
+
+function jstStatusClass(s) { return s==='Selesai'?'selesai':s==='Sedang Berjalan'?'berjalan':'menunggu'; }
+
+async function checkJobStatus() {
+  const ref   = (el('jst-ref-input')?.value||'').trim().toUpperCase();
+  const last4 = (el('jst-last4-input')?.value||'').trim();
+  const area = el('jst-result');
+  if(!area) return;
+  if(!ref || !/^[0-9]{4}$/.test(last4)) {
+    area.innerHTML = `<div class="track-error">${lang==='bm'?'Sila masukkan no. booking dan 4 digit terakhir no. telefon yang sah.':'Please enter a valid booking number and 4-digit phone code.'}</div>`;
+    return;
+  }
+  const btn = el('jst-btn');
+  if(btn) btn.disabled = true;
+  area.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray-500);">${lang==='bm'?'Menyemak...':'Checking...'}</div>`;
+  try {
+    const { data, error } = await db.rpc('get_job_public', { p_ref: ref, p_last4: last4 });
+    if(btn) btn.disabled = false;
+    if(error) {
+      console.error('checkJobStatus:', error);
+      area.innerHTML = `<div class="track-error">${lang==='bm'?'Ralat menyemak status. Sila cuba lagi.':'Error checking status. Please try again.'}</div>`;
+      return;
+    }
+    if(!data || !data.ok) {
+      const locked = data && data.reason === 'locked';
+      area.innerHTML = `<div class="track-error">${locked
+        ? (lang==='bm'?'Terlalu banyak cubaan. Sila cuba lagi dalam 15 minit atau hubungi kami.':'Too many attempts. Please try again in 15 minutes or contact us.')
+        : (lang==='bm'?'No booking atau no telefon tidak sepadan. Sila semak semula.':'Booking number or phone does not match. Please check again.')
+      }</div>`;
+      return;
+    }
+    jstSessionRef = ref;
+    jstSessionLast4 = last4;
+    renderJobStatusResult(data);
+  } catch(e) {
+    console.error('checkJobStatus:', e);
+    if(btn) btn.disabled = false;
+    area.innerHTML = `<div class="track-error">${lang==='bm'?'Ralat menyemak status. Sila cuba lagi.':'Error checking status. Please try again.'}</div>`;
+  }
+}
+
+function renderJobStatusResult(data) {
+  const area = el('jst-result');
+  if(!area) return;
+  const sc = jstStatusClass(data.status);
+  const sIcon = data.status==='Selesai'?'✅':data.status==='Sedang Berjalan'?'🔄':'⏳';
+  const done = data.status==='Selesai';
+  area.innerHTML = `
+    <div class="track-result-card">
+      <div class="track-result-header">
+        <div class="track-result-ref">📋 ${data.ref}</div>
+      </div>
+      <div class="stripe equal"><div class="s-lime"></div><div class="s-navy"></div></div>
+      <div class="track-result-body">
+        <div class="track-status-big ${sc}">${sIcon} ${statusLabel(data.status)}</div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">📅 ${lang==='bm'?'Tarikh':'Date'}</span>
+          <span class="track-detail-val">${data.work_date?fmtDate(data.work_date):'-'}</span>
+        </div>
+        <div class="track-detail-row">
+          <span class="track-detail-label">🔧 ${lang==='bm'?'Jenis Kerja':'Job Type'}</span>
+          <span class="track-detail-val">${data.job_type||'-'}</span>
+        </div>
+        ${!done ? `<div style="background:var(--gray-50);border-radius:var(--r);padding:12px 14px;margin-top:10px;font-size:.85rem;color:var(--gray-600);">📷 ${lang==='bm'?'Gambar & invois akan tersedia selepas kerja selesai.':'Photos & invoice will be available once the job is completed.'}</div>` : ''}
+        ${done ? `<div id="jst-photos" style="margin-top:10px;font-size:.82rem;color:var(--gray-400);">${lang==='bm'?'Memuatkan gambar...':'Loading photos...'}</div>` : ''}
+        ${done ? `<div id="jst-invoice" style="margin-top:10px;">
+          ${data.has_invoice
+            ? `<button class="btn btn-lime btn-sm" onclick="downloadJobInvoice()">📥 ${lang==='bm'?'Muat Turun Invois':'Download Invoice'}</button>`
+            : `<div style="color:var(--gray-500);font-size:.85rem;">${lang==='bm'?'Invois belum tersedia, sila hubungi kami.':'Invoice not available yet, please contact us.'}</div>`}
+        </div>` : ''}
+      </div>
+    </div>`;
+  if(done) loadJobStatusPhotos();
+}
+
+function jstPhotoArr(key) { return jstPhotosCache[key] || []; }
+
+async function loadJobStatusPhotos() {
+  const box = el('jst-photos');
+  if(!box || !jstSessionRef) return;
+  try {
+    const { data, error } = await db.rpc('get_job_photos', { p_ref: jstSessionRef, p_last4: jstSessionLast4 });
+    if(error || !data || !data.ok || !data.ready) { box.innerHTML = ''; return; }
+    const before = data.photos_before || [];
+    const after  = data.photos_after  || [];
+    jstPhotosCache = { before, after };
+    if(!before.length && !after.length) {
+      box.innerHTML = `<div style="font-size:.82rem;color:var(--gray-400);">${lang==='bm'?'Tiada gambar dimuat naik.':'No photos uploaded.'}</div>`;
+      return;
+    }
+    const cats = [
+      { key:'before', label: lang==='bm'?'Sebelum':'Before', arr: before },
+      { key:'after',  label: lang==='bm'?'Selepas':'After',  arr: after  },
+    ];
+    box.innerHTML = cats.map(cat => !cat.arr.length ? '' : `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:.74rem;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;">${cat.label} (${cat.arr.length})</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${cat.arr.map((p,i)=>`<img src="${p.src}" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-200);cursor:pointer;" onclick="openFullscreen(jstPhotoArr('${cat.key}'),${i})">`).join('')}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    console.error('loadJobStatusPhotos:', e);
+    box.innerHTML = '';
+  }
+}
+
+async function downloadJobInvoice() {
+  if(!jstSessionRef) return;
+  try {
+    const { data, error } = await db.rpc('get_job_invoice_path', { p_ref: jstSessionRef, p_last4: jstSessionLast4 });
+    if(error || !data || !data.ok) { toast(lang==='bm'?'Ralat memuat invois.':'Error loading invoice.', 'error'); return; }
+    if(!data.available) { toast(lang==='bm'?'Invois belum tersedia, sila hubungi kami.':'Invoice not available yet, please contact us.', 'error'); return; }
+    const { data: pub } = db.storage.from('invoices').getPublicUrl(data.path);
+    if(pub?.publicUrl) window.open(pub.publicUrl, '_blank');
+  } catch(e) {
+    console.error('downloadJobInvoice:', e);
+    toast(lang==='bm'?'Ralat memuat invois.':'Error loading invoice.', 'error');
+  }
 }
 
 // ─── STAFF LOGIN ──────────────────────────────────────────────────────────────
@@ -2604,7 +2740,89 @@ function openJobModal(cid) {
     }
   }
 
+  renderMjInvoice(c);
+
   openModal('modal-job');
+}
+
+// ── SECTION 3: Invoice (admin only) ─────────────────────────────────────────
+// Lives on the complaint itself (invoice_path/invoice_uploaded_at columns) —
+// not a separate "jobs" row, since a jobs row only exists once an operator has
+// accepted the complaint and isn't guaranteed for every ref. Worker/operator
+// never sees this section, gated purely client-side like every other
+// admin-only action in this app (there's no real Supabase Auth here).
+function renderMjInvoice(c) {
+  const box = el('mj-invoice');
+  if(!box) return;
+  if(user?.role !== 'admin') { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  const hasInvoice = !!c.invoicePath;
+  box.innerHTML = `
+    <div style="border:1px solid var(--gray-200);border-radius:var(--r);overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;padding:9px 14px;font-size:.78rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;">🧾 ${lang==='bm'?'Invois':'Invoice'}</div>
+      <div style="padding:12px 14px;font-size:.85rem;">
+        ${hasInvoice
+          ? `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+               <span style="color:#166534;font-weight:600;">✅ ${lang==='bm'?'Invois dah diupload':'Invoice uploaded'}${c.invoiceUploadedAt?' — '+fmtDate(c.invoiceUploadedAt):''}</span>
+               <span style="display:flex;gap:8px;">
+                 <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('mj-invoice-file').click()">🔄 ${lang==='bm'?'Ganti':'Replace'}</button>
+                 <button type="button" class="btn btn-danger btn-sm" onclick="removeJobInvoice('${c.ref}')">🗑️ ${lang==='bm'?'Buang':'Remove'}</button>
+               </span>
+             </div>`
+          : `<div style="color:var(--gray-500);margin-bottom:8px;">${lang==='bm'?'Belum ada invois diupload.':'No invoice uploaded yet.'}</div>
+             <button type="button" class="btn btn-lime btn-sm" onclick="document.getElementById('mj-invoice-file').click()">📤 ${lang==='bm'?'Upload Invois (PDF)':'Upload Invoice (PDF)'}</button>`
+        }
+        <input type="file" id="mj-invoice-file" accept="application/pdf" style="display:none;" onchange="uploadJobInvoice('${c.ref}', this.files[0])">
+        <div id="mj-invoice-status" style="margin-top:8px;font-size:.78rem;color:var(--gray-500);"></div>
+      </div>
+    </div>`;
+}
+
+async function uploadJobInvoice(ref, file) {
+  if(!file || user?.role !== 'admin') return;
+  if(file.type !== 'application/pdf') { toast(lang==='bm'?'Fail mesti PDF.':'File must be a PDF.', 'error'); return; }
+  if(file.size > 5*1024*1024) { toast(lang==='bm'?'Saiz fail maksimum 5MB.':'Max file size is 5MB.', 'error'); return; }
+  const c = complaints.find(x=>x.ref===ref);
+  if(!c) return;
+  const statusEl = el('mj-invoice-status');
+  if(statusEl) statusEl.textContent = lang==='bm'?'Memuat naik...':'Uploading...';
+  try {
+    const oldPath = c.invoicePath;
+    const path = `${crypto.randomUUID()}.pdf`;
+    const { error: upErr } = await db.storage.from('invoices').upload(path, file, { contentType:'application/pdf', upsert:false });
+    if(upErr) { toast((lang==='bm'?'Gagal memuat naik: ':'Upload failed: ')+upErr.message, 'error'); if(statusEl) statusEl.textContent=''; return; }
+    const nowIso = new Date().toISOString();
+    const { error: dbErr } = await db.from('complaints').update({ invoice_path: path, invoice_uploaded_at: nowIso }).eq('ref', ref);
+    if(dbErr) { toast((lang==='bm'?'Gagal simpan rekod invois: ':'Failed to save invoice record: ')+dbErr.message, 'error'); if(statusEl) statusEl.textContent=''; return; }
+    c.invoicePath = path; c.invoiceUploadedAt = nowIso;
+    if(oldPath) db.storage.from('invoices').remove([oldPath]).catch(()=>{}); // best-effort cleanup of the replaced file
+    toast(lang==='bm'?'Invois berjaya diupload.':'Invoice uploaded.', 'success');
+    renderMjInvoice(c);
+  } catch(e) {
+    console.error('uploadJobInvoice:', e);
+    toast(lang==='bm'?'Ralat memuat naik invois.':'Error uploading invoice.', 'error');
+    if(statusEl) statusEl.textContent = '';
+  }
+}
+
+async function removeJobInvoice(ref) {
+  if(user?.role !== 'admin') return;
+  const c = complaints.find(x=>x.ref===ref);
+  if(!c || !c.invoicePath) return;
+  const msg = lang==='bm' ? 'Buang invois untuk aduan ini?' : 'Remove the invoice for this complaint?';
+  if(!confirm(msg)) return;
+  try {
+    const { error: dbErr } = await db.from('complaints').update({ invoice_path: null, invoice_uploaded_at: null }).eq('ref', ref);
+    if(dbErr) { toast((lang==='bm'?'Gagal buang: ':'Failed to remove: ')+dbErr.message, 'error'); return; }
+    const oldPath = c.invoicePath;
+    c.invoicePath = ''; c.invoiceUploadedAt = '';
+    db.storage.from('invoices').remove([oldPath]).catch(()=>{});
+    toast(lang==='bm'?'Invois dibuang.':'Invoice removed.', 'success');
+    renderMjInvoice(c);
+  } catch(e) {
+    console.error('removeJobInvoice:', e);
+    toast(lang==='bm'?'Ralat membuang invois.':'Error removing invoice.', 'error');
+  }
 }
 
 function saveJob() {
