@@ -2787,7 +2787,11 @@ async function uploadJobInvoice(ref, file) {
   const statusEl = el('mj-invoice-status');
   if(statusEl) statusEl.textContent = lang==='bm'?'Memuat naik...':'Uploading...';
   try {
-    const oldPath = c.invoicePath;
+    // Insert-only: a fresh random <uuid>.pdf at the bucket root every time
+    // (no upsert, no sub-folder — matches the storage RLS policy's regex).
+    // "Ganti" is just another call to this same function with a brand new
+    // UUID — the old file is never touched, since anon has no delete
+    // permission on the invoices bucket.
     const path = `${crypto.randomUUID()}.pdf`;
     const { error: upErr } = await db.storage.from('invoices').upload(path, file, { contentType:'application/pdf', upsert:false });
     if(upErr) { toast((lang==='bm'?'Gagal memuat naik: ':'Upload failed: ')+upErr.message, 'error'); if(statusEl) statusEl.textContent=''; return; }
@@ -2795,12 +2799,11 @@ async function uploadJobInvoice(ref, file) {
     const { error: dbErr } = await db.from('complaints').update({ invoice_path: path, invoice_uploaded_at: nowIso }).eq('ref', ref);
     if(dbErr) { toast((lang==='bm'?'Gagal simpan rekod invois: ':'Failed to save invoice record: ')+dbErr.message, 'error'); if(statusEl) statusEl.textContent=''; return; }
     c.invoicePath = path; c.invoiceUploadedAt = nowIso;
-    if(oldPath) db.storage.from('invoices').remove([oldPath]).catch(()=>{}); // best-effort cleanup of the replaced file
     toast(lang==='bm'?'Invois berjaya diupload.':'Invoice uploaded.', 'success');
     renderMjInvoice(c);
   } catch(e) {
     console.error('uploadJobInvoice:', e);
-    toast(lang==='bm'?'Ralat memuat naik invois.':'Error uploading invoice.', 'error');
+    toast((lang==='bm'?'Ralat memuat naik invois: ':'Error uploading invoice: ')+(e?.message||e), 'error');
     if(statusEl) statusEl.textContent = '';
   }
 }
