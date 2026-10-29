@@ -149,9 +149,9 @@ const T = {
     refPrefix:'EMUG',
     searchPlaceholder:'Cari aduan...',
     // Media upload
-    mediaLabel:'📷 Muat Naik Gambar/Video Masalah',
-    mediaUploadBtn:'Klik untuk muat naik gambar/video',
-    mediaUploadSub:'JPG, PNG, GIF, MP4, MOV • Maks 5 fail',
+    mediaLabel:'📷 Muat Naik Gambar Masalah',
+    mediaUploadBtn:'Klik untuk muat naik gambar',
+    mediaUploadSub:'JPG, PNG • Maks 5 gambar',
     mediaClear:'🗑️ Buang Semua',
     mediaMax:'Maksimum 5 fail dibenarkan.',
     // Location
@@ -389,9 +389,9 @@ const T = {
     refPrefix:'EMUG',
     searchPlaceholder:'Search complaints...',
     // Media upload
-    mediaLabel:'📷 Upload Problem Photos/Videos',
-    mediaUploadBtn:'Click to upload photos/videos',
-    mediaUploadSub:'JPG, PNG, GIF, MP4, MOV • Max 5 files',
+    mediaLabel:'📷 Upload Problem Photos',
+    mediaUploadBtn:'Click to upload photos',
+    mediaUploadSub:'JPG, PNG • Max 5 images',
     mediaClear:'🗑️ Clear All',
     mediaMax:'Maximum 5 files allowed.',
     // Location
@@ -1588,6 +1588,7 @@ async function submitComplaint() {
     else toast(lang==='bm'?'Sila isi semua maklumat wajib (*)':'Please fill all required fields (*).','error');
     return;
   }
+  if(mediaTooLarge(uploadedFiles)) return;
   if(isBkSlotFull(date, time, problemTeam(problem))) {
     toast(t('bkFull'),'error',5000); return;
   }
@@ -3519,6 +3520,7 @@ async function saveSchedEntry() {
   // (edit, gallery, status, share, delete) in the Complaint List.
   const problem = el('sa-prob').value;
   if(!problem) { toast(t('saNeedProb'), 'error'); return; }
+  if(mediaTooLarge(saUploadedFiles)) return;
   const urgency = el('sa-urgency').value || 'Normal';
   const name  = el('sa-name').value.trim();
   const phone = el('sa-phone').value.trim();
@@ -4373,25 +4375,96 @@ document.querySelectorAll('.modal-overlay').forEach(ov=>{
 
 // ─── PWA ──────────────────────────────────────────────────────────────────────
 
+// --- IMAGE COMPRESSION (shared by every upload point that stores base64 in the DB) ---
+// Attachments are stored as base64 inside jsonb columns, so a few raw phone photos
+// (3-8MB each) blow past the anon role's statement_timeout on insert/update. Every
+// image is downscaled + re-encoded as JPEG in the browser before it becomes base64.
+// Limits are measured on the stored data-URL string, i.e. what is actually sent:
+// 5 images x 600KB = 3,000KB, which stays under the 3MB per-submit guard below.
+const IMG_MAX_SIDE    = 1600;
+const IMG_MAX_B64     = 600 * 1024;
+const MEDIA_TOTAL_MAX = 3 * 1024 * 1024;
+
+async function decodeImageFile(file) {
+  if(window.createImageBitmap) {
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation:'from-image' });
+      return { src:bmp, w:bmp.width, h:bmp.height, done:()=>{ if(bmp.close) bmp.close(); } };
+    } catch(e) { /* options unsupported or undecodable — try the plain call, then <img> */ }
+    try {
+      const bmp = await createImageBitmap(file);
+      return { src:bmp, w:bmp.width, h:bmp.height, done:()=>{ if(bmp.close) bmp.close(); } };
+    } catch(e) { /* fall through to <img> */ }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('decode failed')); img.src = url; });
+    return { src:img, w:img.naturalWidth, h:img.naturalHeight, done:()=>{} };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// Returns { name, type:'image/jpeg', src:dataURL }. Throws if the file can't be decoded.
+async function compressImage(file) {
+  const dec = await decodeImageFile(file);
+  try {
+    if(!dec.w || !dec.h) throw new Error('empty image');
+    const scale = Math.min(1, IMG_MAX_SIDE / Math.max(dec.w, dec.h)); // never upscale
+    const w = Math.max(1, Math.round(dec.w * scale));
+    const h = Math.max(1, Math.round(dec.h * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';              // JPEG has no alpha — transparent PNG would turn black
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(dec.src, 0, 0, w, h);
+    let out = '';
+    for(const q of [0.7, 0.6, 0.5]) {
+      out = canvas.toDataURL('image/jpeg', q);
+      if(out.length <= IMG_MAX_B64) break;
+    }
+    canvas.width = canvas.height = 0;    // release the pixel buffer on low-memory phones
+    if(!out.startsWith('data:image/jpeg')) throw new Error('jpeg encode unsupported');
+    return { name:(file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', type:'image/jpeg', src:out };
+  } finally { dec.done(); }
+}
+
+// Filters out non-images, enforces the raw-size ceiling, then compresses sequentially
+// (one at a time keeps peak memory low on phones). Toasts once per failure kind.
+async function compressImageFiles(files, maxRawBytes) {
+  const out = [];
+  let notImage = false, failed = false;
+  for(const f of files) {
+    if(f.type && !f.type.startsWith('image/')) { notImage = true; continue; }
+    if(f.size > maxRawBytes) { toast((lang==='bm'?'Fail terlalu besar: ':'File too large: ')+f.name,'error'); continue; }
+    try { out.push(await compressImage(f)); }
+    catch(e) { console.warn('[EMUG] compressImage failed:', f.name, e); failed = true; }
+  }
+  if(notImage) toast(lang==='bm'?'Hanya gambar dibenarkan':'Only images allowed','error');
+  if(failed)   toast(lang==='bm'?'Gambar tidak dapat diproses, cuba gambar lain':'Image could not be processed, try another image','error');
+  return out;
+}
+
+// Guard run right before a complaint is inserted: total base64 across all attachments.
+function mediaTooLarge(arr) {
+  const total = arr.reduce((n, f) => n + (f.src ? f.src.length : 0), 0);
+  if(total <= MEDIA_TOTAL_MAX) return false;
+  toast(lang==='bm'
+    ? 'Jumlah saiz gambar terlalu besar. Sila kurangkan bilangan gambar.'
+    : 'Total image size is too large. Please reduce the number of images.', 'error', 6000);
+  return true;
+}
+
 // --- MEDIA UPLOAD ---
-function handleMediaUpload(input) {
+async function handleMediaUpload(input) {
   const files = Array.from(input.files);
-  if(!files.length) return;
-  const remaining = 5 - uploadedFiles.length;
-  if(remaining <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
-  const toRead = files.slice(0, remaining);
-  let loaded = 0;
-  toRead.forEach(file => {
-    if(file.size > 10*1024*1024) { toast((lang==='bm'?'Fail terlalu besar: ':'File too large: ')+file.name,'error'); loaded++; if(loaded===toRead.length) renderMediaPreviews(); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      uploadedFiles.push({ name:file.name, type:file.type, src:e.target.result });
-      loaded++;
-      if(loaded===toRead.length) renderMediaPreviews();
-    };
-    reader.readAsDataURL(file);
-  });
   input.value = '';
+  if(!files.length) return;
+  if(5 - uploadedFiles.length <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
+  toast(lang==='bm'?'Memproses gambar...':'Processing images...','info',1500);
+  const results = await compressImageFiles(files.slice(0, 5 - uploadedFiles.length), 10*1024*1024);
+  results.slice(0, Math.max(0, 5 - uploadedFiles.length)).forEach(r => uploadedFiles.push(r));
+  renderMediaPreviews();
 }
 
 function clearMedia(e) {
@@ -4433,24 +4506,15 @@ function renderMediaPreviews() {
 
 // --- MEDIA UPLOAD (Admin "Tambah Jadual") — mirrors the customer handlers
 // above but operates on saUploadedFiles / sa-media-* DOM, kept fully separate.
-function handleSaMediaUpload(input) {
+async function handleSaMediaUpload(input) {
   const files = Array.from(input.files);
-  if(!files.length) return;
-  const remaining = 5 - saUploadedFiles.length;
-  if(remaining <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
-  const toRead = files.slice(0, remaining);
-  let loaded = 0;
-  toRead.forEach(file => {
-    if(file.size > 10*1024*1024) { toast((lang==='bm'?'Fail terlalu besar: ':'File too large: ')+file.name,'error'); loaded++; if(loaded===toRead.length) renderSaMediaPreviews(); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      saUploadedFiles.push({ name:file.name, type:file.type, src:e.target.result });
-      loaded++;
-      if(loaded===toRead.length) renderSaMediaPreviews();
-    };
-    reader.readAsDataURL(file);
-  });
   input.value = '';
+  if(!files.length) return;
+  if(5 - saUploadedFiles.length <= 0) { toast(lang==='bm'?'Had maksimum 5 fail dicapai.':'Maximum 5 files reached.','error'); return; }
+  toast(lang==='bm'?'Memproses gambar...':'Processing images...','info',1500);
+  const results = await compressImageFiles(files.slice(0, 5 - saUploadedFiles.length), 10*1024*1024);
+  results.slice(0, Math.max(0, 5 - saUploadedFiles.length)).forEach(r => saUploadedFiles.push(r));
+  renderSaMediaPreviews();
 }
 
 function clearSaMedia(e) {
@@ -4750,30 +4814,27 @@ function switchGalleryTab(tab) {
   renderGalleryGrid();
 }
 
-function handleGalleryUpload(input) {
+async function handleGalleryUpload(input) {
   const files = Array.from(input.files);
-  if(!files.length) return;
-  // Ensure all 3 category arrays exist before accessing them
-  if(!galleryData[galleryJobId]) galleryData[galleryJobId] = { before:[], during:[], after:[] };
-  if(!galleryData[galleryJobId].before) galleryData[galleryJobId].before = [];
-  if(!galleryData[galleryJobId].during) galleryData[galleryJobId].during = [];
-  if(!galleryData[galleryJobId].after)  galleryData[galleryJobId].after  = [];
-  const arr = galleryData[galleryJobId][galleryTab];
-  const remaining = 20 - arr.length;
-  if(remaining <= 0) { toast(lang==='bm'?'Had 20 gambar dicapai.':'20 photo limit reached.','error'); return; }
-  let loaded = 0;
-  const toRead = files.slice(0, remaining);
-  toRead.forEach(file => {
-    if(file.size > 15*1024*1024) { loaded++; if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&isOperatorRole(user.role)) renderOperatorDashboard(); } return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      arr.push({ src:e.target.result, name:file.name, type:file.type, ts:new Date().toISOString(), who:user?user.name:'Staff' });
-      loaded++;
-      if(loaded===toRead.length){ saveGallery(); renderGalleryGrid(); updateGalleryTabBadges(); if(user&&isOperatorRole(user.role)) renderOperatorDashboard(); }
-    };
-    reader.readAsDataURL(file);
-  });
   input.value = '';
+  if(!files.length) return;
+  // Capture the target now — compression is async and the user may switch tab/job meanwhile
+  const jobId = galleryJobId, tab = galleryTab;
+  // Ensure all 3 category arrays exist before accessing them
+  if(!galleryData[jobId]) galleryData[jobId] = { before:[], during:[], after:[] };
+  if(!galleryData[jobId].before) galleryData[jobId].before = [];
+  if(!galleryData[jobId].during) galleryData[jobId].during = [];
+  if(!galleryData[jobId].after)  galleryData[jobId].after  = [];
+  const arr = galleryData[jobId][tab];
+  if(20 - arr.length <= 0) { toast(lang==='bm'?'Had 20 gambar dicapai.':'20 photo limit reached.','error'); return; }
+  toast(lang==='bm'?'Memproses gambar...':'Processing images...','info',1500);
+  const results = await compressImageFiles(files.slice(0, 20 - arr.length), 15*1024*1024);
+  results.slice(0, Math.max(0, 20 - arr.length)).forEach(r => {
+    arr.push({ src:r.src, name:r.name, type:r.type, ts:new Date().toISOString(), who:user?user.name:'Staff' });
+  });
+  if(results.length) { dbSaveGallery(jobId); dbSaveJobPhotos(jobId); }
+  if(galleryJobId === jobId) { renderGalleryGrid(); updateGalleryTabBadges(); }
+  if(user&&isOperatorRole(user.role)) renderOperatorDashboard();
 }
 
 function updateGalleryTabBadges() {
@@ -4816,7 +4877,7 @@ function renderGalleryGrid() {
   });
   html += '<label style="width:100%;height:100px;border:2px dashed var(--gray-300);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;color:var(--gray-400);">'
     +'<span style="font-size:1.8rem;">+</span>'+(lang==='bm'?'Tambah Gambar':'Add Photo')
-    +'<input type="file" accept="image/*,video/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
+    +'<input type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
     +'</label>';
   html += '</div>';
   if(!arr.length) {
@@ -4824,7 +4885,7 @@ function renderGalleryGrid() {
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:4px;">'
       + '<label style="width:100%;height:100px;border:2px dashed var(--gray-300);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;color:var(--gray-400);">'
       + '<span style="font-size:1.8rem;">+</span>'+(lang==='bm'?'Tambah Gambar':'Add Photo')
-      + '<input type="file" accept="image/*,video/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
+      + '<input type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple style="display:none;" onchange="handleGalleryUpload(this)">'
       + '</label></div>';
   }
   grid.innerHTML = html;
